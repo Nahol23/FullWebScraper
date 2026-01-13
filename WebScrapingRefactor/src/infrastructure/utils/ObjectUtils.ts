@@ -1,6 +1,10 @@
 
 export function getNestedData(obj: any, path?: string): any[] {
-  if (!path) return Array.isArray(obj) ? obj : [];
+  if (path === '') return [];
+  if (path === undefined || path === null) {
+    return Array.isArray(obj) ? obj : [];
+  }
+  
 
   try {
     const result = path.split('.').reduce((acc, part) => acc && acc[part], obj);
