@@ -1,0 +1,10 @@
+{
+  "name": "hubApi",
+  "baseUrl": "https:/",
+  "endpoint": "/api.hubapi.com/cms/v3/hubdb/tables/847927518/rows",
+  "method": "GET",
+  "body": {},
+  "dataPath": "data.results",
+  "paginationField": "",
+  "supportsPagination": false
+}

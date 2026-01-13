@@ -1,0 +1,10 @@
+{
+  "name": "pokemon",
+  "baseUrl": "https://pokeapi.co",
+  "endpoint": "/api/v2/pokemon/ditto",
+  "method": "GET",
+  "body": {},
+  "dataPath": "data.abilities",
+  "paginationField": "",
+  "supportsPagination": false
+}

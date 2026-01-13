@@ -1,0 +1,9 @@
+{
+  "url": "https://digital.agritechnica.com/api/v1/search/exhibitors",
+  "method": "POST",
+  "body": {
+    "page": 3,
+    "limit": 100,
+    "nextResult": {}
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "name": "webscrapingprova",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "start": "node dist/main.js",
+    "dev": "nodemon src/main.ts",
+    "dev:ts": "ts-node src/main.ts",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "clean": "rm -rf dist node_modules package-lock.json",
+    "rebuild": "npm run clean && npm install && npm run build",
+    "start:api": "ts-node src/main.ts --mode=api",
+    "start:firecrawl": "ts-node src/main.ts --mode=firecrawl",
+    "start:config": "ts-node src/main.ts --mode=config"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EidolonPoe/WebScrapingProva.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/EidolonPoe/WebScrapingProva/issues"
+  },
+  "homepage": "https://github.com/EidolonPoe/WebScrapingProva#readme",
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "@types/ws": "^8.18.1",
+    "nodemon": "^3.1.11",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "@mendable/firecrawl-js": "^4.8.3",
+    "axios": "^1.13.2",
+    "dotenv": "^17.2.3",
+    "franc-min": "^6.2.0"
+  }
+}

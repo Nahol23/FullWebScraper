@@ -1,0 +1,15 @@
+# Report: dragon_ball
+- URL: https://dragonball-api.com/api/characters/
+
+| id | name | image |
+| --- | --- | --- |
+| 1 | Goku | https://dragonball-api.com/characters/goku_normal.webp |
+| 2 | Vegeta | https://dragonball-api.com/characters/vegeta_normal.webp |
+| 3 | Piccolo | https://dragonball-api.com/characters/picolo_normal.webp |
+| 4 | Bulma | https://dragonball-api.com/characters/bulma.webp |
+| 5 | Freezer | https://dragonball-api.com/characters/Freezer.webp |
+| 6 | Zarbon | https://dragonball-api.com/characters/zarbon.webp |
+| 7 | Dodoria | https://dragonball-api.com/characters/dodoria.webp |
+| 8 | Ginyu | https://dragonball-api.com/characters/ginyu.webp |
+| 9 | Celula | https://dragonball-api.com/characters/celula.webp |
+| 10 | Gohan | https://dragonball-api.com/characters/gohan.webp |
