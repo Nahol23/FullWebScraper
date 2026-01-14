@@ -2,12 +2,35 @@ export class Url {
   private readonly value: string;
 
   constructor(value: string) {
-    try {
-      new URL(value); 
-    } catch {
-      throw new Error("Invalid URL format");
+    if(!this.validate(value)) {
+      throw new Error(`Invalid URL: ${value}`);
     }
     this.value = value;
+  }
+
+
+  private validate(url: string): boolean {
+
+    if (url.includes(':///')) {
+      return false; 
+    }
+    try {
+      const parsed = new URL(url);
+    
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return false;
+      }
+      if (!parsed.hostname) {
+        return false;
+      }
+      if (parsed.hostname.split('.').length < 2 && parsed.hostname !== 'localhost') {
+         return false;
+      }
+
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   toString(): string {
