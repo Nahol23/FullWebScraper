@@ -42,9 +42,13 @@
     "vitest": "^4.0.17"
   },
   "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@fastify/swagger": "^9.6.1",
+    "@fastify/swagger-ui": "^5.2.4",
     "@mendable/firecrawl-js": "^4.8.3",
     "axios": "^1.13.2",
     "dotenv": "^17.2.3",
+    "fastify": "^5.7.1",
     "franc-min": "^6.2.0"
   }
 }
