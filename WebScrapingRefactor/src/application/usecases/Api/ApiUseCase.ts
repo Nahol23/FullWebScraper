@@ -1,5 +1,6 @@
 import { IApiPort } from "../../../domain/ports/Api/IApiPort";
 import { ApiResponseDTO } from "../../dto/ApiResponseDto";
+import { getNestedData, findFirstArrayPath } from "../../../infrastructure/utils/ObjectUtils";
 
 export class ApiUseCase {
   constructor(private api: IApiPort) {}
@@ -25,19 +26,15 @@ export class ApiUseCase {
   ): Promise<ApiResponseDTO> {
     const responseData = await this.api.request<any>({ url, method, body });
 
-    let targetArray: any[] = [];
-    if (dataPath) {
-      targetArray = dataPath
-        .split(".")
-        .reduce((obj, key) => obj?.[key], responseData);
-    } else {
-      const firstArrayKey = Object.keys(responseData).find((key) =>
-        Array.isArray(responseData[key])
-      );
-      targetArray = firstArrayKey ? responseData[firstArrayKey] : responseData;
+    let targetArray: any[] = getNestedData(responseData, dataPath);
+    if (targetArray.length === 0 && !dataPath) {
+      const firstArrayPath = findFirstArrayPath(responseData);
+      if (firstArrayPath) {
+        targetArray = getNestedData(responseData, firstArrayPath);
+      } else {
+        targetArray = Array.isArray(responseData) ? responseData : [];
+      }
     }
-
-    if (!Array.isArray(targetArray)) targetArray = [];
 
     if (filters) {
       targetArray = targetArray.filter((item) => {

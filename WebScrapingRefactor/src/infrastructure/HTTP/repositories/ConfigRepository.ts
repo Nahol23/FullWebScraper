@@ -1,8 +1,9 @@
 import fs from "fs";
 import path from "path";
 import { ApiConfig } from "../../../domain/entities/ApiConfig";
+import { IConfigRepository } from "../../../domain/ports/IConfigRepository";
 
-export class ConfigRepository {
+export class ConfigRepository implements IConfigRepository {
   private readonly configDir = path.join(process.cwd(), "src", "config");
 
   constructor() {
