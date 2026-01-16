@@ -1,10 +1,12 @@
+import { AnalyzeApiUseCase } from './../../../application/usecases/Api/AnalyzeApiUseCase';
 import { FastifyInstance } from 'fastify';
 import { ConfigController } from '../controllers/ConfigController';
 import { ManageConfigUseCase } from '../../../application/usecases/ManageConfigUseCase';
-import { AnalyzeApiUseCase } from '../../../application/usecases/AnalyzeApiUseCase';
-import { ExecuteApiUseCase } from '../../../application/usecases/ExecuteApiUseCase';
 import { ConfigRepository } from '../../../infrastructure/HTTP/repositories/ConfigRepository';
 import { ApiAdapter } from '../../../infrastructure/adapters/Api/ApiAdapter';
+import { ExecuteApiUseCase } from '../../../application/usecases/Api/ExecuteApiUseCase';
+
+
 
 export async function configRoutes(fastify: FastifyInstance) {
   // Dependency injection

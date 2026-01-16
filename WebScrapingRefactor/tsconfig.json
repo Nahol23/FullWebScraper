@@ -1,16 +1,13 @@
 {
   "compilerOptions": {
-    /* Basic Options */
-    "target": "ES2022",
     "module": "commonjs",
     "lib": ["ES2022"],
-    
-    /* Output */
+    "types": ["node", "vitest/globals"],
+
     "outDir": "./dist",
     "rootDir": "./src",
     "removeComments": true,
-    
-    /* Type Checking */
+
     "strict": true,
     "noImplicitAny": true,
     "strictNullChecks": true,
@@ -19,8 +16,7 @@
     "strictPropertyInitialization": true,
     "noImplicitThis": true,
     "alwaysStrict": true,
-    
-    /* Module Resolution */
+
     "moduleResolution": "node",
     "baseUrl": ".",
     "paths": {
@@ -30,19 +26,17 @@
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true,
-    
-    /* Advanced */
+
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "inlineSources": true,
-    
-    /* Experimental */
+
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
+  "include": ["src/**/*", "_tests_/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

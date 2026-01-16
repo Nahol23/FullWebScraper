@@ -1,8 +1,9 @@
+import { AnalyzeApiUseCase } from './../../../application/usecases/Api/AnalyzeApiUseCase';
 import { FastifyRequest, FastifyReply } from "fastify";
 import { ApiConfig } from "../../../config/ApiConfigLoader";
 import { ManageConfigUseCase } from "../../../application/usecases/ManageConfigUseCase";
-import { AnalyzeApiUseCase } from "../../../application/usecases/AnalyzeApiUseCase";
-import { ExecuteApiUseCase } from "../../../application/usecases/ExecuteApiUseCase";
+import { ExecuteApiUseCase } from '../../../application/usecases/Api/ExecuteApiUseCase';
+
 
 export class ConfigController {
   constructor(

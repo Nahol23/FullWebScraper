@@ -1,4 +1,4 @@
-import { IApiPort } from "../../domain/ports/Api/IApiPort";
+import { IApiPort } from "../../../domain/ports/Api/IApiPort";
 
 export interface AnalyzeApiResponse {
   sampleData: any;

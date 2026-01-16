@@ -1,8 +1,8 @@
-import { ApiConfig } from "../../domain/entities/ApiConfig";
-import { IConfigRepository } from "../../domain/ports/IConfigRepository";
-import { IApiPort } from "../../domain/ports/Api/IApiPort";
-import { ApiResponseDTO } from "../dto/ApiResponseDto";
-import { getNestedData, findFirstArrayPath } from "../../infrastructure/utils/ObjectUtils";
+import { ApiConfig } from "../../../config/ApiConfigLoader";
+import { IConfigRepository } from "../../../domain/ports/IConfigRepository";
+import { IApiPort } from "../../../domain/ports/Api/IApiPort";
+import { ApiResponseDTO } from "../../dto/ApiResponseDto";
+import { getNestedData, findFirstArrayPath } from "../../../infrastructure/utils/ObjectUtils";
 
 export class ExecuteApiUseCase {
   constructor(private configRepo: IConfigRepository, private apiPort: IApiPort) {}
