@@ -1,12 +1,12 @@
-import axios from 'axios';
-import { ApiResponseDTO } from '../../application/dto/ApiResponseDto';  
-import { ApiConfig } from '../../config/ApiConfigLoader';
+import axios from "axios";
+import { ApiResponseDTO } from "../../../application/dto/ApiResponseDto";
+import { ApiConfig } from "../../../config/ApiConfigLoader";
 
 export class ApiService {
-  async execute(config: ApiConfig): Promise<ApiResponseDTO> {  
+  async execute(config: ApiConfig): Promise<ApiResponseDTO> {
     // 1. Costruzione dell'URL e chiamata
     const url = `${config.baseUrl}${config.endpoint}`;
-    
+
     const response = await axios({
       method: config.method,
       url: url,
@@ -24,9 +24,9 @@ export class ApiService {
     // Ensure we have an array
     if (Array.isArray(data)) {
       targetArray = data;
-    } else if (data && typeof data === 'object') {
+    } else if (data && typeof data === "object") {
       // Try to find the first array in the response
-      const firstArrayKey = Object.keys(data).find(key => 
+      const firstArrayKey = Object.keys(data).find((key) =>
         Array.isArray(data[key])
       );
       targetArray = firstArrayKey ? data[firstArrayKey] : [data];
@@ -34,24 +34,26 @@ export class ApiService {
 
     // 3. Applicazione del filtro (filter)
     if (config.filter && targetArray.length > 0) {
-      targetArray = targetArray.filter(item => {
+      targetArray = targetArray.filter((item) => {
         // Support nested field paths (field.subfield)
-        const value = config.filter!.field
-          .split('.')
+        const value = config
+          .filter!.field.split(".")
           .reduce((obj, key) => obj?.[key], item);
         return value === config.filter!.value;
       });
     }
 
     // 4. Selezione dei campi (selectedFields)
-    if (config.selectedFields && config.selectedFields.length > 0 && targetArray.length > 0) {
-      targetArray = targetArray.map(item => {
+    if (
+      config.selectedFields &&
+      config.selectedFields.length > 0 &&
+      targetArray.length > 0
+    ) {
+      targetArray = targetArray.map((item) => {
         const filteredItem: Record<string, any> = {};
-        config.selectedFields!.forEach(field => {
+        config.selectedFields!.forEach((field) => {
           // Support nested fields in selectedFields too
-          const value = field
-            .split('.')
-            .reduce((obj, key) => obj?.[key], item);
+          const value = field.split(".").reduce((obj, key) => obj?.[key], item);
           filteredItem[field] = value;
         });
         return filteredItem;
@@ -64,12 +66,12 @@ export class ApiService {
       filteredBy: config.filter,
       meta: {
         paths: config.dataPath ? [config.dataPath] : [],
-        total: targetArray.length
-      }
+        total: targetArray.length,
+      },
     };
   }
 
   private resolvePath(obj: any, path: string) {
-    return path.split('.').reduce((prev, curr) => prev?.[curr], obj);
+    return path.split(".").reduce((prev, curr) => prev?.[curr], obj);
   }
 }

@@ -1,9 +1,8 @@
 import { FastifyRequest, FastifyReply } from "fastify";
-import axios from "axios"; 
+import axios from "axios";
 import { ApiConfig } from "../../../config/ApiConfigLoader";
-import { ConfigRepository } from "../../repositories/Configrepository";
-import { ApiService } from "../../services/ApiService";
-
+import { ApiService } from "../services/ApiService";
+import { ConfigRepository } from "../repositories/ConfigRepository";
 export class ConfigController {
   private repo = new ConfigRepository();
 
@@ -16,17 +15,24 @@ export class ConfigController {
     }
   };
 
-  getOne = async (req: FastifyRequest<{ Params: { name: string } }>, reply: FastifyReply) => {
+  getOne = async (
+    req: FastifyRequest<{ Params: { name: string } }>,
+    reply: FastifyReply
+  ) => {
     const { name } = req.params;
     const config = await this.repo.findByName(name);
     if (!config) return reply.status(404).send({ error: "Non trovato" });
     return reply.send(config);
   };
 
-  upsert = async (req: FastifyRequest<{ Body: ApiConfig }>, reply: FastifyReply) => {
+  upsert = async (
+    req: FastifyRequest<{ Body: ApiConfig }>,
+    reply: FastifyReply
+  ) => {
     try {
       const config = req.body;
-      if (!config.name) return reply.status(400).send({ error: "Nome obbligatorio" });
+      if (!config.name)
+        return reply.status(400).send({ error: "Nome obbligatorio" });
       await this.repo.save(config);
       return reply.status(201).send(config);
     } catch (error) {
@@ -34,7 +40,10 @@ export class ConfigController {
     }
   };
 
-  delete = async (req: FastifyRequest<{ Params: { name: string } }>, reply: FastifyReply) => {
+  delete = async (
+    req: FastifyRequest<{ Params: { name: string } }>,
+    reply: FastifyReply
+  ) => {
     try {
       const { name } = req.params;
       const existing = await this.repo.findByName(name);
@@ -46,33 +55,51 @@ export class ConfigController {
     }
   };
 
-  analyze = async (request: FastifyRequest<{ Body: { url: string, method: string, body?: any } }>, reply: FastifyReply) => {
+  analyze = async (
+    request: FastifyRequest<{
+      Body: { url: string; method: string; body?: any };
+    }>,
+    reply: FastifyReply
+  ) => {
     try {
       const { url, method, body } = request.body;
       // Ora axios (minuscolo) funzionerà grazie all'import corretto
       const response = await axios({ method, url, data: body });
-      
+
       return reply.send({
         sampleData: response.data,
-        suggestedFields: typeof response.data === 'object' ? Object.keys(Array.isArray(response.data) ? response.data[0] : response.data) : []
+        suggestedFields:
+          typeof response.data === "object"
+            ? Object.keys(
+                Array.isArray(response.data) ? response.data[0] : response.data
+              )
+            : [],
       });
     } catch (error: any) {
-      return reply.status(400).send({ error: "Errore analisi URL", details: error.message });
+      return reply
+        .status(400)
+        .send({ error: "Errore analisi URL", details: error.message });
     }
   };
 
-  execute = async (request: FastifyRequest<{ Params: { name: string } }>, reply: FastifyReply) => {
+  execute = async (
+    request: FastifyRequest<{ Params: { name: string } }>,
+    reply: FastifyReply
+  ) => {
     try {
-        const { name } = request.params;
-        const config = await this.repo.findByName(name);
-        if (!config) return reply.status(404).send({ error: "Config non trovata" });
+      const { name } = request.params;
+      const config = await this.repo.findByName(name);
+      if (!config)
+        return reply.status(404).send({ error: "Config non trovata" });
 
-        const apiService = new ApiService();
-        const result = await apiService.execute(config);
+      const apiService = new ApiService();
+      const result = await apiService.execute(config);
 
-        return reply.send(result); // CORRETTO: invio esplicito della risposta
+      return reply.send(result); // CORRETTO: invio esplicito della risposta
     } catch (error: any) {
-        return reply.status(500).send({ error: "Errore esecuzione", details: error.message });
+      return reply
+        .status(500)
+        .send({ error: "Errore esecuzione", details: error.message });
     }
   };
 }

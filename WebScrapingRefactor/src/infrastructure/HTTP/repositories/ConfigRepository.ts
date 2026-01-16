@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { ApiConfig } from "../../domain/entities/ApiConfig";
+import { ApiConfig } from "../../../domain/entities/ApiConfig";
 
 export class ConfigRepository {
   private readonly configDir = path.join(process.cwd(), "src", "config");
@@ -12,8 +12,10 @@ export class ConfigRepository {
   }
 
   async findAll(): Promise<ApiConfig[]> {
-    const files = fs.readdirSync(this.configDir).filter(f => f.endsWith('.json'));
-    return files.map(file => {
+    const files = fs
+      .readdirSync(this.configDir)
+      .filter((f) => f.endsWith(".json"));
+    return files.map((file) => {
       const raw = fs.readFileSync(path.join(this.configDir, file), "utf-8");
       return JSON.parse(raw);
     });
