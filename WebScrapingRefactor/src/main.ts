@@ -1,56 +1,64 @@
+import 'dotenv/config'; 
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
+
+
 import { configRoutes } from "./presentation/http/routes/configRoute";
+import { errorHandler } from "./presentation/http/middleware/errorHandler"; 
+//TODO: se metti slash alla fine del base url, rimuovilo
 
-async function buildServer() {
-  const server = Fastify({ logger: true });
 
+export async function buildServer() {
+  const server = Fastify({ 
+    logger: true 
+  });
+
+ 
+  server.setErrorHandler(errorHandler);
+
+  
   await server.register(cors, { origin: true });
 
+  
   await server.register(swagger as any, {
     openapi: {
       info: {
         title: "FullWebScraper API",
         version: "1.0.0",
-        description: "API documentation for FullWebScraper",
+        description: "Documentazione API automatica",
       },
     },
-    exposeRoute: true,
   });
 
   await server.register(swaggerUi as any, {
-    routePrefix: "/docs",
-    uiConfig: {
-      docExpansion: "list",
-      deepLinking: false,
-    },
+    routePrefix: "/docs", 
     staticCSP: false,
-    // point to the generated OpenAPI JSON
-    swagger: {
-      url: "/documentation/json",
-    },
   });
 
-  // Register application routes so schemas are included in the OpenAPI output
-  await configRoutes(server);
+  await server.register(configRoutes, { prefix: '/api/v1' });
 
   return server;
 }
 
 async function start() {
+  
   const server = await buildServer();
   const port = Number(process.env.PORT) || 3000;
 
   try {
+    
     await server.listen({ port, host: "0.0.0.0" });
-    server.log.info(`Server running at http://localhost:${port}`);
-    server.log.info(`Swagger UI available at http://localhost:${port}/docs`);
+    
+    console.log(`\n Server avviato su: http://localhost:${port}/api/v1/configs`);
+    console.log(` Documentazione su:  http://localhost:${port}/docs\n`);
+    
   } catch (err) {
     server.log.error(err);
     process.exit(1);
   }
 }
+
 
 start();

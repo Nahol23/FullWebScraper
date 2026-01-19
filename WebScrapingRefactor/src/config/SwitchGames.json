@@ -1,0 +1,9 @@
+{
+  "name": "SwitchGames",
+  "baseUrl": "https://api.sampleapis.com",  
+  "endpoint": "/switch/games",
+  "method": "GET",
+  "defaultLimit": 10,
+  "dataPath": "",
+  "selectedFields": []
+}

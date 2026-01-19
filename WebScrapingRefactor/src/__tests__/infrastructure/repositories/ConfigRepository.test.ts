@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import fs from "fs";
 import path from "path";
-import { ConfigRepository } from "../../../../infrastructure/HTTP/repositories/ConfigRepository";
+import { ConfigRepository } from "../../../../infrastructure/repositories/ConfigRepository";
 import { ApiConfig } from "../../../../config/ApiConfigLoader";
 vi.mock("fs");
 

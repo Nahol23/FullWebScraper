@@ -2,14 +2,13 @@ import { AnalyzeApiUseCase } from './../../../application/usecases/Api/AnalyzeAp
 import { FastifyInstance } from 'fastify';
 import { ConfigController } from '../controllers/ConfigController';
 import { ManageConfigUseCase } from '../../../application/usecases/ManageConfigUseCase';
-import { ConfigRepository } from '../../../infrastructure/HTTP/repositories/ConfigRepository';
+import { ConfigRepository } from '../../../infrastructure/repositories/ConfigRepository';
 import { ApiAdapter } from '../../../infrastructure/adapters/Api/ApiAdapter';
 import { ExecuteApiUseCase } from '../../../application/usecases/Api/ExecuteApiUseCase';
 
-
-
 export async function configRoutes(fastify: FastifyInstance) {
-  // Dependency injection
+  
+  
   const configRepo = new ConfigRepository();
   const apiAdapter = new ApiAdapter();
   const manageConfigUseCase = new ManageConfigUseCase(configRepo);
@@ -22,7 +21,22 @@ export async function configRoutes(fastify: FastifyInstance) {
     executeApiUseCase
   );
 
-  // Schema for POST body
+ 
+  
+  const errorResponseSchema = {
+    type: 'object',
+    properties: {
+      error: { type: 'string' },
+      message: { type: 'string' }, 
+      details: { 
+        type: 'array', 
+        items: { type: 'object' } 
+      },
+      stack: { type: 'string' } 
+    }
+  };
+
+  
   const configBodySchema = {
     type: 'object',
     required: ['name', 'baseUrl', 'endpoint', 'method'],
@@ -41,7 +55,7 @@ export async function configRoutes(fastify: FastifyInstance) {
     }
   };
 
-  // Schema for URL params
+  
   const nameParamSchema = {
     type: 'object',
     properties: {
@@ -50,7 +64,9 @@ export async function configRoutes(fastify: FastifyInstance) {
     required: ['name']
   };
 
-  // GET ALL
+  
+
+ 
   fastify.get('/configs', {
     schema: {
       summary: 'Lista tutte le configurazioni',
@@ -60,17 +76,12 @@ export async function configRoutes(fastify: FastifyInstance) {
           type: 'array',
           items: configBodySchema
         },
-        500: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' }
-          }
-        }
+        500: errorResponseSchema 
       }
     }
   }, controller.getAll);
 
-  // GET ONE
+ 
   fastify.get('/configs/:name', {
     schema: {
       summary: 'Recupera una configurazione specifica',
@@ -78,23 +89,13 @@ export async function configRoutes(fastify: FastifyInstance) {
       params: nameParamSchema,
       response: {
         200: configBodySchema,
-        404: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' }
-          }
-        },
-        500: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' }
-          }
-        }
+        404: errorResponseSchema, 
+        500: errorResponseSchema  
       }
     }
   }, controller.getOne);
 
-  // POST (Upsert)
+  
   fastify.post('/configs', {
     schema: {
       summary: 'Crea o aggiorna una configurazione',
@@ -102,49 +103,27 @@ export async function configRoutes(fastify: FastifyInstance) {
       body: configBodySchema,
       response: {
         201: configBodySchema,
-        400: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' }
-          }
-        },
-        500: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' }
-          }
-        }
+        400: errorResponseSchema, 
+        500: errorResponseSchema  
       }
     }
   }, controller.upsert);
 
-  // DELETE
+ 
   fastify.delete('/configs/:name', {
     schema: {
       summary: 'Elimina una configurazione',
       tags: ['Configuration'],
       params: nameParamSchema,
       response: {
-        204: {
-          type: 'null'
-        },
-        404: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' }
-          }
-        },
-        500: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' }
-          }
-        }
+        204: { type: 'null' },
+        404: errorResponseSchema, 
+        500: errorResponseSchema  
       }
     }
   }, controller.delete);
 
-  // ANALYZE
+  
   fastify.post('/configs/analyze', {
     schema: {
       summary: 'Analizza un URL API per suggerire campi',
@@ -169,18 +148,13 @@ export async function configRoutes(fastify: FastifyInstance) {
             }
           }
         },
-        400: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' },
-            details: { type: 'string' }
-          }
-        }
+        400: errorResponseSchema, 
+        500: errorResponseSchema  
       }
     }
   }, controller.analyze);
 
-  // EXECUTE
+  
   fastify.post('/configs/:name/execute', {
     schema: {
       summary: 'Esegue una configurazione API',
@@ -189,25 +163,18 @@ export async function configRoutes(fastify: FastifyInstance) {
       response: {
         200: {
           type: 'object',
+          additionalProperties: true,
           properties: {
-            data: { type: 'array', items: { type: 'object' } },
+            data: { type: 'array',
+               items: { 
+                type: 'object',
+                additionalProperties: true } },
             filteredBy: { type: 'object' },
             meta: { type: 'object' }
           }
         },
-        404: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' }
-          }
-        },
-        500: {
-          type: 'object',
-          properties: {
-            error: { type: 'string' },
-            details: { type: 'string' }
-          }
-        }
+        404: errorResponseSchema, 
+        500: errorResponseSchema  
       }
     }
   }, controller.execute);
