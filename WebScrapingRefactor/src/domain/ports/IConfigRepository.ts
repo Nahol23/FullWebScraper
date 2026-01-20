@@ -5,4 +5,6 @@ export interface IConfigRepository {
   findByName(name: string): Promise<ApiConfig | null>;
   save(config: ApiConfig): Promise<void>;
   delete(name: string): Promise<void>;
+  update(name: string, newConfig: ApiConfig) : Promise<void>;
+  
 }

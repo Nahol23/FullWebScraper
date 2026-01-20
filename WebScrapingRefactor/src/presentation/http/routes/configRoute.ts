@@ -1,10 +1,15 @@
 import { AnalyzeApiUseCase } from './../../../application/usecases/Api/AnalyzeApiUseCase';
 import { FastifyInstance } from 'fastify';
 import { ConfigController } from '../controllers/ConfigController';
-import { ManageConfigUseCase } from '../../../application/usecases/ManageConfigUseCase';
+import { ManageConfigUseCase } from '../../../application/usecases/Configs/ManageConfigUseCase';
 import { ConfigRepository } from '../../../infrastructure/repositories/ConfigRepository';
 import { ApiAdapter } from '../../../infrastructure/adapters/Api/ApiAdapter';
 import { ExecuteApiUseCase } from '../../../application/usecases/Api/ExecuteApiUseCase';
+import { UpdateConfigUseCase } from '../../../application/usecases/Configs/UpdateConfigUseCase';
+import { GetAllConfigsUseCase } from '../../../application/usecases/Configs/GetAllConfigsUseCase';
+import { GetConfigByNameUseCase } from '../../../application/usecases/Configs/GetConfigByNameUseCase';
+import { SaveConfigUseCase } from '../../../application/usecases/Configs/SaveConfigUseCase';
+import { DeleteConfigUseCase } from '../../../application/usecases/Configs/DeleteConfigUseCase';
 
 export async function configRoutes(fastify: FastifyInstance) {
   
@@ -14,9 +19,19 @@ export async function configRoutes(fastify: FastifyInstance) {
   const manageConfigUseCase = new ManageConfigUseCase(configRepo);
   const analyzeApiUseCase = new AnalyzeApiUseCase(apiAdapter);
   const executeApiUseCase = new ExecuteApiUseCase(configRepo, apiAdapter);
+  const getAllConfigsUseCase = new GetAllConfigsUseCase(configRepo);
+  const getConfigByNameUseCase = new GetConfigByNameUseCase(configRepo);
+  const saveConfigUseCase = new SaveConfigUseCase(configRepo);
+  const deleteConfigUseCase = new DeleteConfigUseCase(configRepo);
+  const updateConfigUseCase = new UpdateConfigUseCase(configRepo);
 
   const controller = new ConfigController(
-    manageConfigUseCase,
+    
+    updateConfigUseCase,
+    getAllConfigsUseCase,
+    getConfigByNameUseCase,
+    saveConfigUseCase,
+    deleteConfigUseCase,
     analyzeApiUseCase,
     executeApiUseCase
   );
@@ -98,7 +113,7 @@ export async function configRoutes(fastify: FastifyInstance) {
   
   fastify.post('/configs', {
     schema: {
-      summary: 'Crea o aggiorna una configurazione',
+      summary: 'Crea  una nuova  configurazione',
       tags: ['Configuration'],
       body: configBodySchema,
       response: {
@@ -107,7 +122,7 @@ export async function configRoutes(fastify: FastifyInstance) {
         500: errorResponseSchema  
       }
     }
-  }, controller.upsert);
+  }, controller.create);
 
  
   fastify.delete('/configs/:name', {
@@ -123,7 +138,23 @@ export async function configRoutes(fastify: FastifyInstance) {
     }
   }, controller.delete);
 
-  
+  fastify.put('/configs/:name', {
+    schema: {
+      summary: 'Aggiorna una configurazione esistente',
+      tags: ['Configuration'],
+      params: nameParamSchema,
+      body: { 
+        ...configBodySchema,
+        required: []
+      },
+      response: {
+        200: { type: 'object', properties: { message: { type: 'string' } } },
+        404: errorResponseSchema, 
+        500: errorResponseSchema  
+      }
+    }
+  }, controller.update);
+
   fastify.post('/configs/analyze', {
     schema: {
       summary: 'Analizza un URL API per suggerire campi',

@@ -1,19 +1,29 @@
 import { AnalyzeApiUseCase } from './../../../application/usecases/Api/AnalyzeApiUseCase';
 import { FastifyRequest, FastifyReply } from "fastify";
 import { ApiConfig } from "../../../config/ApiConfigLoader";
-import { ManageConfigUseCase } from "../../../application/usecases/ManageConfigUseCase";
+import { ManageConfigUseCase } from "../../../application/usecases/Configs/ManageConfigUseCase";
 import { ExecuteApiUseCase } from '../../../application/usecases/Api/ExecuteApiUseCase';
+import { UpdateConfigUseCase } from '../../../application/usecases/Configs/UpdateConfigUseCase';
+import { GetAllConfigsUseCase } from '../../../application/usecases/Configs/GetAllConfigsUseCase';
+import { GetConfigByNameUseCase } from '../../../application/usecases/Configs/GetConfigByNameUseCase';
+import { SaveConfigUseCase } from '../../../application/usecases/Configs/SaveConfigUseCase';
+import { DeleteConfigUseCase } from '../../../application/usecases/Configs/DeleteConfigUseCase';  
 
 
 export class ConfigController {
   constructor(
-    private manageConfigUseCase: ManageConfigUseCase,
+  
+    private updateConfigUseCase: UpdateConfigUseCase,
+    private getAllConfigsUseCase: GetAllConfigsUseCase,
+    private getConfigByNameUseCase: GetConfigByNameUseCase,
+    private saveConfigUseCase: SaveConfigUseCase,
+    private deleteConfigUseCase: DeleteConfigUseCase,
     private analyzeApiUseCase: AnalyzeApiUseCase,
     private executeApiUseCase: ExecuteApiUseCase
   ) {}
 
   getAll = async (_req: FastifyRequest, reply: FastifyReply) => {
-    const configs = await this.manageConfigUseCase.getAllConfigs();
+    const configs = await this.getAllConfigsUseCase.execute();
     return reply.send(configs);
   };
 
@@ -22,17 +32,17 @@ export class ConfigController {
     reply: FastifyReply
   ) => {
     const { name } = req.params;
-    const config = await this.manageConfigUseCase.getConfigByName(name);
+    const config = await this.getConfigByNameUseCase.execute(name);
     if (!config) throw new Error("Configurazione non trovata");
     return reply.send(config);
   };
 
-  upsert = async (
+  create = async (
     req: FastifyRequest<{ Body: ApiConfig }>,
     reply: FastifyReply
   ) => {
     const config = req.body;
-    await this.manageConfigUseCase.saveConfig(config);
+    await this.saveConfigUseCase.execute(config);
     return reply.status(201).send(config);
   };
 
@@ -41,8 +51,18 @@ export class ConfigController {
     reply: FastifyReply
   ) => {
     const { name } = req.params;
-    await this.manageConfigUseCase.deleteConfig(name);
+    await this.deleteConfigUseCase.execute(name);
     return reply.status(204).send();
+  };
+
+  update = async (
+    req: FastifyRequest<{ Params: { name: string }; Body: Partial<ApiConfig> }>,
+    reply: FastifyReply
+  ) => {
+    const { name } = req.params;
+    const updates = req.body;
+    await this.updateConfigUseCase.execute(name, updates);
+    return reply.status(200).send({ message: "Configurazione aggiornata" });
   };
 
   analyze = async (

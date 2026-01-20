@@ -37,4 +37,18 @@ export class ConfigRepository implements IConfigRepository {
     const filePath = path.join(this.configDir, `${name}.json`);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   }
+
+  async update(name: string, newConfig: ApiConfig): Promise<void> {
+    const filePath = path.join(this.configDir, `${name}.json`);
+    
+    if (!fs.existsSync(filePath)) {
+      throw new Error(`Configurazione '${name}' non trovata. Impossibile aggiornare.`);
+    }
+    
+    newConfig.name = name;
+    fs.writeFileSync(filePath, JSON.stringify(newConfig, null, 2), "utf-8");
+  }
 }
+  
+
+

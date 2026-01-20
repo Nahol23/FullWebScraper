@@ -1,5 +1,5 @@
-import { ApiConfig } from "../../domain/entities/ApiConfig";
-import { IConfigRepository } from "../../domain/ports/IConfigRepository";
+import { ApiConfig } from "../../../domain/entities/ApiConfig";
+import { IConfigRepository } from "../../../domain/ports/IConfigRepository";
 
 export class ManageConfigUseCase {
   constructor(private configRepo: IConfigRepository) {}
