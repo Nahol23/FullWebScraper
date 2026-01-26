@@ -5,5 +5,8 @@ export interface ApiResponseDTO {
   meta? :{
     paths: string[];
     total? : number;
+    page?: number;     
+    limit?: number;    
+    hasNext?: boolean; // if more data exists
   }
 }

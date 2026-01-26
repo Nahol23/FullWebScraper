@@ -4,17 +4,20 @@ import { IApiPort } from "../../../domain/ports/Api/IApiPort";
 import { ApiResponseDTO } from "../../dto/ApiResponseDto";
 import { getNestedData, findFirstArrayPath } from "../../../infrastructure/utils/ObjectUtils";
 
+export interface PaginationParams {
+  page: number;
+  limit: number;
+}
+
 export class ExecuteApiUseCase {
   constructor(private configRepo: IConfigRepository, private apiPort: IApiPort) {}
 
-  async execute(configName: string): Promise<ApiResponseDTO> {
+  async execute(configName: string, pagination?: PaginationParams): Promise<ApiResponseDTO> {
     const config = await this.configRepo.findByName(configName);
     if (!config) {
       throw new Error("Configurazione non trovata");
     }
 
-    // Usa ApiUseCase logic, ma direttamente qui o delegare?
-    // Per ora, implementare simile ad ApiUseCase
     const responseData: any = await this.apiPort.request({
       url: `${config.baseUrl}${config.endpoint}`,
       method: config.method,
@@ -31,6 +34,7 @@ export class ExecuteApiUseCase {
       }
     }
 
+    
     if (config.filter) {
       targetArray = targetArray.filter((item) => {
         const value = config.filter!.field
@@ -40,8 +44,17 @@ export class ExecuteApiUseCase {
       });
     }
 
-    if (config.selectedFields && config.selectedFields.length > 0 && targetArray.length > 0) {
-      targetArray = targetArray.map((item) => {
+    const totalRecords = targetArray.length; 
+
+    let processedData = targetArray;
+    if (pagination) {
+      const start = (pagination.page - 1) * pagination.limit;
+      const end = start + pagination.limit;
+      processedData = targetArray.slice(start, end);
+    }
+
+    if (config.selectedFields && config.selectedFields.length > 0 && processedData.length > 0) {
+      processedData = processedData.map((item) => {
         const filteredItem: Record<string, any> = {};
         config.selectedFields!.forEach((field) => {
           const value = field.split(".").reduce((obj, key) => obj?.[key], item);
@@ -52,11 +65,14 @@ export class ExecuteApiUseCase {
     }
 
     return {
-      data: targetArray,
+      data: processedData,
       filteredBy: config.filter,
       meta: {
         paths: config.dataPath ? [config.dataPath] : [],
-        total: targetArray.length,
+        total: totalRecords,
+        page: pagination?.page,
+        limit: pagination?.limit,
+        hasNext: pagination ? (pagination.page * pagination.limit) < totalRecords : false
       },
     };
   }
