@@ -1,10 +1,8 @@
 import fs from "fs";
 import path from "path";
 import { ApiConfig } from "../../domain/entities/ApiConfig";
-<<<<<<< Updated upstream
 import { IConfigRepository } from "../../domain/ports/IConfigRepository";
-=======
->>>>>>> Stashed changes
+
 
 export class ConfigRepository implements IConfigRepository {
   private readonly configDir = path.join(process.cwd(), "src", "config");

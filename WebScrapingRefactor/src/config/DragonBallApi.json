@@ -1,12 +1,9 @@
 {
   "name": "DragonBallApi",
-  "baseUrl": "https://dragonball-api.com/api/characters/",
+  "baseUrl": "https://dragonball-api.com/api/characters",
   "endpoint": "/dragonball",
   "method": "GET",
   "defaultLimit": 20,
   "dataPath": "results",
-  "selectedFields": [
-    "name",
-    "url"
-  ]
+  "selectedFields": ["name", "url"]
 }
