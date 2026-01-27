@@ -46,6 +46,8 @@ export class ExecuteApiUseCase {
     }
 
     
+
+    
     if (config.filter) {
       targetArray = targetArray.filter((item) => {
         const value = config.filter!.field
@@ -55,7 +57,7 @@ export class ExecuteApiUseCase {
       });
     }
 
-    if (config.selectedFields && config.selectedFields.length > 0 && targetArray.length > 0) {
+     if (config.selectedFields && config.selectedFields.length > 0 && targetArray.length > 0) {
       targetArray = targetArray.map((item) => {
         const filteredItem: Record<string, any> = {};
         config.selectedFields!.forEach((field) => {

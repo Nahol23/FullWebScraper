@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import fs from "fs";
 import path from "path";
-import { ConfigRepository } from "../../../../infrastructure/repositories/ConfigRepository";
-import { ApiConfig } from "../../../../config/ApiConfigLoader";
-vi.mock("fs");
 
+vi.mock("fs");
+import { ConfigRepository } from "../../../infrastructure/repositories/ConfigRepository";
+import { ApiConfig } from "../../../config/ApiConfigLoader";
 // Factory to ensure every config is valid
 const makeConfig = (overrides: Partial<ApiConfig> = {}): ApiConfig => ({
   name: "default",
