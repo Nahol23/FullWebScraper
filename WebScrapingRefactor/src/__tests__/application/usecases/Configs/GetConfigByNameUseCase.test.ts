@@ -2,6 +2,7 @@ import {describe, it, expect,vi, beforeEach} from "vitest";
 import { GetConfigByNameUseCase } from "../../../../application/usecases/Configs/GetConfigByNameUseCase";
 import { IConfigRepository } from "../../../../domain/ports/IConfigRepository";
 import {ApiConfig} from "../../../../domain/entities/ApiConfig";
+import { getNestedData, findFirstArrayPath } from "../../../../infrastructure/utils/ObjectUtils";
 
 
 describe('GetConfigByNameUseCase', () => {

@@ -1,4 +1,4 @@
-import { ApiConfig } from "../../../config/ApiConfigLoader";
+import { ApiConfig } from "../../../domain/entities/ApiConfig";
 import { IConfigRepository } from "../../../domain/ports/IConfigRepository";
 import { IApiPort } from "../../../domain/ports/Api/IApiPort";
 import { ApiResponseDTO } from "../../dto/ApiResponseDto";
@@ -7,16 +7,29 @@ import { getNestedData, findFirstArrayPath } from "../../../infrastructure/utils
 export class ExecuteApiUseCase {
   constructor(private configRepo: IConfigRepository, private apiPort: IApiPort) {}
 
-  async execute(configName: string): Promise<ApiResponseDTO> {
+  async execute(configName: string, runtimeParams?: Record<string, any>): Promise<ApiResponseDTO> {
     const config = await this.configRepo.findByName(configName);
     if (!config) {
       throw new Error("Configurazione non trovata");
     }
 
-    // Usa ApiUseCase logic, ma direttamente qui o delegare?
-    // Per ora, implementare simile ad ApiUseCase
+    const fullUrlObj = new URL(`${config.baseUrl}${config.endpoint}`);
+    if (config.queryParams) {
+      config.queryParams.forEach((param) => {
+        fullUrlObj.searchParams.append(param.key, param.value);
+      });
+    }
+
+    if(runtimeParams){
+      Object.entries(runtimeParams).forEach(([key, value]) => {
+        fullUrlObj.searchParams.set(key, String(value));
+      });
+    }
+
+
+    
     const responseData: any = await this.apiPort.request({
-      url: `${config.baseUrl}${config.endpoint}`,
+      url: fullUrlObj.toString(),
       method: config.method,
       body: config.body,
     });
