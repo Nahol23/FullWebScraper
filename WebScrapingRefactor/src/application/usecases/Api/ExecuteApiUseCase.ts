@@ -4,6 +4,7 @@ import { IApiPort } from "../../../domain/ports/Api/IApiPort";
 import { ApiResponseDTO } from "../../dto/ApiResponseDto";
 import { getNestedData, findFirstArrayPath } from "../../../infrastructure/utils/ObjectUtils";
 
+
 export class ExecuteApiUseCase {
   constructor(private configRepo: IConfigRepository, private apiPort: IApiPort) {}
 
@@ -44,6 +45,7 @@ export class ExecuteApiUseCase {
       }
     }
 
+    
     if (config.filter) {
       targetArray = targetArray.filter((item) => {
         const value = config.filter!.field
@@ -74,3 +76,5 @@ export class ExecuteApiUseCase {
     };
   }
 }
+
+   
