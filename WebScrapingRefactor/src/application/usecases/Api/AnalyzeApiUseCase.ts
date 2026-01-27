@@ -15,11 +15,10 @@ export class AnalyzeApiUseCase {
   constructor(private readonly apiPort: IApiPort) {}
 
   async analyze(
-    fullUrl: string, 
-    method: "GET" | "POST", 
-    body?: Record<string, unknown>
+    fullUrl: string,
+    method: "GET" | "POST",
+    body?: Record<string, unknown>,
   ): Promise<AnalyzeApiResponse> {
-    
     // 1. Validazione e Parsing URL
     let parsedUrl: URL;
     try {
@@ -34,7 +33,9 @@ export class AnalyzeApiUseCase {
       // Nota: Passiamo il body perché nelle tue POST funge da filtro di ricerca
       response = await this.apiPort.request({ url: fullUrl, method, body });
     } catch (e) {
-      throw new Error(`Errore durante la chiamata API: ${(e as Error).message}`);
+      throw new Error(
+        `Errore durante la chiamata API: ${(e as Error).message}`,
+      );
     }
 
     // 3. Estrazione Parametri "Ibrida" (Cruciale per le tue POST di ricerca)
@@ -42,7 +43,7 @@ export class AnalyzeApiUseCase {
     const urlParams = this.extractQueryParams(parsedUrl.searchParams);
     // ...e li unisce a quelli trovati nel Body JSON ({ id: 1 })
     const bodyParams = this.extractBodyParams(body);
-    
+
     const detectedParams = [...urlParams, ...bodyParams];
 
     // 4. Analisi Struttura Dati (Campi suggeriti per la select)
@@ -55,7 +56,7 @@ export class AnalyzeApiUseCase {
       sampleData,
       suggestedFields,
       detectedParams,
-      cleanEndpoint: parsedUrl.pathname // Restituisce il path pulito senza query string
+      cleanEndpoint: parsedUrl.pathname, // Restituisce il path pulito senza query string
     };
   }
 
@@ -70,7 +71,7 @@ export class AnalyzeApiUseCase {
       params.push({
         key,
         value,
-        type: this.inferType(value)
+        type: this.inferType(value),
       });
     });
     return params;
@@ -81,16 +82,17 @@ export class AnalyzeApiUseCase {
    * Converte tutto in stringa per l'anteprima, ma inferisce il tipo originale.
    */
   private extractBodyParams(body?: Record<string, unknown>): ApiParam[] {
-    if (!body || typeof body !== 'object') return [];
+    if (!body || typeof body !== "object") return [];
 
     return Object.entries(body).map(([key, value]) => {
       // Gestione sicura di null/undefined
-      const stringValue = (value === null || value === undefined) ? "" : String(value);
-      
+      const stringValue =
+        value === null || value === undefined ? "" : String(value);
+
       return {
         key,
-        value: stringValue, 
-        type: this.inferType(stringValue)
+        value: stringValue,
+        type: this.inferType(stringValue),
       };
     });
   }
@@ -100,14 +102,18 @@ export class AnalyzeApiUseCase {
    */
   private inferType(value: string): "string" | "number" | "boolean" {
     const normalized = value.trim().toLowerCase();
-    
+
     if (normalized === "true" || normalized === "false") return "boolean";
-    
+
     // Logica numerica robusta: non considera stringhe vuote come 0
-    if (value.trim() !== "" && !isNaN(Number(value)) && isFinite(Number(value))) {
+    if (
+      value.trim() !== "" &&
+      !isNaN(Number(value)) &&
+      isFinite(Number(value))
+    ) {
       return "number";
     }
-    
+
     return "string";
   }
 
@@ -116,11 +122,13 @@ export class AnalyzeApiUseCase {
    * Gestisce: Array di oggetti, Oggetto singolo, Risposte vuote.
    */
   private extractSuggestedFields(response: unknown): string[] {
-    if (!response || typeof response !== 'object') return [];
+    if (!response || typeof response !== "object") return [];
 
     // Caso Array: prendiamo le chiavi del primo oggetto valido
     if (Array.isArray(response)) {
-      const firstValidItem = response.find(item => item !== null && typeof item === 'object');
+      const firstValidItem = response.find(
+        (item) => item !== null && typeof item === "object",
+      );
       return firstValidItem ? Object.keys(firstValidItem) : [];
     }
 
