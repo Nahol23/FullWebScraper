@@ -8,10 +8,14 @@ import { getNestedData, findFirstArrayPath } from "../../../infrastructure/utils
 export class ExecuteApiUseCase {
   constructor(private configRepo: IConfigRepository, private apiPort: IApiPort) {}
 
-  async execute(configName: string, runtimeParams?: Record<string, any>): Promise<ApiResponseDTO> {
-    const config = await this.configRepo.findByName(configName);
+  async execute(idOrName: string, runtimeParams?: Record<string, any>): Promise<ApiResponseDTO> {
+    let config = await this.configRepo.findById(idOrName);
+
+    if(!config){
+      config = await this.configRepo.findByName(idOrName);
+    }
     if (!config) {
-      throw new Error("Configurazione non trovata");
+      throw new Error("Configurazione'${idOrName}'non trovata");
     }
 
     const fullUrlObj = new URL(`${config.baseUrl}${config.endpoint}`);
@@ -57,7 +61,7 @@ export class ExecuteApiUseCase {
       });
     }
 
-     if (config.selectedFields && config.selectedFields.length > 0 && targetArray.length > 0) {
+    if (config.selectedFields && config.selectedFields.length > 0 && !config.selectedFields.includes("*")) {
       targetArray = targetArray.map((item) => {
         const filteredItem: Record<string, any> = {};
         config.selectedFields!.forEach((field) => {

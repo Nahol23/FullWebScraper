@@ -1,7 +1,7 @@
 {
   "name": "HubSpot",
-  "baseUrl": "https://api.hubapi.com",
-  "endpoint": "/cms/v3/hubdb/tables/847927518/rows?portalId=140962492&sort=name&limit=10&categories__contains=06&offset=20",
+  "baseUrl": "https://api.hubapi.com/cms/v3/hubdb/tables/847927518",
+  "endpoint": "/rows?portalId=140962492&sort=name&limit=10&categories__contains=06&offset=20",
   "method": "GET",
   "defaultLimit": 20,
   "dataPath": "",

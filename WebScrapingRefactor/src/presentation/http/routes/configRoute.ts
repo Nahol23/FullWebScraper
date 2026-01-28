@@ -1,19 +1,18 @@
-import { AnalyzeApiUseCase } from './../../../application/usecases/Api/AnalyzeApiUseCase';
-import { FastifyInstance } from 'fastify';
-import { ConfigController } from '../controllers/ConfigController';
-import { ManageConfigUseCase } from '../../../application/usecases/Configs/ManageConfigUseCase';
-import { ConfigRepository } from '../../../infrastructure/repositories/ConfigRepository';
-import { ApiAdapter } from '../../../infrastructure/adapters/Api/ApiAdapter';
-import { ExecuteApiUseCase } from '../../../application/usecases/Api/ExecuteApiUseCase';
-import { UpdateConfigUseCase } from '../../../application/usecases/Configs/UpdateConfigUseCase';
-import { GetAllConfigsUseCase } from '../../../application/usecases/Configs/GetAllConfigsUseCase';
-import { GetConfigByNameUseCase } from '../../../application/usecases/Configs/GetConfigByNameUseCase';
-import { SaveConfigUseCase } from '../../../application/usecases/Configs/SaveConfigUseCase';
-import { DeleteConfigUseCase } from '../../../application/usecases/Configs/DeleteConfigUseCase';
+import { AnalyzeApiUseCase } from "./../../../application/usecases/Api/AnalyzeApiUseCase";
+import { FastifyInstance } from "fastify";
+import { ConfigController } from "../controllers/ConfigController";
+import { ManageConfigUseCase } from "../../../application/usecases/Configs/ManageConfigUseCase";
+import { ConfigRepository } from "../../../infrastructure/repositories/ConfigRepository";
+import { ApiAdapter } from "../../../infrastructure/adapters/Api/ApiAdapter";
+import { ExecuteApiUseCase } from "../../../application/usecases/Api/ExecuteApiUseCase";
+import { UpdateConfigUseCase } from "../../../application/usecases/Configs/UpdateConfigUseCase";
+import { GetAllConfigsUseCase } from "../../../application/usecases/Configs/GetAllConfigsUseCase";
+import { GetConfigByNameUseCase } from "../../../application/usecases/Configs/GetConfigByNameUseCase";
+import { SaveConfigUseCase } from "../../../application/usecases/Configs/SaveConfigUseCase";
+import { DeleteConfigUseCase } from "../../../application/usecases/Configs/DeleteConfigUseCase";
+import { GetConfigByIdUseCase } from "../../../application/usecases/Configs/GetConfigByIdUseCase";
 
 export async function configRoutes(fastify: FastifyInstance) {
-  
-  
   const configRepo = new ConfigRepository();
   const apiAdapter = new ApiAdapter();
   const manageConfigUseCase = new ManageConfigUseCase(configRepo);
@@ -24,189 +23,235 @@ export async function configRoutes(fastify: FastifyInstance) {
   const saveConfigUseCase = new SaveConfigUseCase(configRepo);
   const deleteConfigUseCase = new DeleteConfigUseCase(configRepo);
   const updateConfigUseCase = new UpdateConfigUseCase(configRepo);
+  const getConfigByIdUseCase = new GetConfigByIdUseCase(configRepo);
 
   const controller = new ConfigController(
-    
     updateConfigUseCase,
     getAllConfigsUseCase,
     getConfigByNameUseCase,
+    getConfigByIdUseCase,
     saveConfigUseCase,
     deleteConfigUseCase,
     analyzeApiUseCase,
-    executeApiUseCase
+    executeApiUseCase,
   );
 
- 
-  
   const errorResponseSchema = {
-    type: 'object',
+    type: "object",
     properties: {
-      error: { type: 'string' },
-      message: { type: 'string' }, 
-      details: { 
-        type: 'array', 
-        items: { type: 'object' } 
+      error: { type: "string" },
+      message: { type: "string" },
+      details: {
+        type: "array",
+        items: { type: "object" },
       },
-      stack: { type: 'string' } 
-    }
-  };
-
-  
-  const configBodySchema = {
-    type: 'object',
-    required: ['name', 'baseUrl', 'endpoint', 'method'],
-    properties: {
-      name: { type: 'string', examples: ['PokeApi'] },
-      baseUrl: { type: 'string', examples: ['https://pokeapi.co/api/v2'] },
-      endpoint: { type: 'string', examples: ['/pokemon'] },
-      method: { type: 'string', enum: ['GET', 'POST'], examples: ['GET'] },
-      defaultLimit: { type: 'number', examples: [20] },
-      dataPath: { type: 'string', examples: ['results'] },
-      selectedFields: {
-        type: 'array',
-        items: { type: 'string' },
-        examples: [['name', 'url']]
-      }
-    }
-  };
-
-  
-  const nameParamSchema = {
-    type: 'object',
-    properties: {
-      name: { type: 'string' }
+      stack: { type: "string" },
     },
-    required: ['name']
   };
 
-  
-
- 
-  fastify.get('/configs', {
-    schema: {
-      summary: 'Lista tutte le configurazioni',
-      tags: ['Configuration'],
-      response: {
-        200: {
-          type: 'array',
-          items: configBodySchema
-        },
-        500: errorResponseSchema 
-      }
-    }
-  }, controller.getAll);
-
- 
-  fastify.get('/configs/:name', {
-    schema: {
-      summary: 'Recupera una configurazione specifica',
-      tags: ['Configuration'],
-      params: nameParamSchema,
-      response: {
-        200: configBodySchema,
-        404: errorResponseSchema, 
-        500: errorResponseSchema  
-      }
-    }
-  }, controller.getOne);
-
-  
-  fastify.post('/configs', {
-    schema: {
-      summary: 'Crea  una nuova  configurazione',
-      tags: ['Configuration'],
-      body: configBodySchema,
-      response: {
-        201: configBodySchema,
-        400: errorResponseSchema, 
-        500: errorResponseSchema  
-      }
-    }
-  }, controller.create);
-
- 
-  fastify.delete('/configs/:name', {
-    schema: {
-      summary: 'Elimina una configurazione',
-      tags: ['Configuration'],
-      params: nameParamSchema,
-      response: {
-        204: { type: 'null' },
-        404: errorResponseSchema, 
-        500: errorResponseSchema  
-      }
-    }
-  }, controller.delete);
-
-  fastify.put('/configs/:name', {
-    schema: {
-      summary: 'Aggiorna una configurazione esistente',
-      tags: ['Configuration'],
-      params: nameParamSchema,
-      body: { 
-        ...configBodySchema,
-        required: []
+  const configBodySchema = {
+    type: "object",
+    required: ["name", "baseUrl", "endpoint", "method"],
+    properties: {
+      id: { type: "string", readOnly: true },
+      name: { type: "string", examples: ["PokeApi"] },
+      baseUrl: { type: "string", examples: ["https://pokeapi.co/api/v2"] },
+      endpoint: { type: "string", examples: ["/pokemon"] },
+      method: { type: "string", enum: ["GET", "POST"], examples: ["GET"] },
+      defaultLimit: { type: "number", examples: [20] },
+      dataPath: { type: "string", examples: ["results"] },
+      selectedFields: {
+        type: "array",
+        items: { type: "string" },
+        examples: [["name", "url"]],
       },
-      response: {
-        200: { type: 'object', properties: { message: { type: 'string' } } },
-        404: errorResponseSchema, 
-        500: errorResponseSchema  
-      }
-    }
-  }, controller.update);
+    },
+  };
 
-  fastify.post('/configs/analyze', {
-    schema: {
-      summary: 'Analizza un URL API per suggerire campi',
-      tags: ['Execution'],
-      body: {
-        type: 'object',
-        required: ['url', 'method'],
-        properties: {
-          url: { type: 'string', examples: ['https://api.example.com/data'] },
-          method: { type: 'string', enum: ['GET', 'POST'], examples: ['GET'] },
-          body: { type: 'object' }
-        }
+  const identifierParamSchema = {
+    type: "object",
+    required: ["identifier"],
+    properties: {
+      identifier: {
+        type: "string",
+        description: "Inserisci l'ID univoco o il nome della configurazione",
       },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            sampleData: { type: 'object' },
-            suggestedFields: {
-              type: 'array',
-              items: { type: 'string' }
-            }
-          }
-        },
-        400: errorResponseSchema, 
-        500: errorResponseSchema  
-      }
-    }
-  }, controller.analyze);
+    },
+  };
 
-  
-  fastify.post('/configs/:name/execute', {
-    schema: {
-      summary: 'Esegue una configurazione API',
-      tags: ['Execution'],
-      params: nameParamSchema,
-      response: {
-        200: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            data: { type: 'array',
-               items: { 
-                type: 'object',
-                additionalProperties: true } },
-            filteredBy: { type: 'object' },
-            meta: { type: 'object' }
-          }
+  const nameParamSchema = {
+    type: "object",
+    properties: {
+      name: { type: "string" },
+    },
+    required: ["name"],
+  };
+
+  fastify.get(
+    "/configs",
+    {
+      schema: {
+        summary: "Lista tutte le configurazioni",
+        tags: ["Configuration"],
+        response: {
+          200: {
+            type: "array",
+            items: configBodySchema,
+          },
+          500: errorResponseSchema,
         },
-        404: errorResponseSchema, 
-        500: errorResponseSchema  
-      }
-    }
-  }, controller.execute);
+      },
+    },
+    controller.getAll,
+  );
+
+  fastify.get(
+    "/configs/:id",
+    {
+      schema: {
+        summary: "Recupera configurazione per ID",
+        tags: ["Configuration"],
+        params: identifierParamSchema,
+        response: { 200: configBodySchema, 404: errorResponseSchema },
+      },
+    },
+    controller.getById,
+  );
+
+  // fastify.get('/configs/:name', {
+  //   schema: {
+  //     summary: 'Recupera una configurazione specifica',
+  //     tags: ['Configuration'],
+  //     params: nameParamSchema,
+  //     response: {
+  //       200: configBodySchema,
+  //       404: errorResponseSchema,
+  //       500: errorResponseSchema
+  //     }
+  //   }
+  // }, controller.getOne);
+
+  fastify.post(
+    "/configs",
+    {
+      schema: {
+        summary: "Crea  una nuova  configurazione",
+        tags: ["Configuration"],
+        body: configBodySchema,
+        response: {
+          201: configBodySchema,
+          400: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.create,
+  );
+
+  fastify.delete(
+    "/configs/:name",
+    {
+      schema: {
+        summary: "Elimina una configurazione",
+        tags: ["Configuration"],
+        params: nameParamSchema,
+        response: {
+          204: { type: "null" },
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.delete,
+  );
+
+  fastify.put(
+    "/configs/:name",
+    {
+      schema: {
+        summary: "Aggiorna una configurazione esistente",
+        tags: ["Configuration"],
+        params: nameParamSchema,
+        body: {
+          ...configBodySchema,
+          required: [],
+        },
+        response: {
+          200: { type: "object", properties: { message: { type: "string" } } },
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.update,
+  );
+
+  fastify.post(
+    "/configs/analyze",
+    {
+      schema: {
+        summary: "Analizza un URL API per suggerire campi",
+        tags: ["Execution"],
+        body: {
+          type: "object",
+          required: ["url", "method"],
+          properties: {
+            url: { type: "string", examples: ["https://api.example.com/data"] },
+            method: {
+              type: "string",
+              enum: ["GET", "POST"],
+              examples: ["GET"],
+            },
+            body: { type: "object" },
+          },
+        },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              sampleData: { type: "object" },
+              suggestedFields: {
+                type: "array",
+                items: { type: "string" },
+              },
+            },
+          },
+          400: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.analyze,
+  );
+
+  fastify.post(
+    "/configs/:name/execute",
+    {
+      schema: {
+        summary: "Esegue una configurazione API",
+        tags: ["Execution"],
+        params: nameParamSchema,
+        response: {
+          200: {
+            type: "object",
+            additionalProperties: true,
+            properties: {
+              data: {
+                type: "array",
+                items: {
+                  type: "object",
+                  additionalProperties: true,
+                },
+              },
+              filteredBy: { type: "object" },
+              meta: { type: "object" },
+            },
+          },
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.execute,
+  );
 }

@@ -1,12 +1,9 @@
 {
   "name": "HarryPotter",
-  "baseUrl": "https://potterapi-fedeperin.vercel.app/en/books",
-  "endpoint": "/harrypotter",
+  "baseUrl": "https://potterapi-fedeperin.vercel.app/en",
+  "endpoint": "/books",
   "method": "GET",
   "defaultLimit": 20,
   "dataPath": "results",
-  "selectedFields": [
-    "name",
-    "url"
-  ]
+  "selectedFields": ["name", "url"]
 }

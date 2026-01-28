@@ -1,13 +1,13 @@
+import { ApiParam } from "../../domain/value-objects/ApiParam";
 
 export function getNestedData(obj: any, path?: string): any[] {
-  if (path === '') return [];
+  if (path === "") return [];
   if (path === undefined || path === null) {
     return Array.isArray(obj) ? obj : [];
   }
-  
 
   try {
-    const result = path.split('.').reduce((acc, part) => acc && acc[part], obj);
+    const result = path.split(".").reduce((acc, part) => acc && acc[part], obj);
     return Array.isArray(result) ? result : [];
   } catch (e) {
     return [];
@@ -16,7 +16,7 @@ export function getNestedData(obj: any, path?: string): any[] {
 
 export function findFirstArrayPath(obj: any, path: string = ""): string | null {
   // Controlla se è un array valido (non vuoto e con oggetti)
-  if (Array.isArray(obj) && obj.length > 0 && typeof obj[0] === 'object') {
+  if (Array.isArray(obj) && obj.length > 0 && typeof obj[0] === "object") {
     return path;
   }
 
@@ -30,17 +30,15 @@ export function findFirstArrayPath(obj: any, path: string = ""): string | null {
   return null;
 }
 
-  
+export function flattenObject(obj: any, prefix = ""): Record<string, any> {
+  if (!obj || typeof obj !== "object") return {};
 
-export function flattenObject(obj: any, prefix = ''): Record<string, any> {
-  if (!obj || typeof obj !== 'object') return {};
-  
   return Object.keys(obj).reduce((acc: any, k) => {
-    const pre = prefix.length ? prefix + '.' : '';
-    
+    const pre = prefix.length ? prefix + "." : "";
+
     if (
-      typeof obj[k] === 'object' && 
-      obj[k] !== null && 
+      typeof obj[k] === "object" &&
+      obj[k] !== null &&
       !Array.isArray(obj[k])
     ) {
       Object.assign(acc, flattenObject(obj[k], pre + k));
@@ -51,21 +49,58 @@ export function flattenObject(obj: any, prefix = ''): Record<string, any> {
   }, {});
 }
 
-
- 
-export function filterData<T extends Record<string, any>>(data: T[], filterInput: string): T[] {
+export function filterData<T extends Record<string, any>>(
+  data: T[],
+  filterInput: string,
+): T[] {
   if (!filterInput || filterInput.trim() === "") return data;
 
-  const searchTerms = filterInput.split(',')
-    .map(term => term.trim().toLowerCase())
-    .filter(term => term.length > 0);
+  const searchTerms = filterInput
+    .split(",")
+    .map((term) => term.trim().toLowerCase())
+    .filter((term) => term.length > 0);
 
   return data.filter((item) => {
-    return searchTerms.every(term => {
-      return Object.values(item).some(value => {
+    return searchTerms.every((term) => {
+      return Object.values(item).some((value) => {
         if (value === undefined || value === null) return false;
         return String(value).toLowerCase().includes(term);
       });
     });
   });
+}
+export function extractFields(response: any): string[] {
+  if (!response || typeof response !== "object") return [];
+  if (Array.isArray(response)) {
+    const firstValidItem = response.find(
+      (item) => item !== null && typeof item === "object",
+    );
+    return firstValidItem ? Object.keys(firstValidItem) : [];
+  }
+  return Object.keys(response);
+}
+export function extractParamsFromUrl(url: string): ApiParam[] {
+  try {
+    const parsedUrl = new URL(url);
+    const params: ApiParam[] = [];
+
+    parsedUrl.searchParams.forEach((value, key) => {
+      params.push({
+        key,
+        value,
+        type: inferType(value),
+      });
+    });
+
+    return params;
+  } catch (e) {
+    return [];
+  }
+}
+
+function inferType(value: string): "string" | "number" | "boolean" {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "true" || normalized === "false") return "boolean";
+  if (value.trim() !== "" && !isNaN(Number(value))) return "number";
+  return "string";
 }
