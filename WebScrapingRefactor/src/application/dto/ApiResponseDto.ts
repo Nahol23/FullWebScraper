@@ -1,12 +1,13 @@
 export interface ApiResponseDTO {
-  data: Record<string, any>[];
-  filteredBy?: { field: string; value: any };
+  data: unknown[];
+  filteredBy?: { field: string; value: unknown };
 
   meta? :{
     paths: string[];
     total? : number;
     page?: number;     
     limit?: number;    
-    hasNext?: boolean; // if more data exists
+    hasNext?: boolean; 
+    validObjectsCount?: number;
   }
 }

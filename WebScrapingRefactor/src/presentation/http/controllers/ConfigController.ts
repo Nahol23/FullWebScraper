@@ -77,11 +77,12 @@ export class ConfigController {
   };
 
   execute = async (
-    request: FastifyRequest<{ Params: { name: string } }>,
+    request: FastifyRequest<{ Params: { name: string }, Body: Record<string, any> }>,
     reply: FastifyReply
   ) => {
     const { name } = request.params;
-    const result = await this.executeApiUseCase.execute(name);
+    const runtimeParams = request.body;
+    const result = await this.executeApiUseCase.execute(name, runtimeParams);
     return reply.send(result);
   };
 }

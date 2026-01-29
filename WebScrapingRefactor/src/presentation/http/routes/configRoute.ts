@@ -185,28 +185,35 @@ export async function configRoutes(fastify: FastifyInstance) {
     }
   }, controller.analyze);
 
-  
   fastify.post('/configs/:name/execute', {
-    schema: {
-      summary: 'Esegue una configurazione API',
-      tags: ['Execution'],
-      params: nameParamSchema,
-      response: {
-        200: {
-          type: 'object',
-          additionalProperties: true,
-          properties: {
-            data: { type: 'array',
-               items: { 
-                type: 'object',
-                additionalProperties: true } },
-            filteredBy: { type: 'object' },
-            meta: { type: 'object' }
-          }
-        },
-        404: errorResponseSchema, 
-        500: errorResponseSchema  
+  schema: {
+    summary: 'Esegue una configurazione API',
+    tags: ['Execution'],
+    params: nameParamSchema,
+    
+    //  AGGIUNGI QUESTO BLOCCO BODY
+    body: {
+      type: 'object',
+      description: 'Parametri dinamici da passare alla configurazione',
+      // 'additionalProperties: true' è FONDAMENTALE qui perché i parametri cambiano sempre
+      additionalProperties: true, 
+      // Puoi rimettere 'example' solo se hai applicato il fix su AJV nel main.ts
+      example: { 
+         userId: 12345,
+         status: "active"
       }
+    },
+    // FINE BLOCCO BODY
+
+    response: {
+       // ... la tua risposta esistente
+       200: { /* ... */ },
+       404: errorResponseSchema,
+       500: errorResponseSchema
     }
-  }, controller.execute);
+  }
+}, controller.execute);
+
+  
+ 
 }

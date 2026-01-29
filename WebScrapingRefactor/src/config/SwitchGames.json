@@ -1,12 +1,9 @@
 {
   "name": "SwitchGames",
-  "baseUrl": "https://pokeapi.co/api/v2",
-  "endpoint": "/pokemon",
+  "baseUrl": "https://api.sampleapis.com",
+  "endpoint": "/switch/games",
   "method": "GET",
-  "defaultLimit": 999,
-  "dataPath": "results",
-  "selectedFields": [
-    "name",
-    "url"
-  ]
+  "defaultLimit": 20,
+  "dataPath": "",
+  "selectedFields": []
 }
