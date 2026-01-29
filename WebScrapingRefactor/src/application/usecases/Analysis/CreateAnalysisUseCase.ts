@@ -7,13 +7,14 @@ import { extractParamsFromUrl } from "../../../infrastructure/utils/ObjectUtils"
 export class CreateAnalysisUseCase {
   constructor(private apiPort: IApiPort) {}
 
-  async execute(url: string, method: "GET" | "POST"): Promise<Analysis> {
-    const rawResponse = await this.apiPort.request({ url, method });
+  async execute(url: string, method: "GET" | "POST", body?: any ): Promise<Analysis> {
+    const rawResponse = await this.apiPort.request({ url, method, body});
     
     return {
       id: crypto.randomUUID(),
       url,
       method,
+      body,
       status: "completed",
       discoveredSchema: {
          suggestedFields: extractFields(rawResponse),

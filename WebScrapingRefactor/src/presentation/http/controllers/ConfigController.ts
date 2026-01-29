@@ -8,6 +8,8 @@ import { GetConfigByNameUseCase } from '../../../application/usecases/Configs/Ge
 import { GetConfigByIdUseCase } from '../../../application/usecases/Configs/GetConfigByIdUseCase';
 import { SaveConfigUseCase } from '../../../application/usecases/Configs/SaveConfigUseCase';
 import { DeleteConfigUseCase } from '../../../application/usecases/Configs/DeleteConfigUseCase';  
+import { RunExecutionUseCase } from '../../../application/usecases/Execution/RunExecutionUseCase';
+import { CreateAnalysisUseCase } from '../../../application/usecases/Analysis/CreateAnalysisUseCase';
 
 export class ConfigController {
   constructor(
@@ -17,8 +19,8 @@ export class ConfigController {
     private getConfigByIdUseCase: GetConfigByIdUseCase,
     private saveConfigUseCase: SaveConfigUseCase,
     private deleteConfigUseCase: DeleteConfigUseCase,
-    private analyzeApiUseCase: AnalyzeApiUseCase,
-    private executeApiUseCase: ExecuteApiUseCase
+    private createAnalysisUseCase : CreateAnalysisUseCase,
+    private runExecutionUseCase : RunExecutionUseCase,
   ) {}
 
   getAll = async (_req: FastifyRequest, reply: FastifyReply) => {
@@ -81,23 +83,26 @@ export class ConfigController {
 
   
   execute = async (
-    request: FastifyRequest<{ Params: { identifier: string }; Body: unknown }>,
+    request: FastifyRequest<{ Params: { identifier: string }; Body: Record <string,any> }>,
     reply: FastifyReply
   ) => {
-    const { identifier } = request.params;
-    const runtimeParams = request.body as Record<string, any>| undefined; 
-    const result = await this.executeApiUseCase.execute(identifier, runtimeParams);
-    return reply.send(result);
+    const { identifier } = request.params; 
+    const runtimeParams = request.body;
+    
+    const result = await this.runExecutionUseCase.execute(identifier, runtimeParams);
+    
+    return reply.status(200).send(result);
   };
-
-  analyze = async (
+analyze = async (
     request: FastifyRequest<{
-      Body: { url: string; method: string; body?: any };
+      Body: { url: string; method: "GET" | "POST"; body?: any };
     }>,
     reply: FastifyReply
   ) => {
-    const { url, method, body } = request.body;
-    const result = await this.analyzeApiUseCase.analyze(url, method as "GET" | "POST", body);
-    return reply.send(result);
+    const { url,method,body} = request.body;
+    
+    const analysis = await this.createAnalysisUseCase.execute(url,method,body);
+    
+    return reply.status(200).send(analysis);
   };
 }

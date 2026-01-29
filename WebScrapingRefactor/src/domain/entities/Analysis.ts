@@ -4,6 +4,7 @@ export interface Analysis {
     id: string;
   url: string;
   method: "GET" | "POST";
+  body?: any;
   status: "pending" | "completed" | "failed";
   discoveredSchema?: {
     suggestedFields: string[];

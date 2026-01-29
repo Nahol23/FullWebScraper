@@ -11,13 +11,15 @@ import { GetConfigByNameUseCase } from "../../../application/usecases/Configs/Ge
 import { SaveConfigUseCase } from "../../../application/usecases/Configs/SaveConfigUseCase";
 import { DeleteConfigUseCase } from "../../../application/usecases/Configs/DeleteConfigUseCase";
 import { GetConfigByIdUseCase } from "../../../application/usecases/Configs/GetConfigByIdUseCase";
+import { CreateAnalysisUseCase } from "../../../application/usecases/Analysis/CreateAnalysisUseCase";
+import { RunExecutionUseCase } from "../../../application/usecases/Execution/RunExecutionUseCase";
 
 export async function configRoutes(fastify: FastifyInstance) {
   const configRepo = new ConfigRepository();
   const apiAdapter = new ApiAdapter();
   const manageConfigUseCase = new ManageConfigUseCase(configRepo);
-  const analyzeApiUseCase = new AnalyzeApiUseCase(apiAdapter);
-  const executeApiUseCase = new ExecuteApiUseCase(configRepo, apiAdapter);
+  const createAnalysisUseCase = new CreateAnalysisUseCase(apiAdapter);
+  const runExecutionUseCase= new RunExecutionUseCase(configRepo, apiAdapter);
   const getAllConfigsUseCase = new GetAllConfigsUseCase(configRepo);
   const getConfigByNameUseCase = new GetConfigByNameUseCase(configRepo);
   const saveConfigUseCase = new SaveConfigUseCase(configRepo);
@@ -32,8 +34,8 @@ export async function configRoutes(fastify: FastifyInstance) {
     getConfigByIdUseCase,
     saveConfigUseCase,
     deleteConfigUseCase,
-    analyzeApiUseCase,
-    executeApiUseCase,
+    createAnalysisUseCase,
+    runExecutionUseCase
   );
 
   const errorResponseSchema = {
