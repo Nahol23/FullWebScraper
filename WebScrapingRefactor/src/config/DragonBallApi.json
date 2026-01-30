@@ -7,6 +7,6 @@
   "dataPath": "results",
   "selectedFields": [
     "name",
-    "url"
+    "race"
   ]
 }

@@ -64,6 +64,23 @@ export class ConfigController {
     await this.updateConfigUseCase.execute(name, updates);
     return reply.status(200).send({ message: "Configurazione aggiornata" });
   };
+  patchSelectedFields = async (req : any, reply : any) => {
+  const { name } = req.params;
+  const { selectedFields } = req.body;
+
+  await this.updateConfigUseCase.execute(name, { selectedFields });
+
+  return reply.status(200).send({ message: "selectedFields aggiornati" });
+};
+
+patchPagination = async (req : any, reply : any) => {
+  const { name } = req.params;
+  const updates = req.body;
+
+  await this.updateConfigUseCase.execute(name, updates);
+
+  return reply.status(200).send({ message: "Paginazione aggiornata" });
+};
 
   analyze = async (
     request: FastifyRequest<{
