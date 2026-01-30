@@ -1,0 +1,13 @@
+{
+  "name": "PokeApi",
+  "baseUrl": "https://pokeapi.co/api/v2",
+  "endpoint": "/pokemon",
+  "method": "GET",
+  "defaultLimit": 20,
+  "dataPath": "results",
+  "selectedFields": [
+    "name",
+    "url"
+  ],
+  "id": "3bde48fe-c672-4043-87df-4e56eaa2f670"
+}

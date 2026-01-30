@@ -8,6 +8,8 @@ import { GetAllConfigsUseCase } from '../../../application/usecases/Configs/GetA
 import { GetConfigByNameUseCase } from '../../../application/usecases/Configs/GetConfigByNameUseCase';
 import { SaveConfigUseCase } from '../../../application/usecases/Configs/SaveConfigUseCase';
 import { DeleteConfigUseCase } from '../../../application/usecases/Configs/DeleteConfigUseCase';  
+import { randomUUID } from 'crypto';
+import { GetConfigByIdUseCase } from '../../../application/usecases/Configs/GetConfigByIdUseCase';
 
 
 export class ConfigController {
@@ -16,6 +18,7 @@ export class ConfigController {
     private updateConfigUseCase: UpdateConfigUseCase,
     private getAllConfigsUseCase: GetAllConfigsUseCase,
     private getConfigByNameUseCase: GetConfigByNameUseCase,
+    private getConfigByIdUseCase : GetConfigByIdUseCase,
     private saveConfigUseCase: SaveConfigUseCase,
     private deleteConfigUseCase: DeleteConfigUseCase,
     private analyzeApiUseCase: AnalyzeApiUseCase,
@@ -36,12 +39,21 @@ export class ConfigController {
     if (!config) throw new Error("Configurazione non trovata");
     return reply.send(config);
   };
+  getById = async (req: any, reply : any) => {
+  const { id } = req.params;
+  const config = await this.getConfigByIdUseCase.execute(id);
+  if (!config) throw new Error("Config non trovata");
+  return reply.send(config);
+};
 
   create = async (
     req: FastifyRequest<{ Body: ApiConfig }>,
     reply: FastifyReply
   ) => {
-    const config = req.body;
+    const config = {
+      ...req.body,
+       id: randomUUID()
+    };
     await this.saveConfigUseCase.execute(config);
     return reply.status(201).send(config);
   };

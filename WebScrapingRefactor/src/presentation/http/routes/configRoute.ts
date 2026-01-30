@@ -10,6 +10,7 @@ import { GetAllConfigsUseCase } from "../../../application/usecases/Configs/GetA
 import { GetConfigByNameUseCase } from "../../../application/usecases/Configs/GetConfigByNameUseCase";
 import { SaveConfigUseCase } from "../../../application/usecases/Configs/SaveConfigUseCase";
 import { DeleteConfigUseCase } from "../../../application/usecases/Configs/DeleteConfigUseCase";
+import { GetConfigByIdUseCase } from "../../../application/usecases/Configs/GetConfigByIdUseCase";
 
 export async function configRoutes(fastify: FastifyInstance) {
   const configRepo = new ConfigRepository();
@@ -19,6 +20,7 @@ export async function configRoutes(fastify: FastifyInstance) {
   const executeApiUseCase = new ExecuteApiUseCase(configRepo, apiAdapter);
   const getAllConfigsUseCase = new GetAllConfigsUseCase(configRepo);
   const getConfigByNameUseCase = new GetConfigByNameUseCase(configRepo);
+  const getConfigByIdUseCase = new GetConfigByIdUseCase (configRepo);
   const saveConfigUseCase = new SaveConfigUseCase(configRepo);
   const deleteConfigUseCase = new DeleteConfigUseCase(configRepo);
   const updateConfigUseCase = new UpdateConfigUseCase(configRepo);
@@ -27,6 +29,7 @@ export async function configRoutes(fastify: FastifyInstance) {
     updateConfigUseCase,
     getAllConfigsUseCase,
     getConfigByNameUseCase,
+    getConfigByIdUseCase,
     saveConfigUseCase,
     deleteConfigUseCase,
     analyzeApiUseCase,
@@ -106,6 +109,21 @@ export async function configRoutes(fastify: FastifyInstance) {
     },
     controller.getOne,
   );
+  fastify.get("/configs/id/:id", {
+  schema: {
+    summary: "Recupera una configurazione tramite ID",
+    tags: ["Configuration"],
+    params: {
+      type: "object",
+      required: ["id"],
+      properties: { id: { type: "string" } }
+    },
+    response: {
+      200: configBodySchema,
+      404: errorResponseSchema
+    }
+  }
+}, controller.getById);
 
   fastify.post(
     "/configs",

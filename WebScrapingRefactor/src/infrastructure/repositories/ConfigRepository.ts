@@ -27,6 +27,17 @@ export class ConfigRepository implements IConfigRepository {
     if (!fs.existsSync(filePath)) return null;
     return JSON.parse(fs.readFileSync(filePath, "utf-8"));
   }
+  async findById(id: string): Promise<ApiConfig | null> {
+  const files = fs.readdirSync(this.configDir).filter(f => f.endsWith(".json"));
+
+  for (const file of files) {
+    const raw = fs.readFileSync(path.join(this.configDir, file), "utf-8");
+    const config = JSON.parse(raw);
+    if (config.id === id) return config;
+  }
+
+  return null;
+}
 
   async save(config: ApiConfig): Promise<void> {
     const filePath = path.join(this.configDir, `${config.name}.json`);
