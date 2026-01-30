@@ -1,6 +1,5 @@
-import { ApiConfig } from "../../../config/ApiConfigLoader";
 import { IConfigRepository } from "../../../domain/ports/IConfigRepository";
-
+import { ApiConfig } from "../../../domain/entities/ApiConfig";
 export class GetConfigByIdUseCase {
   constructor(private repo: IConfigRepository) {}
 
