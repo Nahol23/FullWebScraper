@@ -12,7 +12,7 @@ export class ExecuteApiUseCase {
   async execute(
     configName: string,
     runtimeParams?: Record<string, unknown>
-  ): Promise<ApiResponseDTO> {
+   ): Promise<ApiResponseDTO> {
     
     const config = await this.configRepo.findByName(configName);
     if (!config) {
@@ -33,9 +33,29 @@ export class ExecuteApiUseCase {
       ? JSON.parse(JSON.stringify(config.body))
       : undefined;
 
-    // 5. Smart Merge Runtime Params
+    const finalHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(config.headers || {})
+
+    }
+
+    let paramsForMerge = runtimeParams || {};
+
     if (runtimeParams) {
-      this.mergeRuntimeParams(config.method, url, finalBody, runtimeParams);
+        //  Se ci sono headers nei runtimeParams, li uniamo a quelli finali
+        if (runtimeParams.headers) {
+            const runtimeHeaders = runtimeParams.headers as Record<string, string>;
+            Object.assign(finalHeaders, runtimeHeaders);
+
+            //  Rimuoviamo 'headers' dai parametri per non sporcare l'URL o il Body
+            const { headers, ...rest } = runtimeParams;
+            paramsForMerge = rest;
+        }
+      }
+
+    //  Smart Merge Runtime Params (abbiamo tolto headers)
+    if (Object.keys(paramsForMerge).length > 0) {
+      this.mergeRuntimeParams(config.method, url, finalBody, paramsForMerge);
     }
 
     let responseData: unknown;
@@ -44,8 +64,9 @@ export class ExecuteApiUseCase {
         url: url.toString(),
         method: config.method,
         body: finalBody,
+        headers: finalHeaders
       })
-      console.log("Response Data:", responseData);
+      
     } catch (error) {
       throw new Error(
         `Errore chiamata API "${configName}": ${(error as Error).message}`

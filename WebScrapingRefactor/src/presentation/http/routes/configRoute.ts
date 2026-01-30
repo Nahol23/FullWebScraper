@@ -16,7 +16,6 @@ export async function configRoutes(fastify: FastifyInstance) {
   
   const configRepo = new ConfigRepository();
   const apiAdapter = new ApiAdapter();
-  const manageConfigUseCase = new ManageConfigUseCase(configRepo);
   const analyzeApiUseCase = new AnalyzeApiUseCase(apiAdapter);
   const executeApiUseCase = new ExecuteApiUseCase(configRepo, apiAdapter);
   const getAllConfigsUseCase = new GetAllConfigsUseCase(configRepo);
@@ -66,9 +65,14 @@ export async function configRoutes(fastify: FastifyInstance) {
         type: 'array',
         items: { type: 'string' },
         examples: [['name', 'url']]
+      },
+      body: {
+        type: 'object',
+        examples: [{ key1: 'value1', key2: 'value2' }],
+
       }
     }
-  };
+  }; 
 
   
   const nameParamSchema = {
@@ -79,9 +83,7 @@ export async function configRoutes(fastify: FastifyInstance) {
     required: ['name']
   };
 
-  
 
- 
   fastify.get('/configs', {
     schema: {
       summary: 'Lista tutte le configurazioni',
@@ -188,23 +190,41 @@ export async function configRoutes(fastify: FastifyInstance) {
   fastify.post('/configs/:name/execute', {
   schema: {
     summary: 'Esegue una configurazione API',
+    description: 'Esegue la chiamata API configurata iniettando i parametri dinamici.',
     tags: ['Execution'],
     params: nameParamSchema,
-    
-    //  AGGIUNGI QUESTO BLOCCO BODY
-    body: {
-      type: 'object',
-      description: 'Parametri dinamici da passare alla configurazione',
-      // 'additionalProperties: true' è FONDAMENTALE qui perché i parametri cambiano sempre
-      additionalProperties: true, 
-      // Puoi rimettere 'example' solo se hai applicato il fix su AJV nel main.ts
-      example: { 
-         userId: 12345,
-         status: "active"
-      }
-    },
-    // FINE BLOCCO BODY
-
+   body: {
+        type: 'object',
+        description: `
+        **Parametri Dinamici**:
+        I campi inseriti qui verranno usati per sostituire i placeholder o aggiunti come query params.
+        Usa la chiave speciale 'headers' per sovrascrivere gli header HTTP.
+        `,
+        // Definiamo esplicitamente 'headers' per renderlo visibile in Swagger
+        properties: {
+          headers: {
+            type: 'object',
+            description: 'Headers HTTP opzionali da aggiungere/sovrascrivere',
+            additionalProperties: { type: 'string' },
+            example: { "Authorization": "Bearer <token>" }
+          }
+        },
+        // Fondamentale: permette qualsiasi altro campo (es. userId, city, page)
+        additionalProperties: true,
+        // Esempi chiari per l'utente
+        examples: [
+          { 
+            _name: "Simple Query",
+            city: "Milano", 
+            days: 3 
+          },
+          { 
+            _name: "With Auth Header",
+            headers: { "Authorization": "Bearer 123" },
+            productId: 99
+          }
+        ]
+      },
     response: {
        // ... la tua risposta esistente
        200: { /* ... */ },
