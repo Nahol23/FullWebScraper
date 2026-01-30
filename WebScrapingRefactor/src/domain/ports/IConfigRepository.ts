@@ -3,6 +3,7 @@ import { ApiConfig } from "../entities/ApiConfig";
 export interface IConfigRepository {
   findAll(): Promise<ApiConfig[]>;
   findByName(name: string): Promise<ApiConfig | null>;
+  findById(id: string) : Promise <ApiConfig | null>;
   save(config: ApiConfig): Promise<void>;
   delete(name: string): Promise<void>;
   update(name: string, newConfig: ApiConfig) : Promise<void>;
