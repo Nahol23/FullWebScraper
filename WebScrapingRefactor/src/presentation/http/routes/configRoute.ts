@@ -1,7 +1,6 @@
 import { AnalyzeApiUseCase } from './../../../application/usecases/Api/AnalyzeApiUseCase';
 import { FastifyInstance } from 'fastify';
 import { ConfigController } from '../controllers/ConfigController';
-import { ManageConfigUseCase } from '../../../application/usecases/Configs/ManageConfigUseCase';
 import { ConfigRepository } from '../../../infrastructure/repositories/ConfigRepository';
 import { ApiAdapter } from '../../../infrastructure/adapters/Api/ApiAdapter';
 import { ExecuteApiUseCase } from '../../../application/usecases/Api/ExecuteApiUseCase';
@@ -55,21 +54,51 @@ export async function configRoutes(fastify: FastifyInstance) {
     type: 'object',
     required: ['name', 'baseUrl', 'endpoint', 'method'],
     properties: {
-      name: { type: 'string', examples: ['PokeApi'] },
-      baseUrl: { type: 'string', examples: ['https://pokeapi.co/api/v2'] },
-      endpoint: { type: 'string', examples: ['/pokemon'] },
-      method: { type: 'string', enum: ['GET', 'POST'], examples: ['GET'] },
-      defaultLimit: { type: 'number', examples: [20] },
-      dataPath: { type: 'string', examples: ['results'] },
-      selectedFields: {
-        type: 'array',
-        items: { type: 'string' },
-        examples: [['name', 'url']]
+      name: { type: 'string', examples: ['Nome API'] },
+      baseUrl: { type: 'string', examples: ['https://api.esempio.it'] },
+      endpoint: { type: 'string', examples: ['/v1/data'] },
+      method: { type: 'string', enum: ['GET', 'POST'], examples: ['GET/POST'] },
+      queryParams: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['key', 'value'],
+            properties: {
+              key: { type: 'string' },
+              value: { type: 'string' }
+            }
+          },
+          examples: [[{ "key": "v", "value": "1" }]]
+        },
+      headers: {
+        type: 'object',
+        additionalProperties: {type: 'string'},
+        examples: [
+          {
+            "Authorization": "Bearer token123",
+            "Content-Type": "application/json",
+            "X-Custom-Header": "value"
+          }
+        ]
       },
       body: {
         type: 'object',
-        examples: [{ key1: 'value1', key2: 'value2' }],
+        additionalProperties: true,
+        examples: [
+          {
+            "param1": "value1",
+            "param2": "value2",
+            "offset": 20
+          }
+        ],
 
+      },
+      defaultLimit: { type: 'number', examples: [20] },
+      dataPath: { type: 'string', examples: ['data.results'] },
+      selectedFields: {
+        type: 'array',
+        items: { type: 'string' },
+        examples: [['id','name', 'description']]
       }
     }
   }; 
@@ -116,6 +145,7 @@ export async function configRoutes(fastify: FastifyInstance) {
   fastify.post('/configs', {
     schema: {
       summary: 'Crea  una nuova  configurazione',
+      description: 'Modello di default da editare in base a  chiamata http.',
       tags: ['Configuration'],
       body: configBodySchema,
       response: {

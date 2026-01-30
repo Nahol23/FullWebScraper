@@ -66,7 +66,7 @@ export class ExecuteApiUseCase {
         body: finalBody,
         headers: finalHeaders
       })
-      
+      console.log("Response Data:", responseData);
     } catch (error) {
       throw new Error(
         `Errore chiamata API "${configName}": ${(error as Error).message}`

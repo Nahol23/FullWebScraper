@@ -1,7 +1,6 @@
 import { AnalyzeApiUseCase } from './../../../application/usecases/Api/AnalyzeApiUseCase';
 import { FastifyRequest, FastifyReply } from "fastify";
-import { ApiConfig } from "../../../config/ApiConfigLoader";
-import { ManageConfigUseCase } from "../../../application/usecases/Configs/ManageConfigUseCase";
+import { ApiConfig } from '../../../domain/entities/ApiConfig';
 import { ExecuteApiUseCase } from '../../../application/usecases/Api/ExecuteApiUseCase';
 import { UpdateConfigUseCase } from '../../../application/usecases/Configs/UpdateConfigUseCase';
 import { GetAllConfigsUseCase } from '../../../application/usecases/Configs/GetAllConfigsUseCase';

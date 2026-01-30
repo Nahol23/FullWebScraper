@@ -11,7 +11,7 @@
   },
     "body": {
     "query": "",
-    "hitsPerPage": 200,
+    "hitsPerPage": 5,
     "attributesToRetrieve": ["*"]
   },
   "defaultLimit": 20,
