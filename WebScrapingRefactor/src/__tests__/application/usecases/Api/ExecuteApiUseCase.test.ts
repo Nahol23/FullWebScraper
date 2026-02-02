@@ -305,7 +305,7 @@ describe('ExecuteApiUseCase - Complete Test Suite (Smart Version)', () => {
     const apiResponse = { data: [1, 2, 3] };
     vi.mocked(mockApiPort.request).mockResolvedValue(apiResponse);
 
-    vi.mocked(ObjectUtils.getNestedData).mockReturnValue(undefined); 
+    vi.mocked(ObjectUtils.getNestedData).mockReturnValue(undefined as any); 
     vi.mocked(ObjectUtils.findFirstArrayPath).mockReturnValue('data'); 
     vi.mocked(ObjectUtils.getNestedData).mockImplementation((obj, path) => {
         if (path === 'data') return (obj as any).data;
