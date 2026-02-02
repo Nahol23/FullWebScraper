@@ -6,11 +6,12 @@ export interface ApiConfig {
   endpoint: string;
   method: "GET" | "POST";
   queryParams?: ApiParam[];
+  headers?: Record<string, string>;
+  body?: any;
   defaultLimit?: number;
   supportsPagination?: boolean;
   paginationField?: string;
   dataPath?: string;
-  body?: any;
   filter?: {
     field: string;
     value: any;

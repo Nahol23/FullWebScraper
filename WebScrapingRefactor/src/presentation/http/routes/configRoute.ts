@@ -1,21 +1,18 @@
-import { AnalyzeApiUseCase } from "./../../../application/usecases/Api/AnalyzeApiUseCase";
-import { FastifyInstance } from "fastify";
-import { ConfigController } from "../controllers/ConfigController";
-import { ManageConfigUseCase } from "../../../application/usecases/Configs/ManageConfigUseCase";
-import { ConfigRepository } from "../../../infrastructure/repositories/ConfigRepository";
-import { ApiAdapter } from "../../../infrastructure/adapters/Api/ApiAdapter";
-import { ExecuteApiUseCase } from "../../../application/usecases/Api/ExecuteApiUseCase";
-import { UpdateConfigUseCase } from "../../../application/usecases/Configs/UpdateConfigUseCase";
-import { GetAllConfigsUseCase } from "../../../application/usecases/Configs/GetAllConfigsUseCase";
-import { GetConfigByNameUseCase } from "../../../application/usecases/Configs/GetConfigByNameUseCase";
-import { SaveConfigUseCase } from "../../../application/usecases/Configs/SaveConfigUseCase";
-import { DeleteConfigUseCase } from "../../../application/usecases/Configs/DeleteConfigUseCase";
-import { GetConfigByIdUseCase } from "../../../application/usecases/Configs/GetConfigByIdUseCase";
+import { AnalyzeApiUseCase } from './../../../application/usecases/Api/AnalyzeApiUseCase';
+import { FastifyInstance } from 'fastify';
+import { ConfigController } from '../controllers/ConfigController';
+import { ConfigRepository } from '../../../infrastructure/repositories/ConfigRepository';
+import { ApiAdapter } from '../../../infrastructure/adapters/Api/ApiAdapter';
+import { ExecuteApiUseCase } from '../../../application/usecases/Api/ExecuteApiUseCase';
+import { UpdateConfigUseCase } from '../../../application/usecases/Configs/UpdateConfigUseCase';
+import { GetAllConfigsUseCase } from '../../../application/usecases/Configs/GetAllConfigsUseCase';
+import { GetConfigByNameUseCase } from '../../../application/usecases/Configs/GetConfigByNameUseCase';
+import { SaveConfigUseCase } from '../../../application/usecases/Configs/SaveConfigUseCase';
+import { DeleteConfigUseCase } from '../../../application/usecases/Configs/DeleteConfigUseCase';
 
 export async function configRoutes(fastify: FastifyInstance) {
   const configRepo = new ConfigRepository();
   const apiAdapter = new ApiAdapter();
-  const manageConfigUseCase = new ManageConfigUseCase(configRepo);
   const analyzeApiUseCase = new AnalyzeApiUseCase(apiAdapter);
   const executeApiUseCase = new ExecuteApiUseCase(configRepo, apiAdapter);
   const getAllConfigsUseCase = new GetAllConfigsUseCase(configRepo);
@@ -53,19 +50,54 @@ export async function configRoutes(fastify: FastifyInstance) {
     type: "object",
     required: ["name", "baseUrl", "endpoint", "method"],
     properties: {
-      name: { type: "string", examples: ["PokeApi"] },
-      baseUrl: { type: "string", examples: ["https://pokeapi.co/api/v2"] },
-      endpoint: { type: "string", examples: ["/pokemon"] },
-      method: { type: "string", enum: ["GET", "POST"], examples: ["GET"] },
-      defaultLimit: { type: "number", examples: [20] },
-      dataPath: { type: "string", examples: ["results"] },
-      selectedFields: {
-        type: "array",
-        items: { type: "string" },
-        examples: [["name", "url"]],
+      name: { type: 'string', examples: ['Nome API'] },
+      baseUrl: { type: 'string', examples: ['https://api.esempio.it'] },
+      endpoint: { type: 'string', examples: ['/v1/data'] },
+      method: { type: 'string', enum: ['GET', 'POST'], examples: ['GET/POST'] },
+      queryParams: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['key', 'value'],
+            properties: {
+              key: { type: 'string' },
+              value: { type: 'string' }
+            }
+          },
+          examples: [[{ "key": "v", "value": "1" }]]
+        },
+      headers: {
+        type: 'object',
+        additionalProperties: {type: 'string'},
+        examples: [
+          {
+            "Authorization": "Bearer token123",
+            "Content-Type": "application/json",
+            "X-Custom-Header": "value"
+          }
+        ]
       },
-    },
-  };
+      body: {
+        type: 'object',
+        additionalProperties: true,
+        examples: [
+          {
+            "param1": "value1",
+            "param2": "value2",
+            "offset": 20
+          }
+        ],
+
+      },
+      defaultLimit: { type: 'number', examples: [20] },
+      dataPath: { type: 'string', examples: ['data.results'] },
+      selectedFields: {
+        type: 'array',
+        items: { type: 'string' },
+        examples: [['id','name', 'description']]
+      }
+    }
+  }; 
 
   const nameParamSchema = {
     type: "object",
@@ -75,24 +107,33 @@ export async function configRoutes(fastify: FastifyInstance) {
     required: ["name"],
   };
 
-  fastify.get(
-    "/configs",
-    {
-      schema: {
-        summary: "Lista tutte le configurazioni",
-        tags: ["Configuration"],
-        response: {
-          200: {
-            type: "array",
-            items: configBodySchema,
-          },
-          500: errorResponseSchema,
+
+  fastify.get('/configs', {
+    schema: {
+      summary: 'Lista tutte le configurazioni',
+      tags: ['Configuration'],
+      response: {
+        200: {
+          type: 'array',
+          items: configBodySchema
         },
       },
     },
     controller.getAll,
   );
 
+  
+  fastify.post('/configs', {
+    schema: {
+      summary: 'Crea  una nuova  configurazione',
+      description: 'Modello di default da editare in base a  chiamata http.',
+      tags: ['Configuration'],
+      body: configBodySchema,
+      response: {
+        201: configBodySchema,
+        400: errorResponseSchema, 
+        500: errorResponseSchema  
+      }
   fastify.get(
     "/configs/:name",
     {
@@ -206,6 +247,52 @@ export async function configRoutes(fastify: FastifyInstance) {
     controller.patchSelectedFields,
   );
 
+  fastify.post('/configs/:name/execute', {
+  schema: {
+    summary: 'Esegue una configurazione API',
+    description: 'Esegue la chiamata API configurata iniettando i parametri dinamici.',
+    tags: ['Execution'],
+    params: nameParamSchema,
+   body: {
+        type: 'object',
+        description: `
+        **Parametri Dinamici**:
+        I campi inseriti qui verranno usati per sostituire i placeholder o aggiunti come query params.
+        Usa la chiave speciale 'headers' per sovrascrivere gli header HTTP.
+        `,
+        // Definiamo esplicitamente 'headers' per renderlo visibile in Swagger
+        properties: {
+          headers: {
+            type: 'object',
+            description: 'Headers HTTP opzionali da aggiungere/sovrascrivere',
+            additionalProperties: { type: 'string' },
+            example: { "Authorization": "Bearer <token>" }
+          }
+        },
+        // Fondamentale: permette qualsiasi altro campo (es. userId, city, page)
+        additionalProperties: true,
+        // Esempi chiari per l'utente
+        examples: [
+          { 
+            _name: "Simple Query",
+            city: "Milano", 
+            days: 3 
+          },
+          { 
+            _name: "With Auth Header",
+            headers: { "Authorization": "Bearer 123" },
+            productId: 99
+          }
+        ]
+      },
+    response: {
+       // ... la tua risposta esistente
+       200: { /* ... */ },
+       404: errorResponseSchema,
+       500: errorResponseSchema
+    }
+  }
+}, controller.execute);
   fastify.patch(
     "/configs/:name/pagination",
     {
