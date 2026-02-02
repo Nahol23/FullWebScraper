@@ -1,27 +1,45 @@
 import { IApiPort } from "../../../domain/ports/Api/IApiPort";
 import { Analysis } from "../../../domain/entities/Analysis";
-import { findFirstArrayPath } from "../../../infrastructure/utils/ObjectUtils"; 
-import { extractFields } from "../../../infrastructure/utils/ObjectUtils";
-import { extractParamsFromUrl } from "../../../infrastructure/utils/ObjectUtils";
-
+import {
+  findFirstArrayPath,
+  getNestedData,
+  extractParamsFromUrl,
+} from "../../../infrastructure/utils/ObjectUtils";
+import { IAnalysisRepository } from "../../../domain/ports/Analyze/IAnalysisRepository";
+import { parseJsonFields } from '../../../infrastructure/utils/FindFirstArray';
 export class CreateAnalysisUseCase {
-  constructor(private apiPort: IApiPort) {}
+  constructor(
+    private apiPort: IApiPort,
+    private analysisRepo: IAnalysisRepository,
+  ) {}
 
-  async execute(url: string, method: "GET" | "POST", body?: any ): Promise<Analysis> {
-    const rawResponse = await this.apiPort.request({ url, method, body});
-    
-    return {
+  async execute(
+    url: string,
+    method: "GET" | "POST",
+    body?: any,
+  ): Promise<Analysis> {
+    const rawResponse = await this.apiPort.request({ url, method, body });
+    const dataPath = findFirstArrayPath(rawResponse) || "";
+    const targetData = dataPath ? getNestedData(rawResponse, dataPath) : rawResponse;
+    const suggestedFields = parseJsonFields(targetData);
+
+    // (Logica di business)
+    const analysis: Analysis = {
       id: crypto.randomUUID(),
       url,
       method,
       body,
       status: "completed",
       discoveredSchema: {
-         suggestedFields: extractFields(rawResponse),
-         dataPath: findFirstArrayPath(rawResponse),
-         params: extractParamsFromUrl(url)
+        suggestedFields, 
+        dataPath,
+        params: extractParamsFromUrl(url),
       },
-      createdAt: new Date()
+      createdAt: new Date(),
     };
+
+    await this.analysisRepo.save(analysis);
+
+    return analysis;
   }
 }

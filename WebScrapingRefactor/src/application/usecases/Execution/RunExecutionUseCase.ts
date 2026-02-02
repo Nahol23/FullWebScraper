@@ -3,12 +3,14 @@ import { IApiPort } from "../../../domain/ports/Api/IApiPort";
 import { IConfigRepository } from "../../../domain/ports/IConfigRepository";
 import { Execution } from "../../../domain/entities/Execution";
 import { getNestedData } from "../../../infrastructure/utils/ObjectUtils";
+import { IExecutionRepository } from "../../../domain/ports/Execution/IExecutionRepository";
 
 
 export class RunExecutionUseCase {
   constructor(
     private readonly configRepo: IConfigRepository,
     private readonly apiPort: IApiPort,
+    private readonly executionRepo: IExecutionRepository, 
   ) {}
 
   async execute(
@@ -49,6 +51,7 @@ export class RunExecutionUseCase {
         resultCount: data.length,
         status: "success",
       };
+      await this.executionRepo.save(execution);
 
       return { execution, data };
     } catch (error: any) {

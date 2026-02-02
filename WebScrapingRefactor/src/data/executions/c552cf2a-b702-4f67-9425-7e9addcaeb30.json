@@ -1,0 +1,13 @@
+{
+  "id": "c552cf2a-b702-4f67-9425-7e9addcaeb30",
+  "timestamp": "2026-02-02T11:14:16.508Z",
+  "parametersUsed": {
+    "defaultLimit": 20,
+    "selectedFields": [
+      "name",
+      "race"
+    ]
+  },
+  "resultCount": 10,
+  "status": "success"
+}
