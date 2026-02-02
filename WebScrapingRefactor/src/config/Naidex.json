@@ -3,21 +3,21 @@
   "baseUrl": "https://9WUDIPIUPO-dsn.algolia.net",
   "endpoint": "/1/indexes/production-247-2dd9ba24-bf3b-11f0-a417-000000000000-exhibitors-2026/query",
   "method": "POST",
-
   "headers": {
     "X-Algolia-Application-Id": "9WUDIPIUPO",
     "X-Algolia-API-Key": "df8a06b8eb5d9bd0839e88fc7606560f",
     "Content-Type": "application/json"
   },
-    "body": {
+  "body": {
     "query": "",
     "hitsPerPage": 5,
-    "attributesToRetrieve": ["*"]
+    "attributesToRetrieve": [
+      "*"
+    ]
   },
   "defaultLimit": 20,
   "dataPath": "",
   "selectedFields": [
     "identifier"
-
   ]
 }

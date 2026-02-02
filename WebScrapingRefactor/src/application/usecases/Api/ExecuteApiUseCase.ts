@@ -34,7 +34,7 @@ export class ExecuteApiUseCase {
       : undefined;
 
     const finalHeaders: Record<string, string> = {
-        "Content-Type": "application/json",
+        
         ...(config.headers || {})
 
     }
@@ -53,17 +53,21 @@ export class ExecuteApiUseCase {
         }
       }
 
-    //  Smart Merge Runtime Params (abbiamo tolto headers)
+    
     if (Object.keys(paramsForMerge).length > 0) {
       this.mergeRuntimeParams(config.method, url, finalBody, paramsForMerge);
     }
+
+    const requestBody = config.method.toUpperCase() === 'GET' 
+      ? undefined 
+      : finalBody;
 
     let responseData: unknown;
     try {
       responseData = await this.apiPort.request({
         url: url.toString(),
         method: config.method,
-        body: finalBody,
+        body: requestBody,
         headers: finalHeaders
       })
       console.log("Response Data:", responseData);
@@ -113,7 +117,12 @@ export class ExecuteApiUseCase {
     const isPost = method.toUpperCase() === "POST";
 
     Object.entries(runtimeParams).forEach(([key, value]) => {
-      if (isPost && body && this.keyExistsInObject(body, key)) {
+      // Logica SMART:
+      // Va nel body se è POST, c'è un body E (la chiave ha punti O esiste già)
+      const hasDot = key.includes('.');
+      const existsInBody = body ? this.keyExistsInObject(body, key) : false;
+
+      if (isPost && body && (hasDot || existsInBody)) {
         this.setNestedValue(body, key, value);
       } else {
         url.searchParams.set(key, String(value));
@@ -130,7 +139,7 @@ export class ExecuteApiUseCase {
       }
     }
 
-    //  Auto-detect
+    
     const autoPath = findFirstArrayPath(responseData);
     if (autoPath) {
       const extracted = getNestedData(responseData, autoPath);
@@ -166,9 +175,6 @@ export class ExecuteApiUseCase {
     });
   }
 
-  
-   // Ottiene un valore annidato da un oggetto usando path notation ( "user.address.city")
-   
   private getNestedValue(obj: unknown, path: string): unknown {
     return path.split('.').reduce<unknown>((current, key) => {
       if (current && typeof current === 'object' && !Array.isArray(current)) {
@@ -178,9 +184,7 @@ export class ExecuteApiUseCase {
     }, obj);
   }
 
-  /**
-   * Verifica se una chiave esiste nell'oggetto (supporta path annidati)
-   */
+  
   private keyExistsInObject(obj: Record<string, unknown>, key: string): boolean {
     const parts = key.split(".");
     let current: unknown = obj;
@@ -199,9 +203,7 @@ export class ExecuteApiUseCase {
     return true;
   }
 
-  /**
-   * Imposta un valore annidato, creando oggetti intermedi se necessario
-   */
+
   private setNestedValue(
     obj: Record<string, unknown>,
     key: string,

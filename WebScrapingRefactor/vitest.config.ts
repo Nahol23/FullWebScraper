@@ -3,7 +3,7 @@ import path from 'path';
 
 export default defineConfig({
   test: {
-    globals: true,
+    globals: false,
     environment: 'node',
     
     // ✅ QUESTA è la modifica fondamentale per pulire i tuoi log:
