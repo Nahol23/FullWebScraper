@@ -9,14 +9,16 @@ export class ExecuteApiUseCase {
     private readonly apiPort: IApiPort
   ) {}
 
-  async execute(
-    configName: string,
-    runtimeParams?: Record<string, unknown>
-   ): Promise<ApiResponseDTO> {
-    
-    const config = await this.configRepo.findByName(configName);
+
+  async execute(idOrName: string, runtimeParams?: Record<string, any>): Promise<ApiResponseDTO> {
+    let config = await this.configRepo.findById(idOrName);
+
+    if(!config){
+      config = await this.configRepo.findByName(idOrName);
+    }
     if (!config) {
-      throw new Error(`Configurazione "${configName}" non trovata`);
+      throw new Error("Configurazione'${idOrName}'non trovata");
+
     }
 
     
@@ -84,6 +86,7 @@ export class ExecuteApiUseCase {
     }
     if (config.selectedFields?.length) {
       targetArray = this.selectFields(targetArray, config.selectedFields);
+
     }
 
     const validObjects = targetArray.filter(

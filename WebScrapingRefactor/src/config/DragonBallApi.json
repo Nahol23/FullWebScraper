@@ -4,9 +4,7 @@
   "endpoint": "/characters",
   "method": "GET",
   "defaultLimit": 20,
-  "dataPath": "results",
-  "selectedFields": [
-    "name",
-    "race"
-  ]
+  "dataPath": "items",
+  "selectedFields": ["name", "race"]
 }
+
