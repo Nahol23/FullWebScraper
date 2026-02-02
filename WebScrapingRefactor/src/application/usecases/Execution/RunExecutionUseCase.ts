@@ -38,6 +38,7 @@ export class RunExecutionUseCase {
       const responseData = await this.apiPort.request<any>({
         url: urlObj.toString(),
         method: config.method,
+        headers: config.headers,
         body: config.body,
       });
 

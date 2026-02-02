@@ -5,6 +5,7 @@ export interface Analysis {
   url: string;
   method: "GET" | "POST";
   body?: any;
+  headers?: Record<string, string>;
   status: "pending" | "completed" | "failed";
   discoveredSchema?: {
     suggestedFields: string[];

@@ -80,6 +80,12 @@ export async function configRoutes(fastify: FastifyInstance) {
       method: { type: "string", enum: ["GET", "POST"], examples: ["GET"] },
       defaultLimit: { type: "number", examples: [20] },
       dataPath: { type: "string", examples: ["results"] },
+      headers: {
+        type: "object",
+        additionalProperties: true,
+        description: "Headers fissi (es. API Key)",
+        examples: [{ Authorization: "Bearer token_qui" }],
+      },
       body: {
         type: "object",
         additionalProperties: true,
@@ -104,7 +110,6 @@ export async function configRoutes(fastify: FastifyInstance) {
     required: ["name"],
     properties: { name: { type: "string" } },
   };
-
 
   fastify.get(
     "/configs",
@@ -198,40 +203,45 @@ export async function configRoutes(fastify: FastifyInstance) {
   );
 
   // ANALYSIS
- fastify.post(
-  "/executions/analyze",
-  {
-    schema: {
-      summary: "Analizza URL e salva risultato",
-      tags: ["Analysis"],
-      // 1. Quello che l'utente INVIA
-      body: {
-        type: "object",
-        required: ["url", "method"],
-        properties: {
-          url: { type: "string" },
-          method: { type: "string", enum: ["GET", "POST"] },
-          body: { type: "object", additionalProperties: true },
-        },
-      },
-      response: {
-        200: {
+  fastify.post(
+    "/executions/analyze",
+    {
+      schema: {
+        summary: "Analizza URL e salva risultato",
+        tags: ["Analysis"],
+        // 1. Quello che l'utente INVIA
+        body: {
           type: "object",
+          required: ["url", "method"],
           properties: {
-            sampleData: { type: "object", additionalProperties: true },
-            suggestedFields: {
-              type: "array",
-              items: { type: "string" },
+            url: { type: "string" },
+            method: { type: "string", enum: ["GET", "POST"] },
+            headers: {
+              type: "object",
+              additionalProperties: true,
+              description: "Esempio: { 'Authorization': 'API Key' }",
             },
+            body: { type: "object", additionalProperties: true },
           },
         },
-        400: errorResponseSchema,
-        500: errorResponseSchema,
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              sampleData: { type: "object", additionalProperties: true },
+              suggestedFields: {
+                type: "array",
+                items: { type: "string" },
+              },
+            },
+          },
+          400: errorResponseSchema,
+          500: errorResponseSchema,
+        },
       },
     },
-  },
-  controller.analyze
-);
+    controller.analyze,
+  );
   fastify.get(
     "/analyses",
     {
@@ -242,29 +252,29 @@ export async function configRoutes(fastify: FastifyInstance) {
 
   // EXECUTION
   fastify.post(
-  "/executions/:name/execute",
-  {
-    schema: {
-      summary: "Esegue API e salva log",
-      tags: ["Execution"],
-      params: nameParamSchema,
-      body: {
-        type: "object",
-        additionalProperties: true,
-        description: "Parametri runtime/body",
-      },
-      response: {
-        200: {
+    "/executions/:name/execute",
+    {
+      schema: {
+        summary: "Esegue API e salva log",
+        tags: ["Execution"],
+        params: nameParamSchema,
+        body: {
           type: "object",
           additionalProperties: true,
+          description: "Parametri runtime/body",
         },
-        404: errorResponseSchema,
-        500: errorResponseSchema,
+        response: {
+          200: {
+            type: "object",
+            additionalProperties: true,
+          },
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
       },
     },
-  },
-  controller.execute
-);
+    controller.execute,
+  );
 
   fastify.get(
     "/executions",

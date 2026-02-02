@@ -17,6 +17,7 @@ export class CreateAnalysisUseCase {
     url: string,
     method: "GET" | "POST",
     body?: any,
+    headers?: Record<string, string>
   ): Promise<Analysis> {
     const rawResponse = await this.apiPort.request({ url, method, body });
     const dataPath = findFirstArrayPath(rawResponse) || "";
@@ -29,6 +30,7 @@ export class CreateAnalysisUseCase {
       url,
       method,
       body,
+      headers,
       status: "completed",
       discoveredSchema: {
         suggestedFields, 

@@ -10,6 +10,7 @@ export interface ApiConfig {
   supportsPagination?: boolean;
   paginationField?: string;
   dataPath?: string;
+  headers?: Record<string, string>;
   body?: any;
   filter?: {
     field: string;
