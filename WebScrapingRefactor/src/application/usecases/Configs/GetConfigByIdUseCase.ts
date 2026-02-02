@@ -1,3 +1,4 @@
+
 import { ApiConfig } from "../../../domain/entities/ApiConfig";
 import { IConfigRepository } from "../../../domain/ports/IConfigRepository";
 
@@ -6,5 +7,6 @@ export class GetConfigByIdUseCase {
 
   async execute(id: string): Promise<ApiConfig | null> {
     return this.configRepo.findById(id);
+
   }
 }

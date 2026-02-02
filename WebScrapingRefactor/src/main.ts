@@ -12,7 +12,16 @@ import { errorHandler } from "./presentation/http/middleware/errorHandler";
 
 export async function buildServer() {
   const server = Fastify({ 
-    logger: true 
+    logger: true ,
+    ajv: {
+      customOptions: {
+        removeAdditional: false, // Mantiene le proprietà extra (utile per i params dinamici)
+        coerceTypes: true,       // Converte stringhe in numeri se necessario
+        allErrors: true,
+        // Questa riga risolve il crash "unknown keyword: example"
+        keywords: ['example']    
+      }
+    }
   });
 
  
