@@ -128,10 +128,10 @@ export class ConfigController {
     }>,
     reply: FastifyReply,
   ) => {
-    console.log(
-      "Body ricevuto dal Controller:",
-      JSON.stringify(request.body, null, 2),
-    );
+    // console.log(
+    //   "Body ricevuto dal Controller:",
+    //   JSON.stringify(request.body, null, 2),
+    // );
     const { url, method, body, headers } = request.body;
     const result = await this.createAnalysisUseCase.execute(
       url,

@@ -16,12 +16,12 @@ export class ApiAdapter implements IApiPort {
       if (options.method === "POST") {
         headers["Content-Type"] = "application/json";
       }
-      console.log("DEBUG API REQUEST:", {
-        url: options.url,
-        headers: headers,
-        bodySent:
-          options.method === "POST" ? JSON.stringify(options.body) : "N/A",
-      });
+      // console.log("DEBUG API REQUEST:", {
+      //   url: options.url,
+      //   headers: headers,
+      //   bodySent:
+      //     options.method === "POST" ? JSON.stringify(options.body) : "N/A",
+      // });
 
       const response = await fetch(options.url, {
         method: options.method,
