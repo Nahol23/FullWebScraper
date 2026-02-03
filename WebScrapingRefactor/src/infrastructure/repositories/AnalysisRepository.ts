@@ -8,7 +8,7 @@ export class AnalysisRepository implements IAnalysisRepository {
   private readonly storageDir = path.join(
     process.cwd(),
     "src",
-    "data",
+    "config",
     "analyses",
   );
 

@@ -1,0 +1,15 @@
+{
+  "id": "c9a0acb8-cd50-41c6-a98d-498901ce3b68",
+  "url": "https://google.com",
+  "method": "GET",
+  "body": {
+    "additionalProp1": {}
+  },
+  "status": "completed",
+  "discoveredSchema": {
+    "suggestedFields": [],
+    "dataPath": "",
+    "params": []
+  },
+  "createdAt": "2026-02-03T13:21:07.610Z"
+}

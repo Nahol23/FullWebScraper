@@ -19,7 +19,7 @@ export class CreateAnalysisUseCase {
     body?: any,
     headers?: Record<string, string>
   ): Promise<Analysis> {
-    const rawResponse = await this.apiPort.request({ url, method, body });
+    const rawResponse = await this.apiPort.request({ url, method, body, headers });
     const dataPath = findFirstArrayPath(rawResponse) || "";
     const targetData = dataPath ? getNestedData(rawResponse, dataPath) : rawResponse;
     const suggestedFields = parseJsonFields(targetData);

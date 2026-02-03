@@ -21,10 +21,10 @@ export class ConfigRepository implements IConfigRepository {
     });
   }
 
-  async findById(id: string): Promise<ApiConfig | null> {
-    const configs = await this.findAll();
-    return configs.find((c) => c.id === id) || null;
-  }
+  // async findById(id: string): Promise<ApiConfig | null> {
+  //   const configs = await this.findAll();
+  //   return configs.find((c) => c.id === id) || null;
+  // }
 
   async findByName(name: string): Promise<ApiConfig | null> {
     const filePath = path.join(this.configDir, `${name}.json`);

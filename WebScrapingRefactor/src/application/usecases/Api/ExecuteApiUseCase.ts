@@ -9,22 +9,20 @@ export class ExecuteApiUseCase {
     private readonly apiPort: IApiPort
   ) {}
 
-
+  
   async execute(idOrName: string, runtimeParams?: Record<string, any>): Promise<ApiResponseDTO> {
     let config = await this.configRepo.findById(idOrName);
 
-    if(!config){
+    if (!config) {
       config = await this.configRepo.findByName(idOrName);
     }
-    if (!config) {
-      throw new Error("Configurazione'${idOrName}'non trovata");
 
+    if (!config) {
+      throw new Error(`Configurazione '${idOrName}' non trovata`);
     }
 
-    
     const url = this.buildUrl(config.baseUrl, config.endpoint);
 
-    //  Aggiungi Query Params Statici
     if (config.queryParams) {
       config.queryParams.forEach(param => {
         url.searchParams.set(param.key, param.value);
@@ -36,26 +34,21 @@ export class ExecuteApiUseCase {
       : undefined;
 
     const finalHeaders: Record<string, string> = {
-        
-        ...(config.headers || {})
-
-    }
+      ...(config.headers || {})
+    };
 
     let paramsForMerge = runtimeParams || {};
 
     if (runtimeParams) {
-        //  Se ci sono headers nei runtimeParams, li uniamo a quelli finali
-        if (runtimeParams.headers) {
-            const runtimeHeaders = runtimeParams.headers as Record<string, string>;
-            Object.assign(finalHeaders, runtimeHeaders);
+      if (runtimeParams.headers) {
+        const runtimeHeaders = runtimeParams.headers as Record<string, string>;
+        Object.assign(finalHeaders, runtimeHeaders);
 
-            //  Rimuoviamo 'headers' dai parametri per non sporcare l'URL o il Body
-            const { headers, ...rest } = runtimeParams;
-            paramsForMerge = rest;
-        }
+        const { headers, ...rest } = runtimeParams;
+        paramsForMerge = rest;
       }
+    }
 
-    
     if (Object.keys(paramsForMerge).length > 0) {
       this.mergeRuntimeParams(config.method, url, finalBody, paramsForMerge);
     }
@@ -71,22 +64,21 @@ export class ExecuteApiUseCase {
         method: config.method,
         body: requestBody,
         headers: finalHeaders
-      })
-      console.log("Response Data:", responseData);
+      });
     } catch (error) {
       throw new Error(
-        `Errore chiamata API "${configName}": ${(error as Error).message}`
+        `Errore chiamata API "${config.name}": ${(error as Error).message}`
       );
     }
 
     let targetArray = this.extractArray(responseData, config.dataPath);
 
     if (config.filter?.field && config.filter?.value !== undefined) {
-      targetArray = this.applyFilter(targetArray, config.filter);
+      targetArray = this.applyFilter(targetArray, config.filter as { field: string; value: unknown });
     }
+
     if (config.selectedFields?.length) {
       targetArray = this.selectFields(targetArray, config.selectedFields);
-
     }
 
     const validObjects = targetArray.filter(
@@ -120,8 +112,6 @@ export class ExecuteApiUseCase {
     const isPost = method.toUpperCase() === "POST";
 
     Object.entries(runtimeParams).forEach(([key, value]) => {
-      // Logica SMART:
-      // Va nel body se è POST, c'è un body E (la chiave ha punti O esiste già)
       const hasDot = key.includes('.');
       const existsInBody = body ? this.keyExistsInObject(body, key) : false;
 
@@ -134,7 +124,6 @@ export class ExecuteApiUseCase {
   }
 
   private extractArray(responseData: unknown, dataPath?: string): unknown[] {
-    //  Usa path configurato
     if (dataPath) {
       const extracted = getNestedData(responseData, dataPath);
       if (extracted !== null && extracted !== undefined) {
@@ -142,7 +131,6 @@ export class ExecuteApiUseCase {
       }
     }
 
-    
     const autoPath = findFirstArrayPath(responseData);
     if (autoPath) {
       const extracted = getNestedData(responseData, autoPath);
@@ -187,7 +175,6 @@ export class ExecuteApiUseCase {
     }, obj);
   }
 
-  
   private keyExistsInObject(obj: Record<string, unknown>, key: string): boolean {
     const parts = key.split(".");
     let current: unknown = obj;
@@ -202,10 +189,8 @@ export class ExecuteApiUseCase {
       }
       current = currentObj[part];
     }
-
     return true;
   }
-
 
   private setNestedValue(
     obj: Record<string, unknown>,
@@ -217,7 +202,6 @@ export class ExecuteApiUseCase {
 
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i];
-
       if (
         !(part in current) ||
         typeof current[part] !== 'object' ||
@@ -226,11 +210,8 @@ export class ExecuteApiUseCase {
       ) {
         current[part] = {};
       }
-
       current = current[part] as Record<string, unknown>;
     }
-
     current[parts[parts.length - 1]] = value;
   }
-}  
-  
+}
