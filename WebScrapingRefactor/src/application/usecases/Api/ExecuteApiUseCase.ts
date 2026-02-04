@@ -114,7 +114,7 @@ export class ExecuteApiUseCase {
 
   private buildUrl(baseUrl: string, endpoint: string): URL {
     const base = baseUrl.replace(/\/+$/, "");
-    const path = endpoint.replace(/^\/+/, "");
+    const path = endpoint.replace(/^\/+/, "").replace(/\/+$/, "");
     return new URL(`${base}/${path}`);
   }
 

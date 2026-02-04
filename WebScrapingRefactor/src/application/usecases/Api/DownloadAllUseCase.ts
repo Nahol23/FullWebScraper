@@ -1,11 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { ExecuteApiUseCase } from './ExecuteApiUseCase';
+import { ExecuteApiUseCase } from '../Api/ExecuteApiUseCase';
 import { FormatDataService } from '../../services/FormatDataService';
 import { IConfigRepository } from '../../../domain/ports/IConfigRepository';
 
+export type ExportFormat = 'json' | 'markdown';
+
 export class DownloadAllUseCase {
-  // Cartella temporanea dove salvare i file prima di inviarli
   private outputDir = path.join(process.cwd(), 'output', 'temp');
 
   constructor(
@@ -13,25 +14,27 @@ export class DownloadAllUseCase {
     private executeUseCase: ExecuteApiUseCase,
     private formatService: FormatDataService
   ) {
-    // Crea la cartella se non esiste
     if (!fs.existsSync(this.outputDir)) {
       fs.mkdirSync(this.outputDir, { recursive: true });
     }
   }
 
-  async execute(configName: string, format: 'json' | 'md' = 'md'): Promise<string> {
+  async execute(configName: string, format: ExportFormat = 'json'): Promise<string> {
     const config = await this.configRepo.findByName(configName);
     if (!config) throw new Error(`Configurazione "${configName}" non trovata`);
 
+    // ✅ FIX 1: Mappiamo "markdown" su ".md" per avere un'estensione file standard
+    const extension = format === 'markdown' ? 'md' : 'json';
+    
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const fileName = `${configName.replace(/\s+/g, '_')}_${timestamp}.${format}`;
+    const fileName = `${configName.replace(/\s+/g, '_')}_${timestamp}.${extension}`;
     const filePath = path.join(this.outputDir, fileName);
 
     // --- SETUP FILE ---
     if (format === 'json') {
-      fs.writeFileSync(filePath, '['); // Inizia array JSON
+      fs.writeFileSync(filePath, '['); 
     } else {
-      fs.writeFileSync(filePath, ''); // Pulisce il file MD
+      fs.writeFileSync(filePath, ''); 
     }
 
     // --- SETUP LOOP ---
@@ -46,48 +49,44 @@ export class DownloadAllUseCase {
     console.log(`[Download] Inizio export: ${configName} (Format: ${format}, Paginato: ${isPaginated})`);
 
     while (hasMore) {
-      // 1. Costruzione Parametri Runtime per questo batch
+      // 1. Costruzione Parametri
       let runtimeParams: Record<string, unknown> = {};
 
       if (isPaginated && pagConfig) {
-        // Calcolo valore parametro (offset o page)
         const paramValue = pagConfig.type === 'page' 
-          ? pageIndex + 1           // Es: page=1, page=2
-          : pageIndex * pagConfig.defaultLimit; // Es: offset=0, offset=50
+          ? pageIndex + 1 
+          : pageIndex * pagConfig.defaultLimit;
 
         runtimeParams = {
           [pagConfig.paramName]: paramValue,
-          [pagConfig.limitParam]: pagConfig.defaultLimit
+          limit: pagConfig.defaultLimit // Assicuriamo il limit
         };
       } else {
-        // Se NON è paginato, chiediamo "limit: 0" per dire alla execute di NON tagliare nulla
         runtimeParams = { limit: 0 };
       }
 
-      // 2. Esecuzione Chiamata
+      // 2. Esecuzione
       const result = await this.executeUseCase.execute(configName, runtimeParams);
       const batchData = result.data as any[];
 
-      if (batchData.length === 0) {
+      if (!batchData || batchData.length === 0) {
         hasMore = false;
         break;
       }
 
-      // 3. Scrittura su File (Append)
-      if (format === 'md') {
-        // Scrive Header solo al primo giro
+      // 3. Scrittura su File
+      if (format === 'markdown') {
         if (isFirstBatch) {
-          const header = this.formatService.getMarkdownHeader(batchData, config.selectedFields);
-          fs.appendFileSync(filePath, `# Report: ${configName}\n\n${header}`);
+          // ✅ FIX 2: Passiamo solo il primo elemento (batchData[0]) per creare l'header
+          const header = this.formatService.getMarkdownHeader(batchData[0], config.selectedFields);
+          fs.appendFileSync(filePath, `# Report: ${configName}\n\n${header}\n`);
         }
         const rows = this.formatService.toMarkdown(batchData, config.selectedFields);
         fs.appendFileSync(filePath, rows + "\n");
       
       } else if (format === 'json') {
-        // Gestione virgola tra gli oggetti
         const prefix = isFirstBatch ? '' : ',';
         const jsonString = JSON.stringify(batchData);
-        // Rimuove le quadre esterne [ ... ] per fondere i batch
         const content = jsonString.slice(1, -1); 
         
         if (content.length > 0) {
@@ -98,18 +97,14 @@ export class DownloadAllUseCase {
       totalDownloaded += batchData.length;
       console.log(`[Download] Scaricati ${batchData.length} record... (Totale: ${totalDownloaded})`);
 
-      // 4. Logica di avanzamento / uscita
+      // 4. Logica Loop
       if (isPaginated && pagConfig) {
-        // Se abbiamo ricevuto meno dati del limite, l'API è finita
         if (batchData.length < pagConfig.defaultLimit) {
           hasMore = false;
         }
         pageIndex++;
-        
-        // Safety Break (opzionale)
-        if (pageIndex > 500) break; 
+        if (pageIndex > 500) break; // Safety
       } else {
-        // Non paginato = colpo singolo = fine
         hasMore = false;
       }
 
@@ -118,7 +113,7 @@ export class DownloadAllUseCase {
 
     // --- CHIUSURA FILE ---
     if (format === 'json') {
-      fs.appendFileSync(filePath, ']'); // Chiudi array JSON
+      fs.appendFileSync(filePath, ']');
     }
 
     console.log(`[Download] Completato. File: ${filePath}`);

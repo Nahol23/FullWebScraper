@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { ApiConfig } from "../../../domain/entities/ApiConfig";
 import { ExecuteApiUseCase } from "../../../application/usecases/Api/ExecuteApiUseCase";
+import * as fs from 'fs';
 
 import { UpdateConfigUseCase } from "../../../application/usecases/Configs/UpdateConfigUseCase";
 import { GetAllConfigsUseCase } from "../../../application/usecases/Configs/GetAllConfigsUseCase";
@@ -12,6 +13,7 @@ import { DeleteConfigUseCase } from "../../../application/usecases/Configs/Delet
 import { CreateAnalysisUseCase } from "../../../application/usecases/Analysis/CreateAnalysisUseCase";
 import { GetAllAnalysesUseCase } from "../../../application/usecases/Analysis/GetAllAnalysisUseCase";
 import { GetAllExecutionsUseCase } from "../../../application/usecases/Execution/GetAllExecutionsUseCase";
+import { DownloadAllUseCase, ExportFormat } from "../../../application/usecases/Api/DownloadAllUseCase";
 import { randomUUID } from "crypto";
 
 export class ConfigController {
@@ -26,6 +28,7 @@ export class ConfigController {
     private createAnalysisUseCase: CreateAnalysisUseCase,
     private getAllAnalysesUseCase: GetAllAnalysesUseCase,
     private getAllExecutionsUseCase: GetAllExecutionsUseCase,
+    private downloadAllUseCase: DownloadAllUseCase,
   ) {}
 
   getAll = async (_req: FastifyRequest, reply: FastifyReply) => {
@@ -138,12 +141,46 @@ export class ConfigController {
   };
 
   executePreview = async (
-    request: FastifyRequest<{ Params: { identifier: string }; Body: Record<string, any> }>,
+    request: FastifyRequest<{ Params: { name: string }; Body: Record<string, any> }>,
     reply: FastifyReply
   ) => {
-    const { identifier } = request.params;
+    const { name } = request.params;
     const runtimeParams = request.body;
-    const result = await this.executeApiUseCase.execute(identifier, runtimeParams);
+    const result = await this.executeApiUseCase.execute(name, runtimeParams);
     return reply.status(200).send(result);
+  };
+
+
+ download = async (
+    req: FastifyRequest<{ Params: { configName: string }; Querystring: { format?: ExportFormat } }>,
+    reply: FastifyReply
+  ) => {
+    const { configName } = req.params;
+    const format = req.query.format || 'json';
+
+    try {
+      // 1. Qui riceviamo il PERCORSO (path) del file, non il contenuto
+      const filePath = await this.downloadAllUseCase.execute(configName, format);
+
+      // 2. Impostiamo gli header corretti
+      if (format === 'markdown') {
+        reply.header('Content-Type', 'text/markdown');
+        reply.header('Content-Disposition', `attachment; filename="${configName}.md"`);
+      } else {
+        reply.header('Content-Type', 'application/json');
+        reply.header('Content-Disposition', `attachment; filename="${configName}.json"`);
+      }
+
+      // 3. ✅ CORREZIONE CRUCIALE: Creiamo uno stream dal file fisico
+      // Questo legge il file dal disco pezzo per pezzo e lo manda all'utente
+      // senza riempire la memoria RAM del server.
+      const stream = fs.createReadStream(filePath);
+
+      return reply.send(stream);
+
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: (error as Error).message });
+    }
   };
 }
