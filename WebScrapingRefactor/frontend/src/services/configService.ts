@@ -1,41 +1,27 @@
-import type { ApiConfig } from "../types/ApiConfig";
+import type { ApiConfig } from '../types/ApiConfig';
+import apiClient from './apiClient';
 
-const BASE_URL = "http://localhost:3000/api/v1";
+export const configService = {
+  getAll: async (): Promise<ApiConfig[]> => {
+    const { data } = await apiClient.get<ApiConfig[]>('/configs');
+    return data;
+  },
 
-export async function getConfigs(): Promise<ApiConfig[]> {
-  const res = await fetch(`${BASE_URL}/configs`);
-  return res.json();
-}
+  getByName: async (name: string): Promise<ApiConfig> => {
+    const { data } = await apiClient.get<ApiConfig>(`/configs/${name}`);
+    return data;
+  },
 
-export async function getConfig(name: string): Promise<ApiConfig> {
-  const res = await fetch(`${BASE_URL}/configs/${name}`);
-  return res.json();
-}
+  save: async (config: Partial<ApiConfig>): Promise<void> => {
+    await apiClient.post('/configs', config);
+  },
 
-export async function saveConfig(config: ApiConfig): Promise<void> {
-  await fetch(`${BASE_URL}/configs`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(config),
-  });
-}
+  delete: async (id: string): Promise<void> => {
+    await apiClient.delete(`/configs/${id}`);
+  },
 
-export async function executeConfig(name: string) {
-  const res = await fetch(`${BASE_URL}/configs/${name}/execute`, {
-    method: "POST",
-  });
-  return res.json();
-}
-
-export async function analyzeApi(payload: {
-  url: string;
-  method: "GET" | "POST";
-  body?: unknown;
-}) {
-  const res = await fetch(`${BASE_URL}/configs/analyze`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  return res.json();
-}
+  // Per aggiornare solo campi specifici (es. selectedFields o pagination)
+  patch: async (name: string, updates: Partial<ApiConfig>): Promise<void> => {
+    await apiClient.patch(`/configs/${name}`, updates);
+  }
+};
