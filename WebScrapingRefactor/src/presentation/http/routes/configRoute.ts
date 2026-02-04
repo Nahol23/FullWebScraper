@@ -78,20 +78,20 @@ export async function configRoutes(fastify: FastifyInstance) {
     },
   };
 
-  // ✅ MAIN: ID param schema
+  
   const idParamSchema = {
     type: "object",
     required: ["id"],
     properties: { id: { type: "string" } },
   };
 
-  // ✅ MERGED: Config body schema con pagination (HEAD) + examples (MAIN)
+  
   const configBodySchema = {
     type: "object",
     required: ["name", "baseUrl", "endpoint", "method"],
     properties: {
       // TODO: Decidere se includere 'id' in base alla response effettiva
-      // id: { type: "string", readOnly: true },
+       id: { type: "string", readOnly: true },
       
       name: { type: "string", examples: ["Nome API"] },
       baseUrl: { type: "string", examples: ["https://api.esempio.it"] },
@@ -134,7 +134,7 @@ export async function configRoutes(fastify: FastifyInstance) {
         ],
       },
       
-      // ✅ HEAD: Struttura pagination (allineata ad ApiConfig)
+      
       pagination: {
         type: "object",
         nullable: true,
@@ -172,7 +172,6 @@ export async function configRoutes(fastify: FastifyInstance) {
     },
   };
 
-  // ✅ MAIN: Update schema separato (tutti i campi opzionali)
   const updateBodySchema = {
     type: "object",
     properties: {
@@ -238,7 +237,7 @@ export async function configRoutes(fastify: FastifyInstance) {
     properties: { name: { type: "string" } },
   };
 
-  // ✅ HEAD: Schema per download
+  
   const configNameParamSchema = {
     type: "object",
     required: ["configName"],
@@ -252,9 +251,7 @@ export async function configRoutes(fastify: FastifyInstance) {
     }
   };
 
-  // ========================================
-  // 5. CONFIGURATION ROUTES
-  // ========================================
+ 
   
   fastify.get(
     "/configs",
@@ -365,9 +362,6 @@ export async function configRoutes(fastify: FastifyInstance) {
     controller.delete,
   );
 
-  // ========================================
-  // 6. ANALYSIS ROUTES
-  // ========================================
   
   fastify.post(
     "/executions/analyze",
@@ -425,9 +419,7 @@ export async function configRoutes(fastify: FastifyInstance) {
     controller.getAllAnalyses,
   );
 
-  // ========================================
-  // 7. EXECUTION ROUTES
-  // ========================================
+ 
   
   fastify.post(
     "/executions/:name/execute",
