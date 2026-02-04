@@ -9,51 +9,53 @@ export class ExecuteApiUseCase {
     private readonly apiPort: IApiPort
   ) {}
 
-  async execute(
-    configName: string,
-    runtimeParams?: Record<string, unknown>
-   ): Promise<ApiResponseDTO> {
+  // ✅ CONFLITTO RISOLTO: Uso la logica 'idOrName' (Main) ma mantengo i tipi puliti
+  async execute(idOrName: string, runtimeParams?: Record<string, unknown>): Promise<ApiResponseDTO> {
     
-    const config = await this.configRepo.findByName(configName);
+    // 1. Cerca per ID, se fallisce cerca per Nome (Logica Robustezza dal Main)
+    let config = await this.configRepo.findById(idOrName);
     if (!config) {
-      throw new Error(`Configurazione "${configName}" non trovata`);
+      config = await this.configRepo.findByName(idOrName);
     }
 
-    
+    if (!config) {
+      throw new Error(`Configurazione '${idOrName}' non trovata`);
+    }
+
+    // --- COSTRUZIONE URL ---
     const url = this.buildUrl(config.baseUrl, config.endpoint);
 
-    //  Aggiungi Query Params Statici
     if (config.queryParams) {
       config.queryParams.forEach(param => {
         url.searchParams.set(param.key, param.value);
       });
     }
 
+    // --- COSTRUZIONE BODY ---
     let finalBody = config.body !== undefined && config.body !== null
       ? JSON.parse(JSON.stringify(config.body))
       : undefined;
 
+    // --- COSTRUZIONE HEADERS ---
     const finalHeaders: Record<string, string> = {
-        
-        ...(config.headers || {})
-
-    }
+      ...(config.headers || {})
+    };
 
     let paramsForMerge = runtimeParams || {};
 
     if (runtimeParams) {
-        //  Se ci sono headers nei runtimeParams, li uniamo a quelli finali
-        if (runtimeParams.headers) {
-            const runtimeHeaders = runtimeParams.headers as Record<string, string>;
-            Object.assign(finalHeaders, runtimeHeaders);
+      if (runtimeParams.headers) {
+        const runtimeHeaders = runtimeParams.headers as Record<string, string>;
+        Object.assign(finalHeaders, runtimeHeaders);
 
-            //  Rimuoviamo headers dai parametri per non sporcare l'URL o il Body
-            const { headers, ...rest } = runtimeParams;
-            paramsForMerge = rest;
-        }
+        // ✅ CONFLITTO RISOLTO: Mantengo la destrutturazione e il commento (HEAD)
+        // Rimuoviamo headers dai parametri per non sporcare l'URL o il Body
+        const { headers, ...rest } = runtimeParams;
+        paramsForMerge = rest;
       }
+    }
 
-    
+    // --- MERGE PARAMETRI ---
     if (Object.keys(paramsForMerge).length > 0) {
       this.mergeRuntimeParams(config.method, url, finalBody, paramsForMerge);
     }
@@ -62,6 +64,7 @@ export class ExecuteApiUseCase {
       ? undefined 
       : finalBody;
 
+    // --- CHIAMATA API ---
     let responseData: unknown;
     try {
       responseData = await this.apiPort.request({
@@ -69,21 +72,26 @@ export class ExecuteApiUseCase {
         method: config.method,
         body: requestBody,
         headers: finalHeaders
-      })
-      console.log("Response Data:", responseData);
+      });
     } catch (error) {
       throw new Error(
-        `Errore chiamata API "${configName}": ${(error as Error).message}`
+        `Errore chiamata API "${config.name}": ${(error as Error).message}`
       );
     }
 
+    // --- ESTRAZIONE DATI ---
     let targetArray = this.extractArray(responseData, config.dataPath);
 
+    // ✅ NUOVA FEATURE (HEAD): Applicazione Safety Limit
+    // (Nota: Se in futuro sposti questo in un utils, ricorda di importarlo)
     targetArray = this.applyLimitSafety(targetArray, runtimeParams?.limit, config.pagination?.defaultLimit);
 
+    // --- FILTRI ---
     if (config.filter?.field && config.filter?.value !== undefined) {
-      targetArray = this.applyFilter(targetArray, config.filter);
+      targetArray = this.applyFilter(targetArray, config.filter as { field: string; value: unknown });
     }
+
+    // --- SELEZIONE CAMPI ---
     if (config.selectedFields?.length) {
       targetArray = this.selectFields(targetArray, config.selectedFields);
     }
@@ -119,8 +127,6 @@ export class ExecuteApiUseCase {
     const isPost = method.toUpperCase() === "POST";
 
     Object.entries(runtimeParams).forEach(([key, value]) => {
-      // Logica SMART:
-      // Va nel body se è POST, c'è un body E (la chiave ha punti O esiste già)
       const hasDot = key.includes('.');
       const existsInBody = body ? this.keyExistsInObject(body, key) : false;
 
@@ -133,7 +139,6 @@ export class ExecuteApiUseCase {
   }
 
   private extractArray(responseData: unknown, dataPath?: string): unknown[] {
-    //  Usa path configurato
     if (dataPath) {
       const extracted = getNestedData(responseData, dataPath);
       if (extracted !== null && extracted !== undefined) {
@@ -141,7 +146,6 @@ export class ExecuteApiUseCase {
       }
     }
 
-    
     const autoPath = findFirstArrayPath(responseData);
     if (autoPath) {
       const extracted = getNestedData(responseData, autoPath);
@@ -186,7 +190,6 @@ export class ExecuteApiUseCase {
     }, obj);
   }
 
-  
   private keyExistsInObject(obj: Record<string, unknown>, key: string): boolean {
     const parts = key.split(".");
     let current: unknown = obj;
@@ -201,10 +204,8 @@ export class ExecuteApiUseCase {
       }
       current = currentObj[part];
     }
-
     return true;
   }
-
 
   private setNestedValue(
     obj: Record<string, unknown>,
@@ -216,7 +217,6 @@ export class ExecuteApiUseCase {
 
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i];
-
       if (
         !(part in current) ||
         typeof current[part] !== 'object' ||
@@ -225,47 +225,45 @@ export class ExecuteApiUseCase {
       ) {
         current[part] = {};
       }
-
       current = current[part] as Record<string, unknown>;
     }
-
     current[parts[parts.length - 1]] = value;
   }
 
+  // ✅ CONFLITTO RISOLTO: Mantenuto il metodo privato dal branch HEAD
   private applyLimitSafety(
-  data: unknown[],
-  runtimeLimit: unknown, // Passiamo 'unknown' per testare la robustezza
-  configDefaultLimit?: number
-): unknown[] {
-  
-  let limit: number | undefined = undefined;
+    data: unknown[],
+    runtimeLimit: unknown, // Passiamo 'unknown' per testare la robustezza
+    configDefaultLimit?: number
+  ): unknown[] {
+    
+    let limit: number | undefined = undefined;
 
-  // 1. Parsing Robusto
-  if (runtimeLimit !== undefined && runtimeLimit !== null) {
-    const parsed = Number(runtimeLimit);
-    if (!isNaN(parsed) && parsed >= 0) {
-      limit = parsed;
+    // 1. Parsing Robusto
+    if (runtimeLimit !== undefined && runtimeLimit !== null) {
+      const parsed = Number(runtimeLimit);
+      if (!isNaN(parsed) && parsed >= 0) {
+        limit = parsed;
+      }
     }
-  }
 
-  // 2. Fallback Config
-  if (limit === undefined && configDefaultLimit) {
-    limit = configDefaultLimit;
-  }
+    // 2. Fallback Config
+    if (limit === undefined && configDefaultLimit) {
+      limit = configDefaultLimit;
+    }
 
-  // 3. Logica Core
-  // Se limit è 0 (Download All) -> Ritorna tutto
-  if (limit === 0) {
+    // 3. Logica Core
+    // Se limit è 0 (Download All) -> Ritorna tutto
+    if (limit === 0) {
+      return data;
+    }
+
+    // Se c'è un limite valido e l'array è troppo lungo -> Taglia
+    if (limit !== undefined && limit > 0 && data.length > limit) {
+      return data.slice(0, limit);
+    }
+
+    // Altrimenti ritorna originale
     return data;
   }
-
-  // Se c'è un limite valido e l'array è troppo lungo -> Taglia
-  if (limit !== undefined && limit > 0 && data.length > limit) {
-    return data.slice(0, limit);
-  }
-
-  // Altrimenti ritorna originale
-  return data;
 }
-}  
-  

@@ -11,13 +11,9 @@
   "body": {
     "query": "",
     "hitsPerPage": 5,
-    "attributesToRetrieve": [
-      "*"
-    ]
+    "attributesToRetrieve": ["*"]
   },
   "defaultLimit": 20,
   "dataPath": "",
-  "selectedFields": [
-    "identifier"
-  ]
+  "selectedFields": ["identifier"]
 }

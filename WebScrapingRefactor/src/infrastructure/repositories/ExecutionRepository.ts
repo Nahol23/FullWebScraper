@@ -4,7 +4,7 @@ import { Execution } from "../../domain/entities/Execution";
 import { IExecutionRepository } from "../../domain/ports/Execution/IExecutionRepository";
 
 export class ExecutionRepository implements IExecutionRepository {
-  private readonly storageDir = path.join(process.cwd(), "src", "data", "executions");
+  private readonly storageDir = path.join(process.cwd(), "src", "config", "executions");
 
   constructor() {
     if (!fs.existsSync(this.storageDir)) {

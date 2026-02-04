@@ -13,35 +13,34 @@ export class CreateAnalysisUseCase {
     private analysisRepo: IAnalysisRepository,
   ) {}
 
-  async execute(
-    url: string,
-    method: "GET" | "POST",
-    body?: any,
-    headers?: Record<string, string>
-  ): Promise<Analysis> {
-    const rawResponse = await this.apiPort.request({ url, method, body });
-    const dataPath = findFirstArrayPath(rawResponse) || "";
-    const targetData = dataPath ? getNestedData(rawResponse, dataPath) : rawResponse;
-    const suggestedFields = parseJsonFields(targetData);
+async execute(
+  url: string,
+  method: "GET" | "POST",
+  body?: any,
+  headers?: Record<string, string>
+): Promise<Analysis> {
+  const rawResponse = (await this.apiPort.request({ url, method, body, headers })) as any;
 
-    // (Logica di business)
-    const analysis: Analysis = {
-      id: crypto.randomUUID(),
-      url,
-      method,
-      body,
-      headers,
-      status: "completed",
-      discoveredSchema: {
-        suggestedFields, 
-        dataPath,
-        params: extractParamsFromUrl(url),
-      },
-      createdAt: new Date(),
-    };
+  const dataPath = findFirstArrayPath(rawResponse) || "";
 
-    await this.analysisRepo.save(analysis);
+  const allFields = parseJsonFields(rawResponse);
 
-    return analysis;
-  }
+  const analysis: Analysis = {
+    id: crypto.randomUUID(),
+    url,
+    method,
+    body,
+    headers,
+    status: "completed",
+    discoveredSchema: {
+      suggestedFields: allFields, 
+      dataPath,
+      params: extractParamsFromUrl(url),
+    },
+    createdAt: new Date(),
+  };
+
+  await this.analysisRepo.save(analysis);
+  return analysis;
+}
 }

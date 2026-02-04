@@ -1,0 +1,34 @@
+{
+  "id": "7ec2a3fa-f59d-4629-b365-021fe15893cc",
+  "url": "https://httpbin.org/post",
+  "method": "POST",
+  "body": {
+    "test": "data"
+  },
+  "status": "completed",
+  "discoveredSchema": {
+    "suggestedFields": [
+      "args",
+      "data",
+      "files",
+      "form",
+      "headers",
+      "headers.Accept",
+      "headers.Accept-Encoding",
+      "headers.Accept-Language",
+      "headers.Content-Length",
+      "headers.Content-Type",
+      "headers.Host",
+      "headers.Sec-Fetch-Mode",
+      "headers.User-Agent",
+      "headers.X-Amzn-Trace-Id",
+      "json",
+      "json.test",
+      "origin",
+      "url"
+    ],
+    "dataPath": "",
+    "params": []
+  },
+  "createdAt": "2026-02-03T13:29:02.925Z"
+}

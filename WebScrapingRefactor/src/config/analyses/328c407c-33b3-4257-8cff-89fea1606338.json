@@ -1,0 +1,44 @@
+{
+  "id": "328c407c-33b3-4257-8cff-89fea1606338",
+  "url": " https://digital.agritechnica.com/api/v1/search/exhibitors",
+  "method": "POST",
+  "body": {
+    "page": 3,
+    "limit": 100,
+    "nextResult": {}
+  },
+  "status": "completed",
+  "discoveredSchema": {
+    "suggestedFields": [
+      "id",
+      "external_id",
+      "name",
+      "about",
+      "url",
+      "is_parent_exhibitor",
+      "owner_id",
+      "country",
+      "city",
+      "region",
+      "is_pavilion",
+      "logo",
+      "isNew",
+      "stands",
+      "stands.hall_id",
+      "stands.hall",
+      "stands.mapsPeopleFloorId",
+      "stands.stands_count",
+      "stands.stand",
+      "stands.stands",
+      "stands.stands.id",
+      "stands.stands.name",
+      "category_id",
+      "count_child_exhibitors",
+      "role",
+      "objectType"
+    ],
+    "dataPath": "data.list",
+    "params": []
+  },
+  "createdAt": "2026-02-03T13:23:33.638Z"
+}

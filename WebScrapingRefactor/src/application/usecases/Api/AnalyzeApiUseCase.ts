@@ -18,6 +18,7 @@ export class AnalyzeApiUseCase {
     fullUrl: string,
     method: "GET" | "POST",
     body?: Record<string, unknown>,
+     headers?: Record<string, string>
   ): Promise<AnalyzeApiResponse> {
     // 1. Validazione e Parsing URL
     let parsedUrl: URL;
@@ -31,7 +32,7 @@ export class AnalyzeApiUseCase {
     let response: unknown;
     try {
       // Nota: Passiamo il body perché nelle tue POST funge da filtro di ricerca
-      response = await this.apiPort.request({ url: fullUrl, method, body });
+      response = await this.apiPort.request({ url: fullUrl, method, body, headers });
     } catch (e) {
       throw new Error(
         `Errore durante la chiamata API: ${(e as Error).message}`,
