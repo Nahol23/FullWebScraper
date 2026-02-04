@@ -57,12 +57,7 @@ export class ConfigController {
     if (!config) return reply.status(404).send({ error: "Configurazione non trovata" });
     return reply.send(config);
   };
-  getById = async (req: any, reply : any) => {
-  const { id } = req.params;
-  const config = await this.getConfigByIdUseCase.execute(id);
-  if (!config) throw new Error("Config non trovata");
-  return reply.send(config);
-};
+
 
   create = async (
     req: FastifyRequest<{ Body: ApiConfig }>,
@@ -132,7 +127,7 @@ patchPagination = async (req : any, reply : any) => {
     return reply.status(200).send(result);
   };
 
-  execute = async (
+  executePreview = async (
     request: FastifyRequest<{ Params: { identifier: string }; Body: Record<string, any> }>,
     reply: FastifyReply
   ) => {

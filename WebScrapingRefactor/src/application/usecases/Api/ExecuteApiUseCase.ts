@@ -9,16 +9,14 @@ export class ExecuteApiUseCase {
     private readonly apiPort: IApiPort
   ) {}
 
-
-  async execute(idOrName: string, runtimeParams?: Record<string, any>): Promise<ApiResponseDTO> {
-    let config = await this.configRepo.findById(idOrName);
-
-    if(!config){
-      config = await this.configRepo.findByName(idOrName);
-    }
+  async execute(
+    configName: string,
+    runtimeParams?: Record<string, unknown>
+   ): Promise<ApiResponseDTO> {
+    
+    const config = await this.configRepo.findByName(configName);
     if (!config) {
-      throw new Error("Configurazione'${idOrName}'non trovata");
-
+      throw new Error(`Configurazione "${configName}" non trovata`);
     }
 
     
@@ -49,7 +47,7 @@ export class ExecuteApiUseCase {
             const runtimeHeaders = runtimeParams.headers as Record<string, string>;
             Object.assign(finalHeaders, runtimeHeaders);
 
-            //  Rimuoviamo 'headers' dai parametri per non sporcare l'URL o il Body
+            //  Rimuoviamo headers dai parametri per non sporcare l'URL o il Body
             const { headers, ...rest } = runtimeParams;
             paramsForMerge = rest;
         }
@@ -81,12 +79,13 @@ export class ExecuteApiUseCase {
 
     let targetArray = this.extractArray(responseData, config.dataPath);
 
+    targetArray = this.applyLimitSafety(targetArray, runtimeParams?.limit, config.pagination?.defaultLimit);
+
     if (config.filter?.field && config.filter?.value !== undefined) {
       targetArray = this.applyFilter(targetArray, config.filter);
     }
     if (config.selectedFields?.length) {
       targetArray = this.selectFields(targetArray, config.selectedFields);
-
     }
 
     const validObjects = targetArray.filter(
@@ -232,5 +231,41 @@ export class ExecuteApiUseCase {
 
     current[parts[parts.length - 1]] = value;
   }
+
+  private applyLimitSafety(
+  data: unknown[],
+  runtimeLimit: unknown, // Passiamo 'unknown' per testare la robustezza
+  configDefaultLimit?: number
+): unknown[] {
+  
+  let limit: number | undefined = undefined;
+
+  // 1. Parsing Robusto
+  if (runtimeLimit !== undefined && runtimeLimit !== null) {
+    const parsed = Number(runtimeLimit);
+    if (!isNaN(parsed) && parsed >= 0) {
+      limit = parsed;
+    }
+  }
+
+  // 2. Fallback Config
+  if (limit === undefined && configDefaultLimit) {
+    limit = configDefaultLimit;
+  }
+
+  // 3. Logica Core
+  // Se limit è 0 (Download All) -> Ritorna tutto
+  if (limit === 0) {
+    return data;
+  }
+
+  // Se c'è un limite valido e l'array è troppo lungo -> Taglia
+  if (limit !== undefined && limit > 0 && data.length > limit) {
+    return data.slice(0, limit);
+  }
+
+  // Altrimenti ritorna originale
+  return data;
+}
 }  
   
