@@ -33,9 +33,9 @@ export async function configRoutes(fastify: FastifyInstance) {
   const apiAdapter = new ApiAdapter();
   const formatService = new FormatDataService(); // Istanziamo qui il servizio
 
-  // 2. USE CASES
+  // 2. USE CASES (Logic strictly preserved as requested)
   const createAnalysisUseCase = new CreateAnalysisUseCase(apiAdapter, analysisRepo);
-  const executeApiUseCase = new ExecuteApiUseCase(configRepo, apiAdapter);
+  const executeApiUseCase = new ExecuteApiUseCase(configRepo, executionRepo, apiAdapter);
 
   const getAllConfigsUseCase = new GetAllConfigsUseCase(configRepo);
   const getConfigByIdUseCase = new GetConfigByIdUseCase(configRepo);
@@ -46,14 +46,14 @@ export async function configRoutes(fastify: FastifyInstance) {
   const getAllAnalysesUseCase = new GetAllAnalysesUseCase(analysisRepo);
   const getAllExecutionsUseCase = new GetAllExecutionsUseCase(executionRepo);
   
-  // ✅ Istanziamo il DownloadUseCase correttamente
+  
   const downloadAllUseCase = new DownloadAllUseCase(
     configRepo,
     executeApiUseCase,
     formatService
   );
 
-  // 3. CONTROLLER INITIALIZATION
+  
   const controller = new ConfigController(
     updateConfigUseCase,
     getAllConfigsUseCase,
@@ -68,44 +68,177 @@ export async function configRoutes(fastify: FastifyInstance) {
     downloadAllUseCase
   );
 
-  // 4. SCHEMAS
-  // ✅ Aggiornato schema per supportare la PAGINAZIONE
+   const errorResponseSchema = {
+    type: "object",
+    properties: {
+      error: { type: "string" },
+      message: { type: "string" },
+      details: { type: "array", items: { type: "object" } },
+      stack: { type: "string" },
+    },
+  };
+
+  // ✅ MAIN: ID param schema
+  const idParamSchema = {
+    type: "object",
+    required: ["id"],
+    properties: { id: { type: "string" } },
+  };
+
+  // ✅ MERGED: Config body schema con pagination (HEAD) + examples (MAIN)
   const configBodySchema = {
     type: "object",
     required: ["name", "baseUrl", "endpoint", "method"],
     properties: {
-      id: { type: "string", readOnly: true },
-      name: { type: "string" },
-      baseUrl: { type: "string" },
-      endpoint: { type: "string" },
-      method: { type: "string", enum: ["GET", "POST"] },
+      // TODO: Decidere se includere 'id' in base alla response effettiva
+      // id: { type: "string", readOnly: true },
       
-      // Nuova struttura paginazione
+      name: { type: "string", examples: ["Nome API"] },
+      baseUrl: { type: "string", examples: ["https://api.esempio.it"] },
+      endpoint: { type: "string", examples: ["/v1/data"] },
+      method: { type: "string", enum: ["GET", "POST"], examples: ["GET"] },
+      
+      queryParams: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["key", "value"],
+          properties: {
+            key: { type: "string" },
+            value: { type: "string" },
+          },
+        },
+        examples: [[{ key: "v", value: "1" }]],
+      },
+      
+      headers: {
+        type: "object",
+        additionalProperties: { type: "string" },
+        examples: [
+          {
+            Authorization: "Bearer token123",
+            "Content-Type": "application/json",
+            "X-Custom-Header": "value",
+          },
+        ],
+      },
+      
+      body: {
+        type: "object",
+        additionalProperties: true,
+        examples: [
+          {
+            param1: "value1",
+            param2: "value2",
+          },
+        ],
+      },
+      
+      // ✅ HEAD: Struttura pagination (allineata ad ApiConfig)
       pagination: {
         type: "object",
         nullable: true,
         properties: {
-            type: { type: "string", enum: ["offset", "page"] },
-            paramName: { type: "string" },
-            limitParam: { type: "string" },
-            defaultLimit: { type: "number" }
+          type: { type: "string", enum: ["offset", "page"] },
+          paramName: { type: "string" },
+          limitParam: { type: "string" },
+          defaultLimit: { type: "number" }
+        },
+        examples: [{
+          type: "page",
+          paramName: "page",
+          limitParam: "limit",
+          defaultLimit: 50
+        }]
+      },
+      
+      dataPath: { type: "string", examples: ["data.results"] },
+      
+      filter: {
+        type: "object",
+        nullable: true,
+        properties: {
+          field: { type: "string" },
+          value: { type: ["string", "number", "boolean"] }
+        },
+        examples: [{ field: "status", value: "active" }]
+      },
+      
+      selectedFields: {
+        type: "array",
+        items: { type: "string" },
+        examples: [["id", "name", "description"]],
+      },
+    },
+  };
+
+  // ✅ MAIN: Update schema separato (tutti i campi opzionali)
+  const updateBodySchema = {
+    type: "object",
+    properties: {
+      name: { type: "string", examples: ["Nome API"] },
+      baseUrl: { type: "string", examples: ["https://api.esempio.it"] },
+      endpoint: { type: "string", examples: ["/v1/data"] },
+      method: { type: "string", enum: ["GET", "POST"], examples: ["GET"] },
+      
+      queryParams: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["key", "value"],
+          properties: {
+            key: { type: "string" },
+            value: { type: "string" },
+          },
+        },
+      },
+      
+      headers: {
+        type: "object",
+        additionalProperties: { type: "string" },
+      },
+      
+      body: {
+        type: "object",
+        additionalProperties: true,
+      },
+      
+      pagination: {
+        type: "object",
+        nullable: true,
+        properties: {
+          type: { type: "string", enum: ["offset", "page"] },
+          paramName: { type: "string" },
+          limitParam: { type: "string" },
+          defaultLimit: { type: "number" }
         }
       },
       
       dataPath: { type: "string" },
-      headers: { type: "object", additionalProperties: true },
-      body: { type: "object", additionalProperties: true },
-      selectedFields: { type: "array", items: { type: "string" } },
+      
+      filter: {
+        type: "object",
+        nullable: true,
+        properties: {
+          field: { type: "string" },
+          value: { type: ["string", "number", "boolean"] }
+        }
+      },
+      
+      selectedFields: {
+        type: "array",
+        items: { type: "string" },
+      },
     },
   };
 
   const nameParamSchema = {
     type: "object",
-    required: ["name"], 
+    required: ["name"],
     properties: { name: { type: "string" } },
   };
 
-  
+  // ✅ HEAD: Schema per download
   const configNameParamSchema = {
     type: "object",
     required: ["configName"],
@@ -115,81 +248,271 @@ export async function configRoutes(fastify: FastifyInstance) {
   const downloadQuerySchema = {
     type: "object",
     properties: {
-        format: { type: "string", enum: ["json", "markdown"] }
+      format: { type: "string", enum: ["json", "markdown"] }
     }
   };
 
- 
+  // ========================================
+  // 5. CONFIGURATION ROUTES
+  // ========================================
+  
+  fastify.get(
+    "/configs",
+    {
+      schema: {
+        summary: "List all configs",
+        tags: ["Configuration"],
+        response: {
+          200: {
+            type: "array",
+            items: configBodySchema,
+          },
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.getAll,
+  );
+
+  fastify.get(
+    "/configs/:name",
+    {
+      schema: {
+        summary: "Get config by name",
+        tags: ["Configuration"],
+        params: nameParamSchema,
+        response: {
+          200: configBodySchema,
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.getOne,
+  );
+
+  fastify.get(
+    "/configs/id/:id",
+    {
+      schema: {
+        summary: "Get config by ID",
+        tags: ["Configuration"],
+        params: idParamSchema,
+        response: {
+          200: configBodySchema,
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.getById,
+  );
+
+  fastify.post(
+    "/configs",
+    {
+      schema: {
+        summary: "Create new config",
+        tags: ["Configuration"],
+        body: configBodySchema,
+        response: {
+          201: configBodySchema,
+          400: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.create,
+  );
+
+  fastify.put(
+    "/configs/:id",
+    {
+      schema: {
+        summary: "Update existing config",
+        tags: ["Configuration"],
+        params: idParamSchema,
+        body: updateBodySchema,
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              message: { type: "string" },
+            },
+          },
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.update,
+  );
+
+  fastify.delete(
+    "/configs/:id",
+    {
+      schema: {
+        summary: "Delete config",
+        tags: ["Configuration"],
+        params: idParamSchema,
+        response: {
+          204: { type: "null" },
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.delete,
+  );
+
+  // ========================================
+  // 6. ANALYSIS ROUTES
+  // ========================================
+  
+  fastify.post(
+    "/executions/analyze",
+    {
+      schema: {
+        summary: "Analyze API URL and suggest config",
+        tags: ["Analysis"],
+        body: {
+          type: "object",
+          required: ["url", "method"],
+          properties: {
+            url: { type: "string" },
+            method: { type: "string", enum: ["GET", "POST"] },
+            headers: { type: "object", additionalProperties: true },
+            body: { type: "object", additionalProperties: true },
+          },
+        },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              sampleData: { type: "object", additionalProperties: true },
+              suggestedFields: {
+                type: "array",
+                items: { type: "string" },
+              },
+            },
+          },
+          400: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.analyze,
+  );
+
+  fastify.get(
+    "/analyses",
+    {
+      schema: {
+        summary: "Get analysis history",
+        tags: ["Analysis"],
+        response: {
+          200: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: true,
+            },
+          },
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.getAllAnalyses,
+  );
+
+  // ========================================
+  // 7. EXECUTION ROUTES
+  // ========================================
+  
+  fastify.post(
+    "/executions/:name/execute",
+    {
+      schema: {
+        summary: "Execute API config with optional runtime params",
+        tags: ["Execution"],
+        params: nameParamSchema,
+        body: { 
+          type: "object", 
+          additionalProperties: true,
+          examples: [{
+            limit: 10,
+            page: 1,
+            headers: { "X-Custom": "value" }
+          }]
+        },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              data: { type: "array" },
+              filteredBy: { type: "object" },
+              meta: {
+                type: "object",
+                properties: {
+                  paths: { type: "array", items: { type: "string" } },
+                  total: { type: "number" },
+                  limit: { type: "number" },
+                  validObjectsCount: { type: "number" }
+                }
+              }
+            }
+          },
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.execute, 
+  );
+
+  fastify.get(
+    "/executions",
+    {
+      schema: {
+        summary: "Get execution history",
+        tags: ["Execution"],
+        response: {
+          200: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: true,
+            },
+          },
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.getAllExecutions,
+  );
+
 
   
-  fastify.get("/configs", {
-    schema: { summary: "List all configs", tags: ["Configuration"] }
-  }, controller.getAll);
-
-  fastify.get("/configs/:name", {
-    schema: { summary: "Get by name", tags: ["Configuration"], params: nameParamSchema }
-  }, controller.getOne);
-
-  fastify.get("/configs/id/:id", {
-    schema: { summary: "Get by ID", tags: ["Configuration"] }
-  }, controller.getById);
-
-  fastify.post("/configs", {
-    schema: { summary: "Create config", tags: ["Configuration"], body: configBodySchema }
-  }, controller.create);
-
-  fastify.put("/configs/:name", {
-    schema: { summary: "Update config", tags: ["Configuration"], params: nameParamSchema, body: configBodySchema }
-  }, controller.update);
-
-  fastify.delete("/configs/:name", {
-    schema: { summary: "Delete config", tags: ["Configuration"], params: nameParamSchema }
-  }, controller.delete);
-
-  
-  fastify.post("/executions/analyze", {
-    schema: {
-      summary: "Analyze API URL",
-      tags: ["Analysis"],
-      body: {
-        type: "object",
-        required: ["url", "method"],
-        properties: {
-          url: { type: "string" },
-          method: { type: "string", enum: ["GET", "POST"] },
-          headers: { type: "object", additionalProperties: true },
-          body: { type: "object", additionalProperties: true },
-        }
-      }
-    }
-  }, controller.analyze);
-
-  fastify.get("/analyses", {
-    schema: { summary: "Analysis history", tags: ["Analysis"] }
-  }, controller.getAllAnalyses);
-
-  
-  
-  fastify.post("/executions/:name/execute", {
-    schema: {
-      summary: "Execute specific config (Preview)",
-      tags: ["Execution"],
-      params: nameParamSchema,
-      body: { type: "object", additionalProperties: true }
-    }
-  }, controller.executePreview); 
-
-  fastify.get("/executions", {
-    schema: { summary: "Execution history", tags: ["Execution"] }
-  }, controller.getAllExecutions);
-
-  
-  fastify.get("/configs/:configName/download", {
-    schema: { 
-        summary: "Download all data", 
+  fastify.get(
+    "/configs/:configName/download",
+    {
+      schema: {
+        summary: "Download all paginated data",
         tags: ["Execution"],
         params: configNameParamSchema,
-        querystring: downloadQuerySchema
-    }
-  }, controller.download);
+        querystring: downloadQuerySchema,
+        response: {
+          200: {
+            description: "File scaricato con successo",
+            type: "string",
+            format: "binary"
+          },
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.download,
+  );
 }
+
