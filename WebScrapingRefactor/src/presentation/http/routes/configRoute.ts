@@ -1,9 +1,14 @@
 import { FastifyInstance } from "fastify";
 import { ConfigController } from "../controllers/ConfigController";
+
+// Repositories & Adapters
 import { ConfigRepository } from "../../../infrastructure/repositories/ConfigRepository";
 import { AnalysisRepository } from "../../../infrastructure/repositories/AnalysisRepository";
 import { ExecutionRepository } from "../../../infrastructure/repositories/ExecutionRepository";
 import { ApiAdapter } from "../../../infrastructure/adapters/Api/ApiAdapter";
+
+// Services
+import { FormatDataService } from "../../../application/services/FormatDataService";
 
 // Use Cases Configs
 import { UpdateConfigUseCase } from "../../../application/usecases/Configs/UpdateConfigUseCase";
@@ -13,11 +18,12 @@ import { SaveConfigUseCase } from "../../../application/usecases/Configs/SaveCon
 import { DeleteConfigUseCase } from "../../../application/usecases/Configs/DeleteConfigUseCase";
 import { GetConfigByIdUseCase } from "../../../application/usecases/Configs/GetConfigByIdUseCase";
 
-// Use Cases Analysis & Execution
+// Use Cases Analysis & Execution & Download
 import { CreateAnalysisUseCase } from "../../../application/usecases/Analysis/CreateAnalysisUseCase";
 import { ExecuteApiUseCase } from "../../../application/usecases/Api/ExecuteApiUseCase";
 import { GetAllAnalysesUseCase } from "../../../application/usecases/Analysis/GetAllAnalysisUseCase";
 import { GetAllExecutionsUseCase } from "../../../application/usecases/Execution/GetAllExecutionsUseCase";
+import { DownloadAllUseCase } from "../../../application/usecases/Api/DownloadAllUseCase";
 
 export async function configRoutes(fastify: FastifyInstance) {
   // 1. REPOSITORIES AND ADAPTERS
@@ -25,12 +31,10 @@ export async function configRoutes(fastify: FastifyInstance) {
   const analysisRepo = new AnalysisRepository();
   const executionRepo = new ExecutionRepository();
   const apiAdapter = new ApiAdapter();
+  const formatService = new FormatDataService(); // Istanziamo qui il servizio
 
   // 2. USE CASES (Logic strictly preserved as requested)
-  const createAnalysisUseCase = new CreateAnalysisUseCase(
-    apiAdapter,
-    analysisRepo,
-  );
+  const createAnalysisUseCase = new CreateAnalysisUseCase(apiAdapter, analysisRepo);
   const executeApiUseCase = new ExecuteApiUseCase(configRepo, executionRepo, apiAdapter);
 
   const getAllConfigsUseCase = new GetAllConfigsUseCase(configRepo);
@@ -41,8 +45,15 @@ export async function configRoutes(fastify: FastifyInstance) {
   const deleteConfigUseCase = new DeleteConfigUseCase(configRepo);
   const getAllAnalysesUseCase = new GetAllAnalysesUseCase(analysisRepo);
   const getAllExecutionsUseCase = new GetAllExecutionsUseCase(executionRepo);
+  
+  
+  const downloadAllUseCase = new DownloadAllUseCase(
+    configRepo,
+    executeApiUseCase,
+    formatService
+  );
 
-  // 3. CONTROLLER INITIALIZATION
+  
   const controller = new ConfigController(
     updateConfigUseCase,
     getAllConfigsUseCase,
@@ -50,14 +61,14 @@ export async function configRoutes(fastify: FastifyInstance) {
     getConfigByIdUseCase,
     saveConfigUseCase,
     deleteConfigUseCase,
-    executeApiUseCase as any,
+    executeApiUseCase, // Rimosso "as any" se i tipi sono allineati
     createAnalysisUseCase,
     getAllAnalysesUseCase,
     getAllExecutionsUseCase,
+    downloadAllUseCase
   );
 
-  // 4. SCHEMAS
-  const errorResponseSchema = {
+   const errorResponseSchema = {
     type: "object",
     properties: {
       error: { type: "string" },
@@ -67,14 +78,26 @@ export async function configRoutes(fastify: FastifyInstance) {
     },
   };
 
+  // ✅ MAIN: ID param schema
+  const idParamSchema = {
+    type: "object",
+    required: ["id"],
+    properties: { id: { type: "string" } },
+  };
+
+  // ✅ MERGED: Config body schema con pagination (HEAD) + examples (MAIN)
   const configBodySchema = {
     type: "object",
     required: ["name", "baseUrl", "endpoint", "method"],
     properties: {
+      // TODO: Decidere se includere 'id' in base alla response effettiva
+      // id: { type: "string", readOnly: true },
+      
       name: { type: "string", examples: ["Nome API"] },
       baseUrl: { type: "string", examples: ["https://api.esempio.it"] },
       endpoint: { type: "string", examples: ["/v1/data"] },
       method: { type: "string", enum: ["GET", "POST"], examples: ["GET"] },
+      
       queryParams: {
         type: "array",
         items: {
@@ -87,6 +110,7 @@ export async function configRoutes(fastify: FastifyInstance) {
         },
         examples: [[{ key: "v", value: "1" }]],
       },
+      
       headers: {
         type: "object",
         additionalProperties: { type: "string" },
@@ -98,6 +122,7 @@ export async function configRoutes(fastify: FastifyInstance) {
           },
         ],
       },
+      
       body: {
         type: "object",
         additionalProperties: true,
@@ -105,12 +130,40 @@ export async function configRoutes(fastify: FastifyInstance) {
           {
             param1: "value1",
             param2: "value2",
-            offset: 20,
           },
         ],
       },
-      defaultLimit: { type: "number", examples: [20] },
+      
+      // ✅ HEAD: Struttura pagination (allineata ad ApiConfig)
+      pagination: {
+        type: "object",
+        nullable: true,
+        properties: {
+          type: { type: "string", enum: ["offset", "page"] },
+          paramName: { type: "string" },
+          limitParam: { type: "string" },
+          defaultLimit: { type: "number" }
+        },
+        examples: [{
+          type: "page",
+          paramName: "page",
+          limitParam: "limit",
+          defaultLimit: 50
+        }]
+      },
+      
       dataPath: { type: "string", examples: ["data.results"] },
+      
+      filter: {
+        type: "object",
+        nullable: true,
+        properties: {
+          field: { type: "string" },
+          value: { type: ["string", "number", "boolean"] }
+        },
+        examples: [{ field: "status", value: "active" }]
+      },
+      
       selectedFields: {
         type: "array",
         items: { type: "string" },
@@ -118,6 +171,8 @@ export async function configRoutes(fastify: FastifyInstance) {
       },
     },
   };
+
+  // ✅ MAIN: Update schema separato (tutti i campi opzionali)
   const updateBodySchema = {
     type: "object",
     properties: {
@@ -125,6 +180,7 @@ export async function configRoutes(fastify: FastifyInstance) {
       baseUrl: { type: "string", examples: ["https://api.esempio.it"] },
       endpoint: { type: "string", examples: ["/v1/data"] },
       method: { type: "string", enum: ["GET", "POST"], examples: ["GET"] },
+      
       queryParams: {
         type: "array",
         items: {
@@ -136,16 +192,39 @@ export async function configRoutes(fastify: FastifyInstance) {
           },
         },
       },
+      
       headers: {
         type: "object",
         additionalProperties: { type: "string" },
       },
+      
       body: {
         type: "object",
         additionalProperties: true,
       },
-      defaultLimit: { type: "number" },
+      
+      pagination: {
+        type: "object",
+        nullable: true,
+        properties: {
+          type: { type: "string", enum: ["offset", "page"] },
+          paramName: { type: "string" },
+          limitParam: { type: "string" },
+          defaultLimit: { type: "number" }
+        }
+      },
+      
       dataPath: { type: "string" },
+      
+      filter: {
+        type: "object",
+        nullable: true,
+        properties: {
+          field: { type: "string" },
+          value: { type: ["string", "number", "boolean"] }
+        }
+      },
+      
       selectedFields: {
         type: "array",
         items: { type: "string" },
@@ -159,15 +238,24 @@ export async function configRoutes(fastify: FastifyInstance) {
     properties: { name: { type: "string" } },
   };
 
-  const idParamSchema = {
+  // ✅ HEAD: Schema per download
+  const configNameParamSchema = {
     type: "object",
-    required: ["id"],
-    properties: { id: { type: "string" } },
+    required: ["configName"],
+    properties: { configName: { type: "string" } },
   };
 
-  // 5. ROUTES
+  const downloadQuerySchema = {
+    type: "object",
+    properties: {
+      format: { type: "string", enum: ["json", "markdown"] }
+    }
+  };
 
-  // CONFIGURATION ROUTES
+  // ========================================
+  // 5. CONFIGURATION ROUTES
+  // ========================================
+  
   fastify.get(
     "/configs",
     {
@@ -190,12 +278,13 @@ export async function configRoutes(fastify: FastifyInstance) {
     "/configs/:name",
     {
       schema: {
-        summary: "Get by name",
+        summary: "Get config by name",
         tags: ["Configuration"],
         params: nameParamSchema,
         response: {
           200: configBodySchema,
-          400: errorResponseSchema,
+          404: errorResponseSchema,
+          500: errorResponseSchema,
         },
       },
     },
@@ -206,12 +295,13 @@ export async function configRoutes(fastify: FastifyInstance) {
     "/configs/id/:id",
     {
       schema: {
-        summary: "Get by ID",
+        summary: "Get config by ID",
         tags: ["Configuration"],
         params: idParamSchema,
         response: {
           200: configBodySchema,
-          400: errorResponseSchema,
+          404: errorResponseSchema,
+          500: errorResponseSchema,
         },
       },
     },
@@ -222,7 +312,7 @@ export async function configRoutes(fastify: FastifyInstance) {
     "/configs",
     {
       schema: {
-        summary: "Create config",
+        summary: "Create new config",
         tags: ["Configuration"],
         body: configBodySchema,
         response: {
@@ -239,7 +329,7 @@ export async function configRoutes(fastify: FastifyInstance) {
     "/configs/:id",
     {
       schema: {
-        summary: "Update config",
+        summary: "Update existing config",
         tags: ["Configuration"],
         params: idParamSchema,
         body: updateBodySchema,
@@ -275,12 +365,15 @@ export async function configRoutes(fastify: FastifyInstance) {
     controller.delete,
   );
 
-  // ANALYSIS ROUTES
+  // ========================================
+  // 6. ANALYSIS ROUTES
+  // ========================================
+  
   fastify.post(
     "/executions/analyze",
     {
       schema: {
-        summary: "Analyze API URL",
+        summary: "Analyze API URL and suggest config",
         tags: ["Analysis"],
         body: {
           type: "object",
@@ -315,12 +408,15 @@ export async function configRoutes(fastify: FastifyInstance) {
     "/analyses",
     {
       schema: {
-        summary: "Analysis history",
+        summary: "Get analysis history",
         tags: ["Analysis"],
         response: {
           200: {
             type: "array",
-            items: configBodySchema,
+            items: {
+              type: "object",
+              additionalProperties: true,
+            },
           },
           500: errorResponseSchema,
         },
@@ -329,38 +425,64 @@ export async function configRoutes(fastify: FastifyInstance) {
     controller.getAllAnalyses,
   );
 
-  // EXECUTION ROUTES
+  // ========================================
+  // 7. EXECUTION ROUTES
+  // ========================================
+  
   fastify.post(
     "/executions/:name/execute",
     {
       schema: {
-        summary: "Execute specific config",
+        summary: "Execute API config with optional runtime params",
         tags: ["Execution"],
         params: nameParamSchema,
-        body: { type: "object", additionalProperties: true },
+        body: { 
+          type: "object", 
+          additionalProperties: true,
+          examples: [{
+            limit: 10,
+            page: 1,
+            headers: { "X-Custom": "value" }
+          }]
+        },
         response: {
           200: {
             type: "object",
-            additionalProperties: true,
+            properties: {
+              data: { type: "array" },
+              filteredBy: { type: "object" },
+              meta: {
+                type: "object",
+                properties: {
+                  paths: { type: "array", items: { type: "string" } },
+                  total: { type: "number" },
+                  limit: { type: "number" },
+                  validObjectsCount: { type: "number" }
+                }
+              }
+            }
           },
           404: errorResponseSchema,
           500: errorResponseSchema,
         },
       },
     },
-    controller.execute,
+    controller.execute, 
   );
 
   fastify.get(
     "/executions",
     {
       schema: {
-        summary: "Execution history",
+        summary: "Get execution history",
         tags: ["Execution"],
         response: {
           200: {
             type: "array",
-            items: configBodySchema,
+            items: {
+              type: "object",
+              additionalProperties: true,
+            },
           },
           500: errorResponseSchema,
         },
@@ -368,4 +490,29 @@ export async function configRoutes(fastify: FastifyInstance) {
     },
     controller.getAllExecutions,
   );
+
+
+  
+  fastify.get(
+    "/configs/:configName/download",
+    {
+      schema: {
+        summary: "Download all paginated data",
+        tags: ["Execution"],
+        params: configNameParamSchema,
+        querystring: downloadQuerySchema,
+        response: {
+          200: {
+            description: "File scaricato con successo",
+            type: "string",
+            format: "binary"
+          },
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.download,
+  );
 }
+

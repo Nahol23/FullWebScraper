@@ -12,35 +12,65 @@ export class ExecuteApiUseCase {
     private readonly apiPort: IApiPort
   ) {}
 
-  
- async execute(idOrName: string, runtimeParams?: Record<string, any>): Promise<ApiResponseDTO> {
+  async execute(idOrName: string, runtimeParams?: Record<string, unknown>): Promise<ApiResponseDTO> {
+    
+    // 1. Cerca per ID, se fallisce cerca per Nome (Logica Robustezza dal Main)
     let config = await this.configRepo.findById(idOrName);
-    if (!config) config = await this.configRepo.findByName(idOrName);
-    if (!config) throw new Error(`Configurazione '${idOrName}' non trovata`);
+    if (!config) {
+      config = await this.configRepo.findByName(idOrName);
+    }
 
-    const effectiveDataPath = runtimeParams?.dataPath !== undefined ? runtimeParams.dataPath : config.dataPath;
-    const effectiveSelectedFields = runtimeParams?.selectedFields !== undefined ? runtimeParams.selectedFields : config.selectedFields;
-    const effectiveLimit = runtimeParams?.limit !== undefined ? runtimeParams.limit : config.defaultLimit;
+    if (!config) {
+      throw new Error(`Configurazione '${idOrName}' non trovata`);
+    }
 
+
+    const effectiveDataPath = runtimeParams?.dataPath !== undefined 
+    ? runtimeParams.dataPath as string|undefined
+    : config.dataPath;
+    const effectiveSelectedFields = runtimeParams?.selectedFields !== undefined
+     ? runtimeParams.selectedFields as string[]|undefined
+     : config.selectedFields;
+    const effectiveLimit = runtimeParams?.limit !== undefined 
+    ? runtimeParams.limit 
+    : config.pagination?.defaultLimit;
+
+
+    // --- COSTRUZIONE URL ---
     const url = this.buildUrl(config.baseUrl, config.endpoint);
     
     if (config.queryParams) {
       config.queryParams.forEach(param => url.searchParams.set(param.key, param.value));
     }
-    const finalHeaders: Record<string, string> = { ...(config.headers || {}) };
-    let finalBody = config.body ? JSON.parse(JSON.stringify(config.body)) : undefined;
+    
+    // --- COSTRUZIONE BODY ---
+    let finalBody = config.body !== undefined && config.body !== null
+      ? JSON.parse(JSON.stringify(config.body))
+      : undefined;
 
-    let apiParams = {};
+    // --- COSTRUZIONE HEADERS ---
+    const finalHeaders: Record<string, string> = {
+      ...(config.headers || {})
+    };
+
+      let apiParams: Record<string, unknown> = {};
     if (runtimeParams) {
+      // Estrai i meta-params che NON vanno nell'URL/Body
       const { headers, dataPath, selectedFields, limit, ...rest } = runtimeParams;
-      if (headers) Object.assign(finalHeaders, headers);
+      
+      // Merge degli headers
+      if (headers) {
+        Object.assign(finalHeaders, headers as Record<string, string>);
+      }
+      
+      // Il resto va in URL o Body
       apiParams = rest;
     }
 
+    // --- MERGE PARAMETRI ---
     if (Object.keys(apiParams).length > 0) {
       this.mergeRuntimeParams(config.method, url, finalBody, apiParams);
     }
-
     let responseData: unknown;
     let status: "success" | "error" = "success";
     let errorMessage: string | undefined;
@@ -77,17 +107,16 @@ export class ExecuteApiUseCase {
 
     let targetArray = this.extractArray(responseData, effectiveDataPath);
 
+    // --- APPLICA LIMIT SAFETY ---
+    targetArray = this.applyLimitSafety(targetArray, runtimeParams?.limit, config.pagination?.defaultLimit);
+
+    // --- FILTRI ---
     if (config.filter?.field && config.filter?.value !== undefined) {
       targetArray = this.applyFilter(targetArray, config.filter as { field: string; value: unknown });
     }
 
     if (effectiveSelectedFields && effectiveSelectedFields.length > 0) {
       targetArray = this.selectFields(targetArray, effectiveSelectedFields);
-    }
-
-    const totalFound = targetArray.length;
-    if (effectiveLimit && effectiveLimit > 0) {
-      targetArray = targetArray.slice(0, effectiveLimit);
     }
 
     const validObjects = targetArray.filter(
@@ -99,8 +128,8 @@ export class ExecuteApiUseCase {
       filteredBy: config.filter,
       meta: {
         paths: effectiveDataPath ? [effectiveDataPath] : [],
-        total: totalFound,
-        limit: effectiveLimit,
+        total: targetArray.length,
+        limit: typeof effectiveLimit === 'number' ? effectiveLimit : undefined,
         validObjectsCount: validObjects.length,
       },
     };
@@ -109,7 +138,7 @@ export class ExecuteApiUseCase {
 
   private buildUrl(baseUrl: string, endpoint: string): URL {
     const base = baseUrl.replace(/\/+$/, "");
-    const path = endpoint.replace(/^\/+/, "");
+    const path = endpoint.replace(/^\/+/, "").replace(/\/+$/, "");
     return new URL(`${base}/${path}`);
   }
 
@@ -223,5 +252,42 @@ export class ExecuteApiUseCase {
       current = current[part] as Record<string, unknown>;
     }
     current[parts[parts.length - 1]] = value;
+  }
+
+  // ✅ CONFLITTO RISOLTO: Mantenuto il metodo privato dal branch HEAD
+  private applyLimitSafety(
+    data: unknown[],
+    runtimeLimit: unknown, // Passiamo 'unknown' per testare la robustezza
+    configDefaultLimit?: number
+  ): unknown[] {
+    
+    let limit: number | undefined = undefined;
+
+    // 1. Parsing Robusto
+    if (runtimeLimit !== undefined && runtimeLimit !== null) {
+      const parsed = Number(runtimeLimit);
+      if (!isNaN(parsed) && parsed >= 0) {
+        limit = parsed;
+      }
+    }
+
+    // 2. Fallback Config
+    if (limit === undefined && configDefaultLimit) {
+      limit = configDefaultLimit;
+    }
+
+    // 3. Logica Core
+    // Se limit è 0 (Download All) -> Ritorna tutto
+    if (limit === 0) {
+      return data;
+    }
+
+    // Se c'è un limite valido e l'array è troppo lungo -> Taglia
+    if (limit !== undefined && limit > 0 && data.length > limit) {
+      return data.slice(0, limit);
+    }
+
+    // Altrimenti ritorna originale
+    return data;
   }
 }

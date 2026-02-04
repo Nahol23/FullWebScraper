@@ -34,6 +34,7 @@ describe('ExecuteApiUseCase - Complete Test Suite (Smart Version)', () => {
 
     // Setup dei mock dei Repository/Port
     mockConfigRepo = {
+      findById: vi.fn().mockResolvedValue(null), // Default: non trova per ID
       findByName: vi.fn(),
       save: vi.fn(),
       delete: vi.fn(),
@@ -61,7 +62,7 @@ describe('ExecuteApiUseCase - Complete Test Suite (Smart Version)', () => {
     vi.mocked(mockConfigRepo.findByName).mockResolvedValue(null);
 
     await expect(useCase.execute('NonEsiste')).rejects.toThrow(
-      'Configurazione "NonEsiste" non trovata'
+      "Configurazione 'NonEsiste' non trovata"
     );
   });
 
@@ -72,6 +73,27 @@ describe('ExecuteApiUseCase - Complete Test Suite (Smart Version)', () => {
     await expect(useCase.execute('test-api')).rejects.toThrow(
       'Errore chiamata API "test-api": Network Error'
     );
+  });
+
+  it('dovrebbe cercare per ID prima e poi per nome', async () => {
+  vi.mocked(mockConfigRepo.findById).mockResolvedValue(baseConfig as any);
+  vi.mocked(mockApiPort.request).mockResolvedValue([]);
+  
+  await useCase.execute('some-id');
+  
+  expect(mockConfigRepo.findById).toHaveBeenCalledWith('some-id');
+  expect(mockConfigRepo.findByName).not.toHaveBeenCalled(); // Trovato per ID
+  });
+
+  it('dovrebbe fare fallback a findByName se findById fallisce', async () => {
+    vi.mocked(mockConfigRepo.findById).mockResolvedValue(null);
+    vi.mocked(mockConfigRepo.findByName).mockResolvedValue(baseConfig as any);
+    vi.mocked(mockApiPort.request).mockResolvedValue([]);
+    
+    await useCase.execute('test-api');
+    
+    expect(mockConfigRepo.findById).toHaveBeenCalled();
+    expect(mockConfigRepo.findByName).toHaveBeenCalled();
   });
 
   // ==========================================
@@ -119,6 +141,20 @@ describe('ExecuteApiUseCase - Complete Test Suite (Smart Version)', () => {
     const callArgs = vi.mocked(mockApiPort.request).mock.calls[0][0];
     expect(callArgs.url).toContain('limit=50');
     expect(callArgs.url).not.toContain('limit=10');
+  });
+
+  it('dovrebbe gestire baseUrl e endpoint con slash multipli', async () => {
+  vi.mocked(mockConfigRepo.findByName).mockResolvedValue({
+    ...baseConfig,
+    baseUrl: 'https://api.example.com///',
+    endpoint: '///resource///'
+  } as any);
+  vi.mocked(mockApiPort.request).mockResolvedValue([]);
+  
+  await useCase.execute('test-api');
+  
+  const url = vi.mocked(mockApiPort.request).mock.calls[0][0].url;
+  expect(url).toBe('https://api.example.com/resource');
   });
 
   // ==========================================
@@ -255,6 +291,22 @@ describe('ExecuteApiUseCase - Complete Test Suite (Smart Version)', () => {
     expect(result.meta?.total).toBe(2);
   });
 
+  it('dovrebbe contare correttamente validObjectsCount escludendo null/array', async () => {
+  vi.mocked(mockConfigRepo.findByName).mockResolvedValue(baseConfig as any);
+  vi.mocked(mockApiPort.request).mockResolvedValue([
+    { id: 1 },
+    null,
+    { id: 2 },
+    [1, 2, 3],
+    'string'
+  ]);
+  
+  const result = await useCase.execute('test-api');
+  
+  expect(result.meta?.total).toBe(5);
+  expect(result.meta?.validObjectsCount).toBe(2); // Solo i 2 oggetti validi
+});
+
   // ==========================================
   // 6. TEST EDGE CASES (Robustezza)
   // ==========================================
@@ -388,7 +440,51 @@ describe('ExecuteApiUseCase - Complete Test Suite (Smart Version)', () => {
     }));
   });
 
+  //limit safety tests
+
+  it('dovrebbe applicare limit da runtimeParams se valido', async () => {
+  vi.mocked(mockConfigRepo.findByName).mockResolvedValue(baseConfig as any);
+  vi.mocked(mockApiPort.request).mockResolvedValue([1, 2, 3, 4, 5]);
+  
+  const result = await useCase.execute('test-api', { limit: 3 });
+  
+  expect(result.data).toHaveLength(3);
+  expect(result.data).toEqual([1, 2, 3]);
+});
+
+it('dovrebbe usare defaultLimit dalla config se runtime non specificato', async () => {
+  vi.mocked(mockConfigRepo.findByName).mockResolvedValue({
+    ...baseConfig,
+    pagination: { defaultLimit: 2 }
+  } as any);
+  vi.mocked(mockApiPort.request).mockResolvedValue([1, 2, 3, 4]);
+  
+  const result = await useCase.execute('test-api');
+  
+  expect(result.data).toHaveLength(2);
+});
+
+it('dovrebbe ignorare limit se è 0 (download all)', async () => {
+  vi.mocked(mockConfigRepo.findByName).mockResolvedValue(baseConfig as any);
+  vi.mocked(mockApiPort.request).mockResolvedValue([1, 2, 3]);
+  
+  const result = await useCase.execute('test-api', { limit: 0 });
+  
+  expect(result.data).toHaveLength(3);
+});
+
+it('dovrebbe gestire limit non validi (string, negative, NaN)', async () => {
+  vi.mocked(mockConfigRepo.findByName).mockResolvedValue(baseConfig as any);
+  vi.mocked(mockApiPort.request).mockResolvedValue([1, 2, 3]);
+  
+  // String non numerica
+  const result1 = await useCase.execute('test-api', { limit: 'abc' });
+  expect(result1.data).toHaveLength(3);
+  
+  // Negativo
+  const result2 = await useCase.execute('test-api', { limit: -5 });
+  expect(result2.data).toHaveLength(3);
+});
+
  
-
-
 });
