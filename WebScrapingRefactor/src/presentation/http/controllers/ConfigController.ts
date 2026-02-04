@@ -140,7 +140,7 @@ export class ConfigController {
     return reply.status(200).send(result);
   };
 
-  executePreview = async (
+  execute = async (
     request: FastifyRequest<{ Params: { name: string }; Body: Record<string, any> }>,
     reply: FastifyReply
   ) => {
@@ -162,25 +162,37 @@ export class ConfigController {
       // 1. Qui riceviamo il PERCORSO (path) del file, non il contenuto
       const filePath = await this.downloadAllUseCase.execute(configName, format);
 
-      // 2. Impostiamo gli header corretti
-      if (format === 'markdown') {
-        reply.header('Content-Type', 'text/markdown');
-        reply.header('Content-Disposition', `attachment; filename="${configName}.md"`);
-      } else {
-        reply.header('Content-Type', 'application/json');
-        reply.header('Content-Disposition', `attachment; filename="${configName}.json"`);
-      }
 
-      // 3. ✅ CORREZIONE CRUCIALE: Creiamo uno stream dal file fisico
-      // Questo legge il file dal disco pezzo per pezzo e lo manda all'utente
-      // senza riempire la memoria RAM del server.
+      const safeFileName = configName.replace(/[^a-zA-Z0-9-_]/g, '_');
+      const extension = format === 'markdown' ? 'md' : 'json';
+      const contentType = format === 'markdown' ? 'text/markdown' : 'application/json';
+
+      // 2. Impostiamo gli header corretti
+      reply.header('Content-Type', contentType);
+      reply.header('Content-Disposition', `attachment; filename="${safeFileName}.${extension}"`);
+
+      
       const stream = fs.createReadStream(filePath);
+
+      stream.on('close', () => {
+        fs.unlink(filePath, (err) => {
+          if (err) {
+            req.log.error(`Errore cancellazione file temp ${filePath}: ${err.message}`);
+          } else {
+            req.log.info(`File temporaneo cancellato: ${filePath}`);
+          }
+        });
+      });
+
+
 
       return reply.send(stream);
 
     } catch (error) {
       req.log.error(error);
-      return reply.status(500).send({ error: (error as Error).message });
+      return reply.status(500).send({
+         error: "DownloadFailed", 
+        message: (error as Error).message });
     }
   };
 }
