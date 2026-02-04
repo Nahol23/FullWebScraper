@@ -2,7 +2,6 @@ import { ApiParam } from "../value-objects/ApiParam";
 export interface ApiConfig {
 
   id:string;
-
   name: string;
   baseUrl: string;
   endpoint: string;

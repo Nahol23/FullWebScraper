@@ -79,8 +79,8 @@ export class ConfigController {
     reply: FastifyReply,
   ) => {
     const { id } = req.params;
-    const updates = req.body;
-    await this.updateConfigUseCase.execute(id, updates);
+    //const updates = req.body;
+    await this.updateConfigUseCase.execute(id, req.body);
     return reply
       .status(200)
       .send({ message: "Configurazione aggiornata con successo" });

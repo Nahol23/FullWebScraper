@@ -2,83 +2,92 @@ import { IConfigRepository } from "../../../domain/ports/IConfigRepository";
 import { IApiPort } from "../../../domain/ports/Api/IApiPort";
 import { ApiResponseDTO } from "../../dto/ApiResponseDto";
 import { getNestedData, findFirstArrayPath } from "../../../infrastructure/utils/ObjectUtils";
-
+import { IExecutionRepository } from "../../../domain/ports/Execution/IExecutionRepository";
+import { Execution } from "../../../domain/entities/Execution";
+import { randomUUID } from "crypto";
 export class ExecuteApiUseCase {
   constructor(
     private readonly configRepo: IConfigRepository,
+    private readonly executionRepo: IExecutionRepository,
     private readonly apiPort: IApiPort
   ) {}
 
   
-  async execute(idOrName: string, runtimeParams?: Record<string, any>): Promise<ApiResponseDTO> {
+ async execute(idOrName: string, runtimeParams?: Record<string, any>): Promise<ApiResponseDTO> {
     let config = await this.configRepo.findById(idOrName);
+    if (!config) config = await this.configRepo.findByName(idOrName);
+    if (!config) throw new Error(`Configurazione '${idOrName}' non trovata`);
 
-    if (!config) {
-      config = await this.configRepo.findByName(idOrName);
-    }
-
-    if (!config) {
-      throw new Error(`Configurazione '${idOrName}' non trovata`);
-    }
+    const effectiveDataPath = runtimeParams?.dataPath !== undefined ? runtimeParams.dataPath : config.dataPath;
+    const effectiveSelectedFields = runtimeParams?.selectedFields !== undefined ? runtimeParams.selectedFields : config.selectedFields;
+    const effectiveLimit = runtimeParams?.limit !== undefined ? runtimeParams.limit : config.defaultLimit;
 
     const url = this.buildUrl(config.baseUrl, config.endpoint);
-
+    
     if (config.queryParams) {
-      config.queryParams.forEach(param => {
-        url.searchParams.set(param.key, param.value);
-      });
+      config.queryParams.forEach(param => url.searchParams.set(param.key, param.value));
     }
+    const finalHeaders: Record<string, string> = { ...(config.headers || {}) };
+    let finalBody = config.body ? JSON.parse(JSON.stringify(config.body)) : undefined;
 
-    let finalBody = config.body !== undefined && config.body !== null
-      ? JSON.parse(JSON.stringify(config.body))
-      : undefined;
-
-    const finalHeaders: Record<string, string> = {
-      ...(config.headers || {})
-    };
-
-    let paramsForMerge = runtimeParams || {};
-
+    let apiParams = {};
     if (runtimeParams) {
-      if (runtimeParams.headers) {
-        const runtimeHeaders = runtimeParams.headers as Record<string, string>;
-        Object.assign(finalHeaders, runtimeHeaders);
-
-        const { headers, ...rest } = runtimeParams;
-        paramsForMerge = rest;
-      }
+      const { headers, dataPath, selectedFields, limit, ...rest } = runtimeParams;
+      if (headers) Object.assign(finalHeaders, headers);
+      apiParams = rest;
     }
 
-    if (Object.keys(paramsForMerge).length > 0) {
-      this.mergeRuntimeParams(config.method, url, finalBody, paramsForMerge);
+    if (Object.keys(apiParams).length > 0) {
+      this.mergeRuntimeParams(config.method, url, finalBody, apiParams);
     }
-
-    const requestBody = config.method.toUpperCase() === 'GET' 
-      ? undefined 
-      : finalBody;
 
     let responseData: unknown;
+    let status: "success" | "error" = "success";
+    let errorMessage: string | undefined;
+
     try {
       responseData = await this.apiPort.request({
         url: url.toString(),
         method: config.method,
-        body: requestBody,
+        body: config.method.toUpperCase() === 'GET' ? undefined : finalBody,
         headers: finalHeaders
       });
     } catch (error) {
-      throw new Error(
-        `Errore chiamata API "${config.name}": ${(error as Error).message}`
-      );
+      status = "error";
+      errorMessage = (error as Error).message;
+      throw error; 
+    } finally {
+      const execution: Execution = {
+        id: randomUUID(),
+        configId: config.id,
+        timestamp: new Date(),
+        parametersUsed: runtimeParams || {},
+        resultCount: 0, 
+        status: status,
+        errorMessage: errorMessage
+      };
+
+      if (status === "success" && responseData) {
+        const rawArray = this.extractArray(responseData, effectiveDataPath);
+        execution.resultCount = rawArray.length;
+      }
+
+      await this.executionRepo.save(execution);
     }
 
-    let targetArray = this.extractArray(responseData, config.dataPath);
+    let targetArray = this.extractArray(responseData, effectiveDataPath);
 
     if (config.filter?.field && config.filter?.value !== undefined) {
       targetArray = this.applyFilter(targetArray, config.filter as { field: string; value: unknown });
     }
 
-    if (config.selectedFields?.length) {
-      targetArray = this.selectFields(targetArray, config.selectedFields);
+    if (effectiveSelectedFields && effectiveSelectedFields.length > 0) {
+      targetArray = this.selectFields(targetArray, effectiveSelectedFields);
+    }
+
+    const totalFound = targetArray.length;
+    if (effectiveLimit && effectiveLimit > 0) {
+      targetArray = targetArray.slice(0, effectiveLimit);
     }
 
     const validObjects = targetArray.filter(
@@ -89,8 +98,9 @@ export class ExecuteApiUseCase {
       data: targetArray,
       filteredBy: config.filter,
       meta: {
-        paths: config.dataPath ? [config.dataPath] : [],
-        total: targetArray.length,
+        paths: effectiveDataPath ? [effectiveDataPath] : [],
+        total: totalFound,
+        limit: effectiveLimit,
         validObjectsCount: validObjects.length,
       },
     };
