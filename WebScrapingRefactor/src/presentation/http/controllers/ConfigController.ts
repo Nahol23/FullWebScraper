@@ -15,6 +15,8 @@ import { GetAllAnalysesUseCase } from "../../../application/usecases/Analysis/Ge
 import { GetAllExecutionsUseCase } from "../../../application/usecases/Execution/GetAllExecutionsUseCase";
 import { DownloadAllUseCase, ExportFormat } from "../../../application/usecases/Api/DownloadAllUseCase";
 import { randomUUID } from "crypto";
+import { DeleteExecutionUseCase } from '../../../application/usecases/Execution/DeleteExecutionUsecase';
+import { GetAllExecutionsByConfigUseCase } from "../../../application/usecases/Execution/GetAllExecutionByConfigUseCase";
 
 export class ConfigController {
   constructor(
@@ -28,6 +30,8 @@ export class ConfigController {
     private createAnalysisUseCase: CreateAnalysisUseCase,
     private getAllAnalysesUseCase: GetAllAnalysesUseCase,
     private getAllExecutionsUseCase: GetAllExecutionsUseCase,
+    private getAllExecutionByconfigUsecase : GetAllExecutionsByConfigUseCase,
+    private deleteExecutionUsecase: DeleteExecutionUseCase,
     private downloadAllUseCase: DownloadAllUseCase,
   ) {}
 
@@ -149,6 +153,23 @@ export class ConfigController {
     const result = await this.executeApiUseCase.execute(name, runtimeParams);
     return reply.status(200).send(result);
   };
+  getExecutionsByConfig = async (
+  req: FastifyRequest<{ Params: { configId: string } }>,
+  reply: FastifyReply
+) => {
+  const { configId } = req.params;
+  const results = await this.getAllExecutionByconfigUsecase.execute(configId);
+  return reply.status(200).send(results);
+};
+deleteExecution = async (
+  req: FastifyRequest<{ Params: { configId: string; executionId: string } }>,
+  reply: FastifyReply
+) => {
+  const { executionId } = req.params;
+  await this.deleteExecutionUsecase.execute(executionId);
+  return reply.status(204).send();
+};
+
 
 
  download = async (
