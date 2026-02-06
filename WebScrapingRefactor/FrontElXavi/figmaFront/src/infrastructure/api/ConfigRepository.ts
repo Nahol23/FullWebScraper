@@ -1,8 +1,3 @@
-/**
- * Infrastructure: ConfigRepository Implementation
- * Implements IConfigRepository using in-memory storage (can be replaced with API calls)
- */
-
 import type { ApiConfig } from "../../domain/entities/ApiConfig";
 import type { IConfigRepository } from "../../domain/ports/IConfigRepository";
 
@@ -76,7 +71,9 @@ export class ConfigRepository implements IConfigRepository {
   private configs: ApiConfig[] = [...MOCK_CONFIGS];
 
   constructor(initialConfigs: ApiConfig[] = []) {
-    this.configs = [...initialConfigs];
+    if (initialConfigs.length > 0) {
+      this.configs = [...initialConfigs];
+    }
   }
 
   async getAll(): Promise<ApiConfig[]> {
