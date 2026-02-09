@@ -10,7 +10,6 @@ export class StartExecutionUseCase {
 
   async execute(configName: string, overrides?: Record<string, unknown>) {
     const vo = new ExecutionOverridesVO(overrides);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return this.repo.execute(configName, vo as any );
+    return this.repo.execute(configName, vo.raw );
   }
 }
