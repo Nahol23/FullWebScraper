@@ -1,0 +1,9 @@
+{
+  "id": "b8dbc827-a83b-4803-b869-68d54e7ac096",
+  "configId": "4a64ddb5-cbf6-4121-bfce-7866ca8b3ec0",
+  "timestamp": "2026-02-09T14:59:08.337Z",
+  "parametersUsed": {},
+  "resultCount": 0,
+  "status": "error",
+  "errorMessage": "[ApiAdapter] fetch failed"
+}

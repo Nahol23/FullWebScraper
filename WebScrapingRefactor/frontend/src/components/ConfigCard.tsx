@@ -6,7 +6,6 @@ import type { ApiConfig} from '../types/ApiConfig';
 
 interface ConfigCardProps {
   config: ApiConfig;
- onClick: () => void;
   onOpen : () => void;
 }
 
