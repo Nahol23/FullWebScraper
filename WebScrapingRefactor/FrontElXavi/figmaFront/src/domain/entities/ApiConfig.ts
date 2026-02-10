@@ -6,9 +6,11 @@
 export interface ExecutionHistory {
   id: string;
   timestamp: string;
-  status: "success" | "error";
+  status: number;
+  duration: number;
   recordsExtracted?: number;
   errorMessage?: string;
+  responsePreview?: any;
 }
 
 export interface PaginationSettings {

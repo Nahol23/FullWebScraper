@@ -1,52 +1,42 @@
 /**
  * Presentation Layer: ExecuteTab Component
- * Dumb UI Component - Uses Controller Hook
+ * Componente per la configurazione runtime e l'esecuzione delle estrazioni.
  */
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Play,
   Loader2,
-  CheckCircle2,
-  Download, // 👈 Usiamo un'icona generica di download
+  Download,
   Clock,
-  AlertCircle,
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Textarea } from "../../components/ui/textarea";
 import { Label } from "../../components/ui/label";
 import { Input } from "../../components/ui/input";
-import { Badge } from "../../components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../components/ui/tabs";
 import { SheetFooter } from "../../components/ui/sheet";
 import { Card } from "../../components/ui/card";
-import { Alert, AlertDescription } from "../../components/ui/alert";
-import type { ApiConfig } from "../../../domain/entities/ApiConfig";
-import { useExecutionController } from "../../hooks/useExecutionController";
+import type { ApiConfig, ExecutionHistory } from "../../../domain/entities/ApiConfig";
 import type { RuntimeParams } from "../../../domain/entities/RuntimeParams";
 
 interface ExecuteTabProps {
   config: ApiConfig;
-  onUpdate: (config: ApiConfig) => void;
-  // 👇 1. Nuova prop: deleghiamo il download al genitore (che ha il Controller)
-  onDownloadResults: (executionId: string) => void;
+  onUpdate: (config: ApiConfig) => Promise<void>;
+  onExecute: (configId: string, params?: RuntimeParams) => Promise<void>;
+  isExecuting: boolean;
+  lastLogs: ExecutionHistory[];
 }
 
-export function ExecuteTab({ config, onUpdate, onDownloadResults }: ExecuteTabProps) {
+export function ExecuteTab({ 
+  config, 
+  onExecute, 
+  isExecuting, 
+  lastLogs 
+}: ExecuteTabProps) {
   const [inputMode, setInputMode] = useState<"easy" | "raw">("easy");
-  // 👇 2. Stato per memorizzare l'ID dell'esecuzione appena conclusa
-  const [lastExecutionId, setLastExecutionId] = useState<string | null>(null);
-
   const [runtimeParams, setRuntimeParams] = useState(
-    JSON.stringify(
-      {
-        page: 1,
-        limit: 100,
-        filters: {},
-      },
-      null,
-      2
-    )
+    JSON.stringify({ page: 1, limit: 100, filters: {} }, null, 2)
   );
 
   // Easy mode fields
@@ -54,26 +44,10 @@ export function ExecuteTab({ config, onUpdate, onDownloadResults }: ExecuteTabPr
   const [easyLimit, setEasyLimit] = useState("100");
   const [easyPage, setEasyPage] = useState("1");
 
-  const { runExecution, isExecuting, error, result, updatedConfig, reset } =
-    useExecutionController();
-
-  // Update parent when config is updated from execution
-  useEffect(() => {
-    if (updatedConfig) {
-      // 👇 3. Catturiamo l'ID della nuova esecuzione (è la prima della lista)
-      if (updatedConfig.executionHistory.length > 0) {
-        setLastExecutionId(updatedConfig.executionHistory[0].id);
-      }
-      
-      onUpdate(updatedConfig);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [updatedConfig]);
+  // Prendi l'ultimo risultato per la preview
+  const latestResult = lastLogs.length > 0 ? lastLogs[0] : null;
 
   const handleExecute = async () => {
-    reset();
-    setLastExecutionId(null); // Reset dell'ID precedente
-
     let params: RuntimeParams | undefined;
 
     if (inputMode === "easy") {
@@ -85,87 +59,65 @@ export function ExecuteTab({ config, onUpdate, onDownloadResults }: ExecuteTabPr
       try {
         params = JSON.parse(runtimeParams);
       } catch (e) {
+        alert("Invalid JSON in Runtime Parameters");
         return;
       }
     }
 
-    await runExecution(config.id, params);
+    await onExecute(config.id, params);
   };
-
-  // 👇 4. Rimosse le funzioni handleDownloadJson e handleDownloadMarkdown locali
-  // Ora usiamo direttamente onDownloadResults nel JSX
 
   return (
     <div className="flex flex-col h-full">
       <div className="space-y-6 flex-1">
-        {/* Error Display */}
-        {error && (
-          <Alert className="bg-red-500/10 border-red-500/50 text-red-400">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
         {/* Input Mode Switcher */}
         <Tabs
           value={inputMode}
           onValueChange={(v: string) => setInputMode(v as "easy" | "raw")}
         >
-          <TabsList className="grid w-full grid-cols-2 bg-zinc-900 border border-zinc-800">
+          <TabsList className="grid w-full grid-cols-2 bg-zinc-900 border border-zinc-800 p-1">
             <TabsTrigger
               value="easy"
-              className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
+              className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white transition-all"
             >
               Easy Mode
             </TabsTrigger>
             <TabsTrigger
               value="raw"
-              className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white"
+              className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white transition-all"
             >
               Raw JSON
             </TabsTrigger>
           </TabsList>
 
-          {/* Easy Mode */}
           <TabsContent value="easy" className="space-y-4 mt-4">
             <div className="space-y-4">
               <div>
-                <Label className="text-sm text-gray-300 mb-2 block flex items-center gap-2">
-                  <span>API Endpoint URL</span>
-                  <span className="text-xs text-gray-500 font-normal">
-                    (Optional override)
-                  </span>
-                </Label>
+                <Label className="text-sm text-zinc-400 mb-2 block">API Endpoint URL</Label>
                 <Input
                   value={easyUrl}
                   onChange={(e) => setEasyUrl(e.target.value)}
-                  placeholder="https://api.example.com/v1/data"
-                  className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white font-mono text-sm h-10"
+                  disabled
+                  className="bg-zinc-900 border-zinc-800 text-zinc-500 font-mono text-xs h-10 opacity-70"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="text-sm text-gray-300 mb-2 block">
-                    Page
-                  </Label>
+                  <Label className="text-sm text-zinc-400 mb-2 block">Page</Label>
                   <Input
                     type="number"
                     value={easyPage}
                     onChange={(e) => setEasyPage(e.target.value)}
-                    placeholder="1"
                     className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white h-10"
                   />
                 </div>
                 <div>
-                  <Label className="text-sm text-gray-300 mb-2 block">
-                    Limit
-                  </Label>
+                  <Label className="text-sm text-zinc-400 mb-2 block">Limit</Label>
                   <Input
                     type="number"
                     value={easyLimit}
                     onChange={(e) => setEasyLimit(e.target.value)}
-                    placeholder="100"
                     className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white h-10"
                   />
                 </div>
@@ -173,104 +125,76 @@ export function ExecuteTab({ config, onUpdate, onDownloadResults }: ExecuteTabPr
             </div>
           </TabsContent>
 
-          {/* Raw JSON Mode */}
           <TabsContent value="raw" className="mt-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm text-gray-300">
-                  Runtime Parameters
-                </Label>
-                <span className="text-xs text-gray-500">JSON format</span>
-              </div>
-              <Textarea
-                value={runtimeParams}
-                onChange={(e) => setRuntimeParams(e.target.value)}
-                placeholder='{\n  "page": 1,\n  "limit": 100,\n  "filters": {}\n}'
-                className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 focus:bg-zinc-900 font-mono text-sm min-h-[200px] text-white"
-              />
-              <p className="text-xs text-gray-500">
-                These parameters will be merged with the configuration settings
-                during execution
-              </p>
-            </div>
+            <Textarea
+              value={runtimeParams}
+              onChange={(e) => setRuntimeParams(e.target.value)}
+              className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 font-mono text-sm min-h-[150px] text-white"
+            />
           </TabsContent>
         </Tabs>
 
-        {/* Run Extraction Button */}
+        {/* Action Button */}
         <Button
           onClick={handleExecute}
           disabled={isExecuting}
           size="lg"
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white gap-2 text-base h-12 disabled:opacity-50"
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white gap-2 h-12 transition-all shadow-lg shadow-indigo-500/20"
         >
           {isExecuting ? (
             <>
               <Loader2 className="h-5 w-5 animate-spin" />
-              Running Extraction...
+              Processing...
             </>
           ) : (
             <>
-              <Play className="h-5 w-5 fill-current" />
+              <Play className="h-5 w-5" />
               Run Extraction
             </>
           )}
         </Button>
 
-        {/* Response Preview - Only show after execution */}
-        {result && (
-          <div className="space-y-4 animate-in fade-in duration-300">
-            {/* Status Header */}
-            <Card className="flex items-center justify-between p-4 bg-zinc-900 border-zinc-800">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="h-5 w-5 text-green-400" />
-                <Badge className="bg-green-500/20 text-green-400 border-green-500/50 font-semibold">
-                  Status: {result.status} {result.statusText}
-                </Badge>
+        {/* Latest Result Preview */}
+        {latestResult && !isExecuting && (
+          <div className="space-y-4 animate-in slide-in-from-bottom-2 duration-300">
+            <div className="flex items-center justify-between px-1">
+              <Label className="text-sm font-medium text-zinc-300">Last Response Preview</Label>
+              <span className="text-[10px] text-zinc-500 font-mono">{latestResult.id}</span>
+            </div>
+            
+            <Card className="bg-zinc-900/50 border-zinc-800 overflow-hidden">
+              <div className="p-4 bg-zinc-900/80 border-b border-zinc-800 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <div className={`h-2 w-2 rounded-full ${latestResult.status < 400 ? 'bg-green-500' : 'bg-red-500'}`} />
+                  <span className="text-xs font-bold text-zinc-300">HTTP {latestResult.status}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] text-zinc-500">
+                  <Clock className="h-3 w-3" />
+                  {latestResult.duration}ms
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <Clock className="h-4 w-4" />
-                <span>Time: {result.duration}ms</span>
+              <div className="p-4 max-h-[250px] overflow-y-auto">
+                <pre className="text-[11px] text-zinc-400 font-mono leading-relaxed">
+                  {JSON.stringify(latestResult.responsePreview || { message: "No preview available" }, null, 2)}
+                </pre>
               </div>
             </Card>
-
-            {/* Response Data Preview */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm text-gray-300">Response Data</Label>
-                <span className="text-xs text-gray-500">
-                  {result.data.data?.length || 0} records
-                </span>
-              </div>
-              <Card className="bg-zinc-900 border-zinc-800 overflow-hidden">
-                <div className="p-4 overflow-x-auto max-h-[400px] overflow-y-auto">
-                  <pre className="text-xs text-gray-300 font-mono leading-relaxed">
-                    {JSON.stringify(result.data, null, 2)}
-                  </pre>
-                </div>
-              </Card>
-            </div>
           </div>
         )}
       </div>
 
-      {/* Download Results Footer - Mostrato solo se abbiamo un risultato e un ID valido */}
-      {result && lastExecutionId && (
-        <SheetFooter className="border-t border-zinc-800 bg-zinc-950 mt-6 pt-4">
-          <div className="w-full space-y-3">
-            <Label className="text-sm text-gray-300 font-semibold">
-              Download Results
-            </Label>
-            <div className="flex gap-3">
-              {/* 👇 5. Bottone unico che chiama il Controller */}
-              <Button
-                onClick={() => onDownloadResults(lastExecutionId)}
-                variant="outline"
-                className="w-full bg-zinc-900 border-zinc-700 hover:border-indigo-500 hover:bg-zinc-800 text-white gap-2 group transition-all"
-              >
-                <Download className="h-4 w-4 group-hover:text-indigo-400 transition-colors" />
-                Download Full Report
-              </Button>
-            </div>
+      {/* Footer per download rapido */}
+      {latestResult && (
+        <SheetFooter className="border-t border-zinc-800 bg-zinc-950 mt-6 pt-4 px-1">
+          <div className="w-full">
+            <Button
+              variant="outline"
+              className="w-full bg-zinc-900 border-zinc-800 hover:border-indigo-500 text-zinc-300 gap-2 h-10 transition-all"
+              onClick={() => window.alert("Go to History tab for full report download")}
+            >
+              <Download className="h-4 w-4" />
+              View Full Report in History
+            </Button>
           </div>
         </SheetFooter>
       )}

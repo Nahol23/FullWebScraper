@@ -1,3 +1,8 @@
+/**
+ * Presentation Layer: ConfigDrawer Component
+ * Gestisce i dettagli, l'esecuzione e lo storico di una specifica API.
+ */
+
 import { useState, useEffect } from "react";
 import {
   Sheet,
@@ -9,18 +14,26 @@ import {
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { cn } from "./ui/utils"; 
-import type { ApiConfig } from "../../domain/entities/ApiConfig";
+import type { ApiConfig, ExecutionHistory } from "../../domain/entities/ApiConfig";
 import { ConfigurationTab } from "./drawer/ConfigurationTab";
 import { ExecuteTab } from "./drawer/ExecuteTab";
 import { HistoryTab } from "./drawer/HistoryTab";
-import { useConfigController } from "../hooks/useConfigController";
 
 interface ConfigDrawerProps {
   isOpen: boolean;
   config: ApiConfig | null;
   onClose: () => void;
-  onUpdate: (config: ApiConfig) => void;
-  onDelete: (id: string) => void;
+  onUpdate: (config: ApiConfig) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+  
+  // Props per Execution (dal controller Execution)
+  onExecute: (configId: string, params?: any) => Promise<void>;
+  isExecuting: boolean;
+  logs: ExecutionHistory[];
+  isLoadingLogs: boolean;
+  onRefreshLogs: () => void;
+  onDeleteLog: (logId: string) => Promise<void>;
+  onDownload: (format: 'json' | 'markdown') => void;
 }
 
 type TabType = "configuration" | "execute" | "history";
@@ -31,15 +44,21 @@ export function ConfigDrawer({
   onClose,
   onUpdate,
   onDelete,
+  onExecute,
+  isExecuting,
+  logs,
+  isLoadingLogs,
+  onRefreshLogs,
+  onDeleteLog,
+  onDownload
 }: ConfigDrawerProps) {
   const [activeTab, setActiveTab] = useState<TabType>("execute");
   const [editedConfig, setEditedConfig] = useState<ApiConfig | null>(null);
 
-  // 1. CORREZIONE: L'hook deve stare DENTRO il componente
-  const { downloadExecutionReport } = useConfigController();
-
+  // Sincronizza lo stato locale quando cambia la config selezionata
   useEffect(() => {
     if (config) {
+      // Deep copy per evitare mutazioni accidentali dello stato globale
       setEditedConfig(JSON.parse(JSON.stringify(config)));
       setActiveTab("execute");
     }
@@ -47,9 +66,9 @@ export function ConfigDrawer({
 
   if (!editedConfig) return null;
 
-  const handleConfigUpdate = (updatedConfig: ApiConfig) => {
+  const handleConfigUpdate = async (updatedConfig: ApiConfig) => {
     setEditedConfig(updatedConfig);
-    onUpdate(updatedConfig);
+    await onUpdate(updatedConfig);
   };
 
   return (
@@ -59,7 +78,7 @@ export function ConfigDrawer({
         className="w-full sm:max-w-2xl bg-zinc-950 border-zinc-800 p-0 flex flex-col gap-0"
       >
         {/* Header */}
-        <SheetHeader className="px-6 py-4 border-b border-zinc-800 space-y-3">
+        <SheetHeader className="px-6 py-4 border-b border-zinc-800 space-y-3 shrink-0">
           <div className="flex items-center gap-3">
             <SheetTitle className="text-2xl font-semibold text-white">
               {editedConfig.name}
@@ -75,80 +94,73 @@ export function ConfigDrawer({
               {editedConfig.method}
             </Badge>
           </div>
-          <SheetDescription className="text-sm text-gray-400 font-mono">
-            {editedConfig.baseUrl}
-            {editedConfig.endpoint}
+          <SheetDescription className="text-sm text-zinc-400 font-mono flex items-center gap-1">
+            <span className="opacity-50 italic">Endpoint:</span>
+            <span className="text-zinc-300">{editedConfig.baseUrl}{editedConfig.endpoint}</span>
           </SheetDescription>
         </SheetHeader>
 
-        {/* Tabs */}
+        {/* Tabs System */}
         <Tabs
           value={activeTab}
           onValueChange={(v: string) => setActiveTab(v as TabType)}
-          className="flex-1 flex flex-col"
+          className="flex-1 flex flex-col min-h-0"
         >
-          <div className="border-b border-zinc-800 px-6">
-            <TabsList className="bg-transparent border-0 p-0 h-auto w-full justify-start gap-0">
-              <TabsTrigger
-                value="configuration"
-                className={cn(
-                  "rounded-none border-b-2 px-4 py-3 font-medium text-sm data-[state=active]:bg-transparent",
-                  activeTab === "configuration"
-                    ? "border-indigo-500 text-white"
-                    : "border-transparent text-gray-400"
-                )}
-              >
-                Configuration
-              </TabsTrigger>
-              <TabsTrigger
-                value="execute"
-                className={cn(
-                  "rounded-none border-b-2 px-4 py-3 font-medium text-sm data-[state=active]:bg-transparent",
-                  activeTab === "execute"
-                    ? "border-indigo-500 text-white"
-                    : "border-transparent text-gray-400"
-                )}
-              >
-                Execute
-              </TabsTrigger>
-              <TabsTrigger
-                value="history"
-                className={cn(
-                  "rounded-none border-b-2 px-4 py-3 font-medium text-sm data-[state=active]:bg-transparent",
-                  activeTab === "history"
-                    ? "border-indigo-500 text-white"
-                    : "border-transparent text-gray-400"
-                )}
-              >
-                History
-              </TabsTrigger>
+          <div className="border-b border-zinc-800 px-6 shrink-0 bg-zinc-950/50 backdrop-blur-sm z-10">
+            <TabsList className="bg-transparent border-0 p-0 h-auto w-full justify-start gap-2">
+              {[
+                { id: "configuration", label: "Configuration" },
+                { id: "execute", label: "Execute" },
+                { id: "history", label: "History" }
+              ].map((tab) => (
+                <TabsTrigger
+                  key={tab.id}
+                  value={tab.id}
+                  className={cn(
+                    "rounded-none border-b-2 px-4 py-3 font-medium text-sm transition-all data-[state=active]:bg-transparent",
+                    activeTab === tab.id
+                      ? "border-indigo-500 text-white"
+                      : "border-transparent text-zinc-500 hover:text-zinc-300"
+                  )}
+                >
+                  {tab.label}
+                  {tab.id === "history" && logs.length > 0 && (
+                    <span className="ml-2 bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded-md text-[10px]">
+                      {logs.length}
+                    </span>
+                  )}
+                </TabsTrigger>
+              ))}
             </TabsList>
           </div>
 
-          {/* Tab Content - Scrollable */}
-          <div className="flex-1 overflow-y-auto">
+          {/* Tab Content Area - Scrollable */}
+          <div className="flex-1 overflow-y-auto custom-scrollbar">
             <TabsContent value="configuration" className="p-6 mt-0">
               <ConfigurationTab
                 config={editedConfig}
                 onUpdate={handleConfigUpdate}
-                onDelete={onDelete}
+                onDelete={() => onDelete(editedConfig.id)}
               />
             </TabsContent>
 
-            <TabsContent value="execute" className="p-6 mt-0 h-full">
-              {/* 2. CORREZIONE: Passiamo la prop onDownloadResults */}
+            <TabsContent value="execute" className="p-6 mt-0">
               <ExecuteTab 
                 config={editedConfig} 
                 onUpdate={handleConfigUpdate}
-                onDownloadResults={(id) => downloadExecutionReport(editedConfig, id)}
+                onExecute={() => onExecute(editedConfig.id)}
+                isExecuting={isExecuting}
+                lastLogs={logs.slice(0, 3)} // Mostra solo gli ultimi 3 nell'anteprima esecuzione
               />
             </TabsContent>
 
             <TabsContent value="history" className="p-6 mt-0">
-               {/* 3. CONSIGLIO: Passala anche qui, così History funziona uguale */}
               <HistoryTab 
-                config={editedConfig}
-                onDownloadResults={(id) => downloadExecutionReport(editedConfig, id)}
+                logs={logs}
+                isLoading={isLoadingLogs}
+                onRefresh={onRefreshLogs}
+                onDeleteLog={onDeleteLog}
+                onDownload={onDownload}
               />
             </TabsContent>
           </div>

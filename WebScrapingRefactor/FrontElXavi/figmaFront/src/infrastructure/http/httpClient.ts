@@ -1,7 +1,4 @@
-/**
- * Infrastructure: HTTP Client Configuration
- * Axios-based HTTP client setup
- */
+
 
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 
@@ -17,22 +14,21 @@ export class HttpClient {
       },
     });
 
-    // Request interceptor
+    this.initializeInterceptors();
+  }
+
+  private initializeInterceptors() {
     this.client.interceptors.request.use(
-      (config) => {
-        return config;
-      },
-      (error) => {
-        return Promise.reject(error);
-      }
+      (config) => config,
+      (error) => Promise.reject(error)
     );
 
-    // Response interceptor
     this.client.interceptors.response.use(
-      (response) => {
-        return response;
-      },
+      (response) => response,
       (error) => {
+        const message = error.response?.data?.message || 'Errore di connessione al server';
+        console.error('HTTP Client Error:', message);
+        
         return Promise.reject(error);
       }
     );
@@ -66,9 +62,5 @@ export class HttpClient {
     config?: AxiosRequestConfig
   ): Promise<AxiosResponse<T>> {
     return this.client.delete<T>(url, config);
-  }
-
-  getInstance(): AxiosInstance {
-    return this.client;
   }
 }

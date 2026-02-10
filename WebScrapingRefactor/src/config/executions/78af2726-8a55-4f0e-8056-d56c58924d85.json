@@ -1,0 +1,24 @@
+{
+  "id": "78af2726-8a55-4f0e-8056-d56c58924d85",
+  "configId": "4a64ddb5-cbf6-4121-bfce-7866ca8b3ec0",
+  "timestamp": "2026-02-09T16:14:49.847Z",
+  "parametersUsed": {
+    "endpoint": "/characters",
+    "method": "GET",
+    "headers": {
+      "additionalProp1": "[object Object]"
+    },
+    "body": {
+      "additionalProp1": {}
+    },
+    "page": 1,
+    "limit": 100,
+    "selectedFields": [
+      "name",
+      "race"
+    ]
+  },
+  "resultCount": 0,
+  "status": "error",
+  "errorMessage": "[ApiAdapter] fetch failed"
+}

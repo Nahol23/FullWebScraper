@@ -13,7 +13,6 @@ interface HistoryTabProps {
 export function HistoryTab({ config }: HistoryTabProps) {
   const { entries, loading, isRefreshing, refresh } = useLogs(true);
 
-  // Filtriamo le entries (Execution[]) usando il configId della tua entità
   const filteredHistory = (entries as Execution[]).filter(
     (log) => log.configId === config.id
   );

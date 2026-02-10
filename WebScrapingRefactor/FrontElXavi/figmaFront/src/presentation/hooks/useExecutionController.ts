@@ -1,65 +1,90 @@
-/**
- * Presentation Layer: useExecutionController Hook
- * Controller hook for API execution - THE CONTROLLER PATTERN
- * React-only, delegates to Use Cases
- */
-
-import { useState } from "react";
-import { executeApiUseCase } from "../../di/ioc";
-import type { ExecutionResult } from "../../domain/entities/ExecutionResult";
+import { useState, useCallback } from "react";
+import { 
+  executeApiUseCase, 
+  fetchLogsUseCase, 
+  deleteExecutionUseCase,
+  // Assicurati di aver aggiunto e istanziato questo nel tuo ioc.ts
+  downloadLogsUseCase 
+} from "../../di/ioc";
+import type { ExecutionHistory } from "../../domain/entities/ApiConfig";
 import type { RuntimeParams } from "../../domain/entities/RuntimeParams";
-import type { ApiConfig } from "../../domain/entities/ApiConfig";
-import { ApiExecutionError } from "../../domain/errors/AppError";
 
 export function useExecutionController() {
   const [isExecuting, setIsExecuting] = useState(false);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
+  const [logs, setLogs] = useState<ExecutionHistory[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<ExecutionResult | null>(null);
-  const [updatedConfig, setUpdatedConfig] = useState<ApiConfig | null>(null);
 
-  const runExecution = async (
-    configId: string,
-    runtimeParams?: RuntimeParams
-  ): Promise<void> => {
+  
+  const refreshLogs = useCallback(async (configId: string) => {
+    setIsLoadingLogs(true);
+    setError(null);
+    try {
+      const history = await fetchLogsUseCase.execute(configId);
+      setLogs(history);
+    } catch (err: any) {
+      setError("Errore nel caricamento della cronologia.");
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  }, []);
+
+  
+  const runExecution = async (configId: string, runtimeParams?: RuntimeParams) => {
     setIsExecuting(true);
     setError(null);
-    setResult(null);
-    setUpdatedConfig(null);
-
     try {
-      const { result: executionResult, updatedConfig: config } =
-        await executeApiUseCase.execute(configId, runtimeParams);
-
-      setResult(executionResult);
-      setUpdatedConfig(config);
-    } catch (err) {
-      if (err instanceof ApiExecutionError) {
-        setError(
-          `API Error: ${err.message}${err.statusCode ? ` (${err.statusCode})` : ""}`
-        );
-      } else if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("An unknown error occurred");
-      }
+      await executeApiUseCase.execute(configId, runtimeParams);
+      // Dopo il successo, aggiorna automaticamente i log
+      await refreshLogs(configId);
+    } catch (err: any) {
+      setError(err.message || "Errore durante l'esecuzione");
     } finally {
       setIsExecuting(false);
     }
   };
 
-  const reset = () => {
-    setError(null);
-    setResult(null);
-    setUpdatedConfig(null);
-    setIsExecuting(false);
+ 
+  const removeLog = async (configId: string, executionId: string) => {
+    try {
+      await deleteExecutionUseCase.execute(configId, executionId);
+      setLogs((prev) => prev.filter((log) => log.id !== executionId));
+    } catch (err: any) {
+      setError("Errore durante la cancellazione del log");
+    }
+  };
+
+ 
+  const downloadLogs = async (configName: string, format: 'json' | 'markdown' = 'json') => {
+    try {
+      // Il backend restituisce uno stream di file
+      const blob = await downloadLogsUseCase.execute(configName, format);
+      
+      // Logica standard per far scaricare il file dal browser
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${configName}.${format === 'markdown' ? 'md' : 'json'}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err: any) {
+      setError("Errore durante il download del file");
+    }
   };
 
   return {
-    runExecution,
+    // Stati
+    logs,
     isExecuting,
+    isLoadingLogs,
     error,
-    result,
-    updatedConfig,
-    reset,
+    // Azioni
+    runExecution,
+    refreshLogs,
+    removeLog,
+    downloadLogs,
+    // Utility
+    clearError: () => setError(null)
   };
 }

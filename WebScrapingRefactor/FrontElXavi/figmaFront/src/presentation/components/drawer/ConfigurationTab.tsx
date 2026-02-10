@@ -1,9 +1,4 @@
-/**
- * Presentation Layer: ConfigurationTab Component
- * Dumb UI Component - Uses Controller Hook via parent
- */
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Trash2, Plus, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -12,7 +7,7 @@ import type { ApiConfig } from "../../../domain/entities/ApiConfig";
 
 interface ConfigurationTabProps {
   config: ApiConfig;
-  onUpdate: (config: ApiConfig) => void;
+  onUpdate: (config: ApiConfig) => Promise<void>;
   onDelete: (id: string) => void;
 }
 
@@ -23,12 +18,34 @@ export function ConfigurationTab({
 }: ConfigurationTabProps) {
   const [baseUrl, setBaseUrl] = useState(config.baseUrl);
   const [endpoint, setEndpoint] = useState(config.endpoint);
-  const [headers, setHeaders] = useState(config.headers);
+  const [headers, setHeaders] = useState<Record<string, string>>(
+    config.headers ?? {},
+  );
   const [paginationSettings, setPaginationSettings] = useState(
-    config.paginationSettings
+    config.paginationSettings ?? {
+      offsetParam: "",
+      limitParam: "",
+      initialOffset: 0,
+      limitPerPage: 10,
+    },
   );
 
-  const handleSave = () => {
+useEffect(() => {
+  setBaseUrl(config.baseUrl ?? "");
+  setEndpoint(config.endpoint ?? "");
+  setHeaders(config.headers ?? {});
+  setPaginationSettings(
+    config.paginationSettings ?? {
+      offsetParam: "",
+      limitParam: "",
+      initialOffset: 0,
+      limitPerPage: 10,
+    }
+  );
+}, [config]);
+
+
+  const handleSave = async () => {
     const updatedConfig: ApiConfig = {
       ...config,
       baseUrl,
@@ -36,7 +53,7 @@ export function ConfigurationTab({
       headers,
       paginationSettings,
     };
-    onUpdate(updatedConfig);
+    await onUpdate(updatedConfig);
   };
 
   const handleAddHeader = () => {
