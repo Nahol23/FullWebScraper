@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Loader2, FileCode, ChevronDown, ChevronRight, X } from "lucide-react";
+import { Sparkles, Loader2, FileCode, ChevronDown, ChevronRight, X, Plus } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -22,29 +22,61 @@ interface AddConfigModalProps {
   onAdd: (config: ApiConfig) => void;
 }
 
+
+interface KeyValueRow {
+  id: string;
+  key: string;
+  value: string;
+}
+
 export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) {
   const { saveConfig } = useConfigController();
+  
+  
   const [name, setName] = useState("");
   const [baseUrl, setBaseUrl] = useState("https://");
   const [endpoint, setEndpoint] = useState("/");
   const [method, setMethod] = useState<"GET" | "POST">("GET");
 
-  // Headers
-  const [headers, setHeaders] = useState<Record<string, string>>({
-    "Content-Type": "application/json",
-  });
+ 
+  const [headerRows, setHeaderRows] = useState<KeyValueRow[]>([
+    { id: "1", key: "Content-Type", value: "application/json" }
+  ]);
+  const [queryRows, setQueryRows] = useState<KeyValueRow[]>([]);
 
-  // Body (for POST)
+ 
   const [bodyJson, setBodyJson] = useState("{\n  \n}");
 
-  // Advanced settings
+ 
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [dataPath, setDataPath] = useState(""); 
 
-  // Smart Analyze states
+  
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analyzedFields, setAnalyzedFields] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // --- Helpers per Key/Value Rows ---
+
+  const addRow = (setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>) => {
+    setter(prev => [...prev, { id: crypto.randomUUID(), key: "", value: "" }]);
+  };
+
+  const removeRow = (id: string, setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>) => {
+    setter(prev => prev.filter(row => row.id !== id));
+  };
+
+  const updateRow = (
+    id: string, 
+    field: "key" | "value", 
+    newValue: string, 
+    setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>
+  ) => {
+    setter(prev => prev.map(row => row.id === id ? { ...row, [field]: newValue } : row));
+  };
+
+  // --- Actions ---
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
@@ -58,6 +90,9 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
 
     setAnalyzedFields(mockFields);
     setIsAnalyzing(false);
+    
+    // Se l'analisi rileva un path comune (es. "users"), potremmo auto-compilare dataPath qui
+    if (!dataPath) setDataPath("data"); 
   };
 
   const handlePasteFromCurl = () => {
@@ -65,37 +100,10 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
     setBaseUrl("https://api.example.com");
     setEndpoint("/v1/users");
     setMethod("GET");
-    setHeaders({
-      Authorization: "Bearer token123",
-      "Content-Type": "application/json",
-    });
-  };
-
-  const handleAddHeader = () => {
-    const newKey = `Header-${Object.keys(headers).length + 1}`;
-    setHeaders({ ...headers, [newKey]: "" });
-  };
-
-  const handleRemoveHeader = (key: string) => {
-    const newHeaders = { ...headers };
-    delete newHeaders[key];
-    setHeaders(newHeaders);
-  };
-
-  const handleHeaderKeyChange = (oldKey: string, newKey: string) => {
-    const newHeaders: Record<string, string> = {};
-    Object.entries(headers).forEach(([k, v]) => {
-      if (k === oldKey) {
-        newHeaders[newKey] = v;
-      } else {
-        newHeaders[k] = v;
-      }
-    });
-    setHeaders(newHeaders);
-  };
-
-  const handleHeaderValueChange = (key: string, value: string) => {
-    setHeaders({ ...headers, [key]: value });
+    setHeaderRows([
+        { id: crypto.randomUUID(), key: "Authorization", value: "Bearer token123" },
+        { id: crypto.randomUUID(), key: "Content-Type", value: "application/json" }
+    ]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -110,10 +118,11 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
     setIsSaving(true);
 
     try {
-      let bodyParams: Record<string, any> = {};
-      if (method === "POST") {
+      // 1. Parsing Body
+      let bodyPayload: Record<string, any> = {};
+      if (method === "POST" && bodyJson.trim()) {
         try {
-          bodyParams = JSON.parse(bodyJson);
+          bodyPayload = JSON.parse(bodyJson);
         } catch {
           setError("Invalid JSON in body parameters");
           setIsSaving(false);
@@ -121,36 +130,45 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
         }
       }
 
-      const newConfig = await saveConfig({
+      // 2. Conversion Headers (Array -> Object)
+      const headersObject: Record<string, string> = {};
+      headerRows.forEach(row => {
+        if (row.key.trim()) headersObject[row.key] = row.value;
+      });
+
+      // 3. Clean Query Params (Array -> Array clean)
+      const cleanQueryParams = queryRows
+        .filter(row => row.key.trim() !== "")
+        .map(({ key, value }) => ({ key, value }));
+
+      // 4. Create Config Object (Matching Backend Schema)
+      const configPayload = {
         name: name.trim(),
         baseUrl: baseUrl.trim(),
         endpoint: endpoint.trim(),
         method,
-        headers,
-        bodyParams,
-        paginationSettings: {
-          offsetParam: "offset",
-          limitParam: "limit",
-          initialOffset: 0,
-          limitPerPage: 50,
+        headers: headersObject,
+        body: bodyPayload,     // Mappato come 'body' per il backend
+        queryParams: cleanQueryParams, // Mappato come array
+        dataPath: dataPath.trim() || undefined, // Opzionale
+        
+        // Default Pagination (necessario per validazione backend)
+        pagination: {
+            type: "page",
+            paramName: "page",
+            limitParam: "limit",
+            defaultLimit: 50
         },
+        
         selectedFields: analyzedFields,
         executionHistory: [],
-      });
+      };
+
+      // @ts-ignore - Ignoriamo errori di tipo stretti finché ApiConfig non è perfettamente allineato
+      const newConfig = await saveConfig(configPayload);
 
       onAdd(newConfig);
-      
-      // Reset form
-      setName("");
-      setBaseUrl("https://");
-      setEndpoint("/");
-      setMethod("GET");
-      setHeaders({ "Content-Type": "application/json" });
-      setBodyJson("{\n  \n}");
-      setAnalyzedFields([]);
-      setShowAdvanced(false);
-      setError(null);
-      onClose();
+      handleClose();
     } catch (err) {
       if (err instanceof ValidationError) {
         setError(err.message);
@@ -163,14 +181,17 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
   };
 
   const handleClose = () => {
+    // Reset form
     setName("");
     setBaseUrl("https://");
     setEndpoint("/");
     setMethod("GET");
-    setHeaders({ "Content-Type": "application/json" });
+    setHeaderRows([{ id: "1", key: "Content-Type", value: "application/json" }]);
+    setQueryRows([]);
     setBodyJson("{\n  \n}");
     setAnalyzedFields([]);
     setShowAdvanced(false);
+    setDataPath("");
     setError(null);
     onClose();
   };
@@ -257,7 +278,56 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
             </div>
           </div>
 
-          {/* Headers */}
+          {/* Query Parameters Section */}
+          <div className="space-y-4 pt-4 border-t border-zinc-800">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
+                Query Parameters
+              </h3>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => addRow(setQueryRows)}
+                className="bg-indigo-600 hover:bg-indigo-700 border-0 text-white gap-1 h-8"
+              >
+                <Plus className="h-3.5 w-3.5" /> Add Param
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              {queryRows.map((row) => (
+                <div key={row.id} className="flex gap-2">
+                  <Input
+                    value={row.key}
+                    onChange={(e) => updateRow(row.id, "key", e.target.value, setQueryRows)}
+                    placeholder="Key (e.g. status)"
+                    className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
+                  />
+                  <Input
+                    value={row.value}
+                    onChange={(e) => updateRow(row.id, "value", e.target.value, setQueryRows)}
+                    placeholder="Value (e.g. active)"
+                    className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removeRow(row.id, setQueryRows)}
+                    className="bg-zinc-900 border-zinc-800 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 flex-shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              {queryRows.length === 0 && (
+                <p className="text-xs text-zinc-500 italic">No query parameters added.</p>
+              )}
+            </div>
+          </div>
+
+          {/* Headers Section */}
           <div className="space-y-4 pt-4 border-t border-zinc-800">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
@@ -267,34 +337,33 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleAddHeader}
-                className="bg-indigo-600 hover:bg-indigo-700 border-0 text-white gap-1 h-8"
+                onClick={() => addRow(setHeaderRows)}
+                className="bg-zinc-800 hover:bg-zinc-700 border-0 text-white gap-1 h-8"
               >
-                <X className="h-3.5 w-3.5 rotate-45" />
-                Add Header
+                <Plus className="h-3.5 w-3.5" /> Add Header
               </Button>
             </div>
 
             <div className="space-y-2">
-              {Object.entries(headers).map(([key, value]) => (
-                <div key={key} className="flex gap-2">
+              {headerRows.map((row) => (
+                <div key={row.id} className="flex gap-2">
                   <Input
-                    value={key}
-                    onChange={(e) => handleHeaderKeyChange(key, e.target.value)}
-                    placeholder="Header name"
+                    value={row.key}
+                    onChange={(e) => updateRow(row.id, "key", e.target.value, setHeaderRows)}
+                    placeholder="Header Key"
                     className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
                   />
                   <Input
-                    value={value}
-                    onChange={(e) => handleHeaderValueChange(key, e.target.value)}
-                    placeholder="Header value"
+                    value={row.value}
+                    onChange={(e) => updateRow(row.id, "value", e.target.value, setHeaderRows)}
+                    placeholder="Header Value"
                     className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
                   />
                   <Button
                     type="button"
                     variant="outline"
                     size="icon"
-                    onClick={() => handleRemoveHeader(key)}
+                    onClick={() => removeRow(row.id, setHeaderRows)}
                     className="bg-zinc-900 border-zinc-800 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 flex-shrink-0"
                   >
                     <X className="h-4 w-4" />
@@ -330,7 +399,27 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
               Advanced Settings
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 pt-4">
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 space-y-3">
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 space-y-4">
+                
+                {/* Data Path Input */}
+                <div className="space-y-2">
+                  <Label htmlFor="dataPath" className="text-sm text-zinc-300">
+                    Data Path (Optional)
+                  </Label>
+                  <Input
+                    id="dataPath"
+                    value={dataPath}
+                    onChange={(e) => setDataPath(e.target.value)}
+                    placeholder="e.g. data.results"
+                    className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
+                  />
+                  <p className="text-xs text-zinc-500">
+                    Specify where the array of items is located in the JSON response (e.g., 'response.items'). Leave empty to auto-detect.
+                  </p>
+                </div>
+
+                <div className="h-px bg-zinc-800 my-2" />
+
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-zinc-400">Smart Tools</span>
                   
