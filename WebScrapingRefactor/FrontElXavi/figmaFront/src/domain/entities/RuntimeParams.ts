@@ -8,4 +8,13 @@ export interface RuntimeParams {
   limit?: number;
   filters?: Record<string, any>;
   [key: string]: any;
+  dataPath?: string;     
+  headers?: Record<string, string>; 
+  body?: any;        
+  selectedFields?: string[];
+  queryParams?: Record<string, string>; 
+  pagination?: {
+    offset?: number;
+    limit?: number;
+  };
 }

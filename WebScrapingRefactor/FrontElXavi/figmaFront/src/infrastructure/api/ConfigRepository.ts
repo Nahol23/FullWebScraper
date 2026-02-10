@@ -12,15 +12,16 @@ export class ConfigRepository implements IConfigRepository {
 
   async getById(id: string): Promise<ApiConfig | null> {
     try {
-      const { data } = await this.httpClient.get<ApiConfig>(`/configs/${id}`);
+      const { data } = await this.httpClient.get<ApiConfig>(`/configs/id/${id}`);
       return data;
     } catch (error) {
       return null;
     }
   }
 
-  async save(config: ApiConfig): Promise<void> {
-    await this.httpClient.post('/configs', config);
+ async save(config: ApiConfig): Promise<ApiConfig> {
+    const { data } = await this.httpClient.post<ApiConfig>('/configs', config);
+    return data; 
   }
 
   async update(id: string, updates: Partial<ApiConfig>): Promise<void> {

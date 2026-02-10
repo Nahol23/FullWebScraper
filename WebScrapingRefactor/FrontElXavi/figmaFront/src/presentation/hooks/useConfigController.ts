@@ -29,20 +29,21 @@ export function useConfigController() {
   }, []);
 
   
-  const saveConfig = async (config: ApiConfig) => {
-    setIsLoading(true);
-    try {
-      await saveConfigUseCase.execute(config);
-      // Dopo il salvataggio, ricarichiamo la lista per avere i dati aggiornati (e l'ID generato dal backend)
-      await fetchConfigs();
-    } catch (err: any) {
-      setError("Errore durante il salvataggio della configurazione.");
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+ const saveConfig = async (configData: Omit<ApiConfig, "id">) => {
+  setIsLoading(true);
+  try {
+    const savedConfig = await saveConfigUseCase.execute(configData);
+    
+    setConfigs(prev => [...prev, savedConfig]);
+    
+    return savedConfig; 
+  } catch (err: any) {
+    setError("Errore durante il salvataggio della configurazione.");
+    throw err;
+  } finally {
+    setIsLoading(false);
+  }
+};
   
   const updateConfig = async (config: ApiConfig) => {
     setIsLoading(true);

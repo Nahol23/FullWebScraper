@@ -106,79 +106,74 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
     ]);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError(null);
 
-    if (!name.trim() || !baseUrl.trim() || !endpoint.trim()) {
-      setError("Please fill in all required fields");
-      return;
+  if (!name.trim() || !baseUrl.trim() || !endpoint.trim()) {
+    setError("Please fill in all required fields");
+    return;
+  }
+
+  setIsSaving(true);
+
+  try {
+    const headersObject: Record<string, string> = {};
+    headerRows.forEach(row => {
+      if (row.key.trim()) headersObject[row.key] = row.value;
+    });
+
+    let bodyPayload: any = undefined;
+    if (method === "POST" && bodyJson.trim()) {
+      try {
+        bodyPayload = JSON.parse(bodyJson);
+      } catch {
+        setError("Invalid JSON in body parameters");
+        setIsSaving(false);
+        return;
+      }
     }
 
-    setIsSaving(true);
+   
+    const configPayload = {
+      name: name.trim(),
+      baseUrl: baseUrl.trim(),
+      endpoint: endpoint.trim(),
+      method,
+      headers: headersObject,
+      body: bodyPayload,
+      dataPath: dataPath.trim() || undefined,
+      paginationSettings: {
+        offsetParam: "offset",
+        limitParam: "limit",
+        initialOffset: 0,
+        limitPerPage: 50,
+      },
+      selectedFields: analyzedFields, 
+      executionHistory: [],
+      bodyParams: {}, 
+    };
 
-    try {
-      // 1. Parsing Body
-      let bodyPayload: Record<string, any> = {};
-      if (method === "POST" && bodyJson.trim()) {
-        try {
-          bodyPayload = JSON.parse(bodyJson);
-        } catch {
-          setError("Invalid JSON in body parameters");
-          setIsSaving(false);
-          return;
-        }
-      }
+    console.log("Configurazione da salvare:", configPayload);
+    
+    // @ts-ignore - Per ora ignora il tipo
+    const newConfig = await saveConfig(configPayload);
 
-      // 2. Conversion Headers (Array -> Object)
-      const headersObject: Record<string, string> = {};
-      headerRows.forEach(row => {
-        if (row.key.trim()) headersObject[row.key] = row.value;
-      });
-
-      // 3. Clean Query Params (Array -> Array clean)
-      const cleanQueryParams = queryRows
-        .filter(row => row.key.trim() !== "")
-        .map(({ key, value }) => ({ key, value }));
-
-      // 4. Create Config Object (Matching Backend Schema)
-      const configPayload = {
-        name: name.trim(),
-        baseUrl: baseUrl.trim(),
-        endpoint: endpoint.trim(),
-        method,
-        headers: headersObject,
-        body: bodyPayload,     // Mappato come 'body' per il backend
-        queryParams: cleanQueryParams, // Mappato come array
-        dataPath: dataPath.trim() || undefined, // Opzionale
-        
-        // Default Pagination (necessario per validazione backend)
-        pagination: {
-            type: "page",
-            paramName: "page",
-            limitParam: "limit",
-            defaultLimit: 50
-        },
-        
-        selectedFields: analyzedFields,
-        executionHistory: [],
-      };
-
-      // @ts-ignore - Ignoriamo errori di tipo stretti finché ApiConfig non è perfettamente allineato
-      const newConfig = await saveConfig(configPayload);
-
-      onAdd(newConfig);
-      handleClose();
-    } catch (err) {
-      if (err instanceof ValidationError) {
-        setError(err.message);
-      } else {
-        setError(err instanceof Error ? err.message : "Failed to save configuration");
-      }
-    } finally {
-      setIsSaving(false);
+    console.log("Configurazione salvata con successo:", newConfig);
+    
+    onAdd(newConfig);
+    handleClose();
+  } catch (err) {
+    console.error("Errore nel salvataggio:", err);
+    if (err instanceof ValidationError) {
+      setError(err.message);
+    } else {
+      setError(err instanceof Error ? err.message : "Failed to save configuration");
     }
-  };
+  } finally {
+    setIsSaving(false);
+  }
+};
 
   const handleClose = () => {
     // Reset form

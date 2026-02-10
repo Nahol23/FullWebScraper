@@ -13,6 +13,7 @@ export function useExecutionController() {
   const [isExecuting, setIsExecuting] = useState(false);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [logs, setLogs] = useState<ExecutionHistory[]>([]);
+  const [lastResult, setLastResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
   
@@ -30,20 +31,21 @@ export function useExecutionController() {
   }, []);
 
   
-  const runExecution = async (configId: string, runtimeParams?: RuntimeParams) => {
-    setIsExecuting(true);
-    setError(null);
-    try {
-      await executeApiUseCase.execute(configId, runtimeParams);
-      // Dopo il successo, aggiorna automaticamente i log
-      await refreshLogs(configId);
-    } catch (err: any) {
-      setError(err.message || "Errore durante l'esecuzione");
-    } finally {
-      setIsExecuting(false);
-    }
-  };
-
+const runExecution = async (configId: string, runtimeParams?: RuntimeParams) => {
+  setIsExecuting(true);
+  try {
+    const validId = typeof configId === 'object' ? (configId as any).id : configId;
+    
+    const response = await executeApiUseCase.execute(validId, runtimeParams || {});
+    
+    setLastResult(response); 
+    await refreshLogs(validId);
+  } catch (err: any) {
+    setError(err.message);
+  } finally {
+    setIsExecuting(false);
+  }
+};
  
   const removeLog = async (configId: string, executionId: string) => {
     try {
@@ -78,6 +80,7 @@ export function useExecutionController() {
     logs,
     isExecuting,
     isLoadingLogs,
+    lastResult,
     error,
     // Azioni
     runExecution,
