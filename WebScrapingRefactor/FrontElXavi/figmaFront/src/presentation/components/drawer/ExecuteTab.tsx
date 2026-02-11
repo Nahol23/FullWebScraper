@@ -1,9 +1,11 @@
+// ExecuteTab.tsx - VERSIONE COMPLETA CON CAMPO selectedFields
 import { useState, useEffect } from "react";
-import { Play, Loader2, Clock } from "lucide-react";
+import { Play, Loader2, Clock, Filter} from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Textarea } from "../../components/ui/textarea";
 import { Label } from "../../components/ui/label";
 import { Input } from "../../components/ui/input";
+import { Badge } from "../../components/ui/badge";
 import {
   Tabs,
   TabsContent,
@@ -37,43 +39,104 @@ export function ExecuteTab({
   isExecuting,
   lastLogs,
 }: ExecuteTabProps) {
-  useEffect(() => {
-    if (config.selectedFields.length === 0) {
-      console.log("Nessun campo selezionato per il filtraggio");
-    }
-  }, [config]);
   const [inputMode, setInputMode] = useState<"easy" | "raw">("easy");
-
+  //const [showFieldsInfo, setShowFieldsInfo] = useState(false);
+  
   const [easyPage, setEasyPage] = useState("1");
   const [easyLimit, setEasyLimit] = useState("100");
-  const [customDataPath, setCustomDataPath] = useState(config.dataPath || "");
   const [customHeaders, setCustomHeaders] = useState(
     JSON.stringify(config.headers || {}, null, 2),
   );
   const [customBody, setCustomBody] = useState(
     JSON.stringify(config.body || {}, null, 2),
   );
+  const [customQueryParams, setCustomQueryParams] = useState(
+    JSON.stringify(
+      config.queryParams?.reduce((acc, param) => {
+        if (param.key) acc[param.key] = param.value;
+        return acc;
+      }, {} as Record<string, string>) || {},
+      null,
+      2
+    )
+  );
+  
+  // STATO PER selectedFields IN RUNTIME
+  const [customSelectedFields, setCustomSelectedFields] = useState<string>(
+    JSON.stringify(config.selectedFields || [], null, 2)
+  );
+  const [useCustomSelectedFields, setUseCustomSelectedFields] = useState(false);
 
   const [rawJsonParams, setRawJsonParams] = useState(
-    JSON.stringify({ page: 1, limit: 100, dataPath: config.dataPath }, null, 2),
+    JSON.stringify({
+      page: 1,
+      limit: 100,
+      headers: config.headers || {},
+      queryParams: config.queryParams?.reduce((acc, param) => {
+        if (param.key) acc[param.key] = param.value;
+        return acc;
+      }, {} as Record<string, string>) || {},
+      selectedFields: config.selectedFields || [],
+    }, null, 2),
   );
 
   const latestResult = lastLogs.length > 0 ? lastLogs[0] : null;
+
+  useEffect(() => {
+    // Reset customSelectedFields quando cambia la config
+    setCustomSelectedFields(JSON.stringify(config.selectedFields || [], null, 2));
+    setCustomHeaders(JSON.stringify(config.headers || {}, null, 2));
+    setCustomBody(JSON.stringify(config.body || {}, null, 2));
+    setCustomQueryParams(JSON.stringify(
+      config.queryParams?.reduce((acc, param) => {
+        if (param.key) acc[param.key] = param.value;
+        return acc;
+      }, {} as Record<string, string>) || {},
+      null,
+      2
+    ));
+    setUseCustomSelectedFields(false); // Reset a false quando cambia config
+  }, [config]);
 
   const handleExecute = async () => {
     let params: RuntimeParams = {};
 
     if (inputMode === "easy") {
       try {
+        // Parsa queryParams
+        let parsedQueryParams: Record<string, string> = {};
+        try {
+          parsedQueryParams = JSON.parse(customQueryParams);
+        } catch {
+          console.log("No custom query params or invalid JSON");
+        }
+
+        // Parsa selectedFields se l'utente li ha modificati
+        let parsedSelectedFields: string[] = config.selectedFields || [];
+        if (useCustomSelectedFields) {
+          try {
+            parsedSelectedFields = JSON.parse(customSelectedFields);
+            if (!Array.isArray(parsedSelectedFields)) {
+              throw new Error("selectedFields deve essere un array");
+            }
+          } catch (e) {
+            alert("Errore nel formato di selectedFields. Deve essere un array JSON valido.");
+            console.error("selectedFields parse error:", e);
+            return;
+          }
+        }
+
         params = {
           page: parseInt(easyPage) || 1,
           limit: parseInt(easyLimit) || 100,
-          dataPath: customDataPath,
           headers: JSON.parse(customHeaders),
+          queryParams: parsedQueryParams,
           body: config.method !== "GET" ? JSON.parse(customBody) : undefined,
+          selectedFields: parsedSelectedFields, // Usa quelli custom o quelli di default
         };
       } catch (e) {
-        alert("Errore nel formato JSON di Headers o Body");
+        alert("Errore nel formato JSON. Controlla Headers, Body o Query Parameters");
+        console.error("JSON parse error:", e);
         return;
       }
     } else {
@@ -81,15 +144,142 @@ export function ExecuteTab({
         params = JSON.parse(rawJsonParams);
       } catch (e) {
         alert("JSON non valido nei parametri RAW");
+        console.error("Raw JSON parse error:", e);
         return;
       }
     }
 
+    console.log("Esecuzione con parametri:", params);
     await onExecute(config.id, params);
+  };
+
+  // Funzione per convertire i campi selezionati in formato leggibile
+  const formatSelectedFields = () => {
+    const fields = useCustomSelectedFields 
+      ? (() => {
+          try {
+            return JSON.parse(customSelectedFields);
+          } catch {
+            return config.selectedFields || [];
+          }
+        })()
+      : (config.selectedFields || []);
+    
+    if (!fields || fields.length === 0) {
+      return "Nessun campo selezionato";
+    }
+    
+    return fields.slice(0, 3).map((field: string) => {
+      const parts = field.split('.');
+      return parts[parts.length - 1];
+    }).join(', ') + (fields.length > 3 ? '...' : '');
   };
 
   return (
     <div className="flex flex-col h-full space-y-4 text-zinc-100">
+      {/* Data Path Fisso (solo informativo) */}
+      {config.dataPath && (
+        <Card className="bg-zinc-900 border-zinc-800 p-3">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-indigo-500"></div>
+            <p className="text-sm text-zinc-400">
+              Data Path: <span className="text-indigo-400 font-mono">{config.dataPath}</span>
+            </p>
+          </div>
+          <p className="text-xs text-zinc-500 mt-1">
+            Percorso fisso nella configurazione. Non modificabile in runtime.
+          </p>
+        </Card>
+      )}
+
+      {/* Toggle per selectedFields */}
+      <Card className="bg-zinc-900 border-zinc-800 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-indigo-400" />
+            <span className="text-sm font-medium text-zinc-300">
+              Campi da estrarre
+            </span>
+            <Badge variant="outline" className="ml-2 bg-indigo-500/10 text-indigo-400">
+              {useCustomSelectedFields 
+                ? (() => {
+                    try {
+                      const fields = JSON.parse(customSelectedFields);
+                      return Array.isArray(fields) ? fields.length : 0;
+                    } catch {
+                      return 0;
+                    }
+                  })()
+                : (config.selectedFields?.length || 0)
+              }
+            </Badge>
+          </div>
+          
+          <label className="flex items-center gap-2 cursor-pointer">
+            <div className="relative">
+              <input
+                type="checkbox"
+                checked={useCustomSelectedFields}
+                onChange={(e) => setUseCustomSelectedFields(e.target.checked)}
+                className="sr-only"
+              />
+              <div className={`block w-10 h-5 rounded-full transition-colors ${
+                useCustomSelectedFields ? 'bg-indigo-600' : 'bg-zinc-700'
+              }`}></div>
+              <div className={`absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full transition-transform ${
+                useCustomSelectedFields ? 'transform translate-x-5' : ''
+              }`}></div>
+            </div>
+            <span className="text-xs text-zinc-500">
+              {useCustomSelectedFields ? 'Custom' : 'Default'}
+            </span>
+          </label>
+        </div>
+        
+        <div className="mt-3 pt-3 border-t border-zinc-800">
+          <p className="text-xs text-zinc-500 mb-2">
+            {useCustomSelectedFields ? 'Campi personalizzati:' : 'Campi predefiniti:'}
+          </p>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {(useCustomSelectedFields 
+              ? (() => {
+                  try {
+                    return JSON.parse(customSelectedFields);
+                  } catch {
+                    return [];
+                  }
+                })()
+              : (config.selectedFields || [])
+            ).map((field: string, index: number) => (
+              <Badge 
+                key={index}
+                variant="outline" 
+                className="bg-zinc-800 text-zinc-300 font-mono text-xs"
+              >
+                {field}
+              </Badge>
+            ))}
+          </div>
+          
+          {useCustomSelectedFields && (
+            <div>
+              <Label className="text-xs text-zinc-400 mb-1 block">
+                Modifica campi (JSON Array)
+              </Label>
+              <Textarea
+                value={customSelectedFields}
+                onChange={(e) => setCustomSelectedFields(e.target.value)}
+                className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white font-mono text-sm h-10 min-h-[100px]"
+                placeholder='["id", "name", "email"]'
+              />
+              <p className="text-xs text-zinc-500 mt-1">
+                Array JSON di percorsi da estrarre (es. ["data.id", "data.name"])
+              </p>
+            </div>
+          )}
+        </div>
+      </Card>
+
       <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as any)}>
         <TabsList className="grid w-full grid-cols-2 bg-zinc-900 border border-zinc-800">
           <TabsTrigger
@@ -131,42 +321,80 @@ export function ExecuteTab({
           <Accordion type="single" collapsible className="w-full">
             <AccordionItem value="overrides" className="border-zinc-800">
               <AccordionTrigger className="text-sm text-indigo-400">
-                Advanced Overrides (Headers, Body, Path)
+                Advanced Overrides (Headers, Body, Query)
               </AccordionTrigger>
               <AccordionContent className="space-y-4 pt-2">
                 <div>
                   <Label className="text-xs text-zinc-400 mb-1 block">
-                    Custom Data Path
+                    Query Parameters (JSON)
                   </Label>
-                  <Input
-                    value={customDataPath}
-                    onChange={(e) => setCustomDataPath(e.target.value)}
-                    className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white font-mono text-sm h-10"
-                    placeholder="e.g. data.items"
+                  <Textarea
+                    value={customQueryParams}
+                    onChange={(e) => setCustomQueryParams(e.target.value)}
+                    className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white font-mono text-sm h-10 min-h-[80px]"
+                    placeholder='{"param1": "value1", "param2": "value2"}'
                   />
+                  <p className="text-xs text-zinc-500 mt-1">
+                    Parametri da aggiungere alla query string.
+                  </p>
                 </div>
+                
                 <div>
                   <Label className="text-xs text-zinc-400 mb-1 block">
-                    Override Headers (JSON)
+                    Headers (JSON)
                   </Label>
                   <Textarea
                     value={customHeaders}
                     onChange={(e) => setCustomHeaders(e.target.value)}
-                    className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white font-mono text-sm h-10"
+                    className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white font-mono text-sm h-10 min-h-[80px]"
+                    placeholder='{"Content-Type": "application/json", "Authorization": "Bearer ..."}'
                   />
                 </div>
+                
                 {config.method !== "GET" && (
                   <div>
                     <Label className="text-xs text-zinc-400 mb-1 block">
-                      Override Body (JSON)
+                      Body (JSON)
                     </Label>
                     <Textarea
                       value={customBody}
                       onChange={(e) => setCustomBody(e.target.value)}
-                      className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white font-mono text-sm h-10"
+                      className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white font-mono text-sm h-10 min-h-[80px]"
+                      placeholder='{"key": "value"}'
                     />
                   </div>
                 )}
+                
+                {/* AGGIUNGI QUESTO PER selectedFields */}
+                <div className="pt-2 border-t border-zinc-800">
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs text-zinc-400">
+                      Override Selected Fields
+                    </Label>
+                    <span className="text-xs text-zinc-500">
+                      {useCustomSelectedFields ? 'ON' : 'OFF'}
+                    </span>
+                  </div>
+                  <Textarea
+                    value={customSelectedFields}
+                    onChange={(e) => setCustomSelectedFields(e.target.value)}
+                    className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white font-mono text-sm h-10 min-h-[80px]"
+                    placeholder='["id", "name", "email"]'
+                    disabled={!useCustomSelectedFields}
+                  />
+                  <div className="flex items-center gap-2 mt-2">
+                    <input
+                      type="checkbox"
+                      id="enableSelectedFields"
+                      checked={useCustomSelectedFields}
+                      onChange={(e) => setUseCustomSelectedFields(e.target.checked)}
+                      className="h-3 w-3 rounded border-zinc-700 bg-zinc-900"
+                    />
+                    <Label htmlFor="enableSelectedFields" className="text-xs text-zinc-500 cursor-pointer">
+                      Abilita override dei campi
+                    </Label>
+                  </div>
+                </div>
               </AccordionContent>
             </AccordionItem>
           </Accordion>
@@ -176,8 +404,21 @@ export function ExecuteTab({
           <Textarea
             value={rawJsonParams}
             onChange={(e) => setRawJsonParams(e.target.value)}
-            className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white font-mono text-sm h-10"
+            className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white font-mono text-sm h-10 min-h-[200px]"
+            placeholder={`{
+  "page": 1,
+  "limit": 100,
+  "headers": ${JSON.stringify(config.headers || {}, null, 2)},
+  "queryParams": ${JSON.stringify(config.queryParams?.reduce((acc, param) => {
+    if (param.key) acc[param.key] = param.value;
+    return acc;
+  }, {} as Record<string, string>) || {}, null, 2)},
+  "selectedFields": ${JSON.stringify(config.selectedFields || [], null, 2)}
+}`}
           />
+          <p className="text-xs text-zinc-500 mt-2">
+            Includi <code>"selectedFields"</code> per sovrascrivere i campi predefiniti.
+          </p>
         </TabsContent>
       </Tabs>
 
@@ -193,6 +434,37 @@ export function ExecuteTab({
         )}
         {isExecuting ? "Executing..." : "Run Extraction"}
       </Button>
+
+      {/* Info Box */}
+      <Card className="bg-zinc-900/50 border border-zinc-800 p-3">
+        <div className="flex items-center gap-2">
+          <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
+          <p className="text-xs text-zinc-400">
+            {useCustomSelectedFields ? 'Campi personalizzati:' : 'Campi predefiniti:'}{' '}
+            <span className="text-emerald-400 font-medium">
+              {useCustomSelectedFields 
+                ? (() => {
+                    try {
+                      const fields = JSON.parse(customSelectedFields);
+                      return Array.isArray(fields) ? fields.length : 0;
+                    } catch {
+                      return 0;
+                    }
+                  })()
+                : (config.selectedFields?.length || 0)
+              }
+            </span>
+          </p>
+        </div>
+        <p className="text-xs text-zinc-500 mt-1">
+          {formatSelectedFields()}
+        </p>
+        {config.dataPath && (
+          <p className="text-xs text-zinc-600 mt-2">
+            Data Path: <span className="font-mono">{config.dataPath}</span>
+          </p>
+        )}
+      </Card>
 
       {latestResult && (
         <Card className="bg-zinc-900 border-zinc-800 p-4 mt-auto">
@@ -231,17 +503,6 @@ export function ExecuteTab({
               </p>
             </div>
           </div>
-        </Card>
-      )}
-      {latestResult?.responsePreview && (
-        <Card className="bg-zinc-900 border-zinc-800 p-4 mt-2">
-          <p className="text-[10px] font-bold uppercase text-zinc-500 mb-2">
-            Response Preview
-          </p>
-
-          <pre className="text-xs text-zinc-300 bg-black/30 p-3 rounded overflow-auto max-h-[300px]">
-            {JSON.stringify(latestResult.responsePreview, null, 2)}
-          </pre>
         </Card>
       )}
     </div>

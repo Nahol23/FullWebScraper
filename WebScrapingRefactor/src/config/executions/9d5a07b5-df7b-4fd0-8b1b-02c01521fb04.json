@@ -1,9 +1,0 @@
-{
-  "id": "9d5a07b5-df7b-4fd0-8b1b-02c01521fb04",
-  "configId": "4a64ddb5-cbf6-4121-bfce-7866ca8b3ec0",
-  "timestamp": "2026-02-09T14:41:06.584Z",
-  "parametersUsed": {},
-  "resultCount": 0,
-  "status": "error",
-  "errorMessage": "[ApiAdapter] fetch failed"
-}

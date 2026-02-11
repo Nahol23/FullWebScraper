@@ -1,0 +1,30 @@
+{
+  "id": "284c5baf-d840-455f-98e2-af2df21f72d0",
+  "configId": "dac0fe20-2b14-44b1-b086-b84d333920f6",
+  "timestamp": "2026-02-11T11:01:53.050Z",
+  "parametersUsed": {
+    "configId": "dac0fe20-2b14-44b1-b086-b84d333920f6",
+    "runtimeParams": {
+      "selectedFields": [
+        "title",
+        "description"
+      ],
+      "headers": {
+        "Authorization": "Bearer token123",
+        "Content-Type": "application/json",
+        "X-Custom-Header": "value"
+      },
+      "body": {
+        "param1": "value1",
+        "param2": "value2",
+        "offset": 20
+      },
+      "queryParams": {
+        "v": "1"
+      }
+    },
+    "timestamp": "2026-02-11T11:01:52.612Z"
+  },
+  "resultCount": 8,
+  "status": "success"
+}

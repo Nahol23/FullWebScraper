@@ -1,7 +1,4 @@
-/**
- * Presentation Layer: ConfigDrawer Component
- * Gestisce i dettagli, l'esecuzione e lo storico di una specifica API.
- */
+
 
 import { useState, useEffect } from "react";
 import {

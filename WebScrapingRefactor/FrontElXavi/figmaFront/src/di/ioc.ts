@@ -24,7 +24,7 @@ export const deleteConfigUseCase = new DeleteConfigUseCase(configRepository);
 
 export const executeApiUseCase = new ExecuteApiUseCase(
   apiExecutionRepository,
-  configRepository
+  configRepository,
 );
 
 export const fetchLogsUseCase = new FetchLogsUseCase(apiExecutionRepository);

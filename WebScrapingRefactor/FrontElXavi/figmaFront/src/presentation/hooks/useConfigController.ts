@@ -1,4 +1,4 @@
-
+// useConfigController.ts
 import { useState, useCallback } from "react";
 import { 
   getConfigsUseCase, 
@@ -13,7 +13,6 @@ export function useConfigController() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  
   const fetchConfigs = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -28,31 +27,25 @@ export function useConfigController() {
     }
   }, []);
 
-  
- const saveConfig = async (configData: Omit<ApiConfig, "id">) => {
-  setIsLoading(true);
-  try {
-    const savedConfig = await saveConfigUseCase.execute(configData);
-    
-    setConfigs(prev => [...prev, savedConfig]);
-    
-    return savedConfig; 
-  } catch (err: any) {
-    setError("Errore durante il salvataggio della configurazione.");
-    throw err;
-  } finally {
-    setIsLoading(false);
-  }
-};
-  
+  const saveConfig = async (configData: Omit<ApiConfig, "id">) => {
+    setIsLoading(true);
+    try {
+      const savedConfig = await saveConfigUseCase.execute(configData);
+      setConfigs(prev => [...prev, savedConfig]);
+      return savedConfig;
+    } catch (err: any) {
+      setError("Errore durante il salvataggio della configurazione.");
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const updateConfig = async (config: ApiConfig) => {
     setIsLoading(true);
     try {
-      // Usiamo l'ID per identificare cosa aggiornare nel backend
       await updateConfigUseCase.execute(config);
-      
-      // Aggiornamento ottimistico dello stato locale
-      setConfigs((prev) =>
+      setConfigs(prev =>
         prev.map((c) => (c.id === config.id ? { ...c, ...config } : c))
       );
     } catch (err: any) {
@@ -67,7 +60,6 @@ export function useConfigController() {
     setIsLoading(true);
     try {
       await deleteConfigUseCase.execute(id);
-      // Rimuoviamo dalla lista locale
       setConfigs((prev) => prev.filter((c) => c.id !== id));
     } catch (err: any) {
       setError("Errore durante l'eliminazione.");

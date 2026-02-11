@@ -9,29 +9,39 @@ export class ExecuteApiUseCase {
     private readonly configRepository: IConfigRepository,
   ) {}
 
- async execute(configId: string, runtimeParams?: RuntimeParams) {
-  const config = await this.configRepository.getById(configId);
+  async execute(configId: string, runtimeParams?: RuntimeParams) {
+    const config = await this.configRepository.getById(configId);
+    
+    if (!config) throw new Error("Configurazione non trovata");
+    
+    console.log("[UseCase] Config trovata:", config.name);
+    console.log("[UseCase] dataPath (fisso):", config.dataPath);
+    console.log("[UseCase] selectedFields (default):", config.selectedFields);
+    
+const mergedParams: RuntimeParams = {
+  dataPath: config.dataPath,
+  selectedFields: runtimeParams?.selectedFields || config.selectedFields || [],
+  headers: { ...config.headers, ...runtimeParams?.headers },
+  body: runtimeParams?.body || config.body,
   
-  if (!config) throw new Error("Configurazione non trovata");
+  ...(config.queryParams && config.queryParams.length > 0 && {
+    queryParams: config.queryParams.reduce((acc, param) => {
+      if (param.key) acc[param.key] = param.value;
+      return acc;
+    }, {} as Record<string, string>)
+  }),
   
-  const mergedParams: RuntimeParams = {
-    dataPath: config.dataPath,
-    headers: config.headers,
-    body: config.body,
-    selectedFields: config.selectedFields,
-    ...runtimeParams,
-    pagination: {
-      offset: config.paginationSettings?.initialOffset || 0,
-      limit: config.paginationSettings?.limitPerPage || 50,
-      ...runtimeParams?.pagination,
-    }
-  };
+  ...runtimeParams,
+};
 
-  const result = await this.apiExecutionRepository.execute(config.id, mergedParams);
-  
-  console.log(" [UseCase] Parametri inviati:", mergedParams);
-  console.log("[UseCase] Risultato:", result);
+    delete mergedParams.dataPath;
+    
+    console.log("[UseCase] Parametri finali per il backend:", mergedParams);
+    
+    const result = await this.apiExecutionRepository.execute(config.id, mergedParams);
+    
+    console.log("[UseCase] Risultato:", result);
 
-  return result;
-}
+    return result;
+  }
 }

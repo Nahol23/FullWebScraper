@@ -4,16 +4,13 @@
   "endpoint": "/characters",
   "method": "GET",
   "defaultLimit": 20,
-  "dataPath": "string",
+  "dataPath": "items",
   "headers": {
     "additionalProp1": {}
   },
   "body": {
     "additionalProp1": {}
   },
-  "selectedFields": [
-    "name",
-    "race"
-  ],
+  "selectedFields": ["name", "race"],
   "id": "4a64ddb5-cbf6-4121-bfce-7866ca8b3ec0"
 }

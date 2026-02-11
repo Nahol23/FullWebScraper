@@ -1,0 +1,25 @@
+{
+  "name": "hupApi",
+  "baseUrl": "https://api.hubapi.com",
+  "endpoint": "/cms/v3/hubdb/tables/847927518/rows?portalId=140962492&sort=name&limit=10&categories__contains=06&offset=20",
+  "method": "GET",
+  "queryParams": [
+    {
+      "key": " ",
+      "value": " 1 "
+    }
+  ],
+  "headers": {},
+  "body": {},
+  "pagination": {},
+  "dataPath": "results.values",
+  "filter": {
+    "field": "status",
+    "value": "active"
+  },
+  "selectedFields": [
+    "country",
+    "name"
+  ],
+  "id": "4d8b5049-8af0-42bb-ac83-b14247dd2bd8"
+}

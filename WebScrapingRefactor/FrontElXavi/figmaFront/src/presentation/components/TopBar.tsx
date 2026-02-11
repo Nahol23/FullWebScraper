@@ -1,4 +1,4 @@
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, RefreshCw } from "lucide-react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 
@@ -6,9 +6,17 @@ interface TopBarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onAddClick: () => void;
+  onRefreshClick?: () => void;
+  autoRefreshEnabled?: boolean;
+  onAutoRefreshToggle?: () => void;
 }
 
-export function TopBar({ searchQuery, onSearchChange, onAddClick }: TopBarProps) {
+export function TopBar({ 
+  searchQuery, 
+  onSearchChange, 
+  onAddClick,
+  onRefreshClick,
+}: TopBarProps) {
   return (
     <div className="sticky top-0 z-40 backdrop-blur-xl bg-zinc-950/80 border-b border-zinc-800">
       <div className="px-6 py-4">
@@ -46,14 +54,28 @@ export function TopBar({ searchQuery, onSearchChange, onAddClick }: TopBarProps)
             />
           </div>
 
-          {/* Add Button */}
-          <Button
-            onClick={onAddClick}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            Add New Config
-          </Button>
+          {/* Actions */}
+          <div className="flex items-center gap-2">
+            {onRefreshClick && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRefreshClick}
+                className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-white gap-2"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Refresh
+              </Button>
+            )}
+            
+            <Button
+              onClick={onAddClick}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add New Config
+            </Button>
+          </div>
         </div>
       </div>
     </div>

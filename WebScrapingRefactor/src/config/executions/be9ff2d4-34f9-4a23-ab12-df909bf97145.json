@@ -1,0 +1,23 @@
+{
+  "id": "be9ff2d4-34f9-4a23-ab12-df909bf97145",
+  "configId": "4a64ddb5-cbf6-4121-bfce-7866ca8b3ec0",
+  "timestamp": "2026-02-11T11:02:06.474Z",
+  "parametersUsed": {
+    "configId": "4a64ddb5-cbf6-4121-bfce-7866ca8b3ec0",
+    "runtimeParams": {
+      "selectedFields": [
+        "name",
+        "race"
+      ],
+      "headers": {
+        "additionalProp1": "[object Object]"
+      },
+      "body": {
+        "additionalProp1": {}
+      }
+    },
+    "timestamp": "2026-02-11T11:02:06.193Z"
+  },
+  "resultCount": 10,
+  "status": "success"
+}

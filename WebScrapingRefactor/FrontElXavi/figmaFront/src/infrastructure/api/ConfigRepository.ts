@@ -20,9 +20,16 @@ export class ConfigRepository implements IConfigRepository {
   }
 
  async save(config: ApiConfig): Promise<ApiConfig> {
-    const { data } = await this.httpClient.post<ApiConfig>('/configs', config);
-    return data; 
-  }
+  const cleanConfig = {
+    ...config,
+    ...(config.queryParams && config.queryParams.length === 0 && { queryParams: undefined }),
+    ...(config.selectedFields && config.selectedFields.length === 0 && { selectedFields: undefined }),
+  };
+  
+  console.log("[Repository] Invio configurazione pulita:", cleanConfig);
+  const { data } = await this.httpClient.post<ApiConfig>('/configs', cleanConfig);
+  return data;
+}
 
   async update(id: string, updates: Partial<ApiConfig>): Promise<void> {
     await this.httpClient.put(`/configs/${id}`, updates);

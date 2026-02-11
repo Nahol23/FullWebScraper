@@ -1,7 +1,7 @@
 {
   "name": "Agritechnica",
-  "baseUrl": "https://digital.agritechnica.com/api/v1/search",
-  "endpoint": "/exhibitors",
+  "baseUrl": "https://digital.agritechnica.com",
+  "endpoint": "/api/v1/search/exhibitors",
   "method": "POST",
   "defaultLimit": 20,
   "dataPath": "items",

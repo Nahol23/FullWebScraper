@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { TopBar } from "../components/TopBar";
 import { ConfigCard } from "../components/ConfigCard";
 import { AddConfigModal } from "../components/AddConfigModal";
@@ -32,6 +32,8 @@ export default function App() {
     removeLog,
     downloadLogs,
     isExecuting,
+    error: executionError,
+    clearError: clearExecutionError,
   } = useExecutionController();
 
   // --- STATO UI ---
@@ -48,14 +50,37 @@ export default function App() {
     fetchConfigs();
   }, [fetchConfigs]);
 
+  // Gestione errori di esecuzione
+  useEffect(() => {
+    if (executionError) {
+      alert(executionError);
+      clearExecutionError();
+    }
+  }, [executionError, clearExecutionError]);
+
   // --- LOGICA FILTRI E PAGINAZIONE ---
   const filteredConfigs = useMemo(() => {
-    return configs.filter(
-      (config) =>
-        config.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        config.baseUrl.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        config.endpoint.toLowerCase().includes(searchQuery.toLowerCase()),
-    );
+    const searchTerm = searchQuery.toLowerCase();
+    
+    return configs.filter((config) => {
+      // Cerca nel nome
+      if (config.name.toLowerCase().includes(searchTerm)) return true;
+      
+      // Cerca nella base URL
+      if (config.baseUrl.toLowerCase().includes(searchTerm)) return true;
+      
+      // Cerca nell'endpoint
+      if (config.endpoint.toLowerCase().includes(searchTerm)) return true;
+      
+      // Cerca nei campi selezionati (se esistono)
+      if (config.selectedFields && Array.isArray(config.selectedFields)) {
+        return config.selectedFields.some((field: string) => 
+          field.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      return false;
+    });
   }, [configs, searchQuery]);
 
   const paginatedConfigs = useMemo(() => {
@@ -68,32 +93,36 @@ export default function App() {
   const totalPages = Math.ceil(filteredConfigs.length / rowsPerPage);
 
   // --- HANDLERS AZIONI ---
-  const handleAddConfig = async (newConfig: ApiConfig) => {
+  const handleAddConfig = useCallback(async (newConfig: ApiConfig) => {
     try {
       await saveConfig(newConfig);
       setIsAddModalOpen(false);
+      alert("Configurazione salvata con successo!");
     } catch (err) {
       console.error("Errore salvataggio:", err);
+      alert("Errore durante il salvataggio della configurazione");
     }
-  };
+  }, [saveConfig]);
 
-  const handleConfigClick = (config: ApiConfig) => {
+  const handleConfigClick = useCallback((config: ApiConfig) => {
     setSelectedConfig(config);
     setIsDrawerOpen(true);
     // Carica la history specifica per questa configurazione
     refreshLogs(config.id);
-  };
+  }, [refreshLogs]);
 
-  const handleUpdateConfig = async (updatedConfig: ApiConfig) => {
+  const handleUpdateConfig = useCallback(async (updatedConfig: ApiConfig) => {
     try {
       await updateConfig(updatedConfig);
       setSelectedConfig(updatedConfig);
+      alert("Configurazione aggiornata con successo!");
     } catch (error) {
       console.error("Errore aggiornamento:", error);
+      alert("Errore durante l'aggiornamento");
     }
-  };
+  }, [updateConfig]);
 
-  const handleDeleteConfig = async (id: string) => {
+  const handleDeleteConfig = useCallback(async (id: string) => {
     if (
       window.confirm(
         "Sei sicuro di voler eliminare questa configurazione? Tutti i log associati verranno persi.",
@@ -103,11 +132,22 @@ export default function App() {
         await deleteConfig(id);
         setIsDrawerOpen(false);
         setSelectedConfig(null);
+        alert("Configurazione eliminata con successo!");
       } catch (error) {
         console.error("Errore eliminazione:", error);
+        alert("Errore durante l'eliminazione");
       }
     }
-  };
+  }, [deleteConfig]);
+
+  const handleExecuteWithFeedback = useCallback(async (configId: string, params?: any) => {
+    try {
+      await runExecution(configId, params);
+      alert("Esecuzione completata con successo!");
+    } catch (error) {
+      console.error("Errore durante l'esecuzione:", error);
+    }
+  }, [runExecution]);
 
   // --- RENDER LOADING STATO INIZIALE ---
   if (isConfigsLoading && configs.length === 0) {
@@ -119,6 +159,24 @@ export default function App() {
         </div>
         <p className="mt-4 text-zinc-400 font-medium animate-pulse">
           Inizializzazione sistema...
+        </p>
+      </div>
+    );
+  }
+
+  // Loading durante l'esecuzione (modalità fullscreen)
+  if (isExecuting && selectedConfig) {
+    return (
+      <div className="dark min-h-screen bg-zinc-950 flex flex-col items-center justify-center">
+        <div className="relative">
+          <div className="h-16 w-16 rounded-full border-t-2 border-b-2 border-indigo-500 animate-spin"></div>
+          <div className="absolute top-0 left-0 h-16 w-16 rounded-full border-l-2 border-r-2 border-indigo-500/20 animate-pulse"></div>
+        </div>
+        <p className="mt-4 text-zinc-400 font-medium animate-pulse">
+          Esecuzione di "{selectedConfig.name}" in corso...
+        </p>
+        <p className="text-sm text-zinc-600 mt-2">
+          Estrazione dei dati dall'API
         </p>
       </div>
     );
@@ -194,8 +252,16 @@ export default function App() {
                 Nessuna configurazione trovata
               </p>
               <p className="text-zinc-500 mt-1">
-                Aggiungi una nuova configurazione per iniziare i test.
+                {searchQuery ? 'Prova con un\'altra ricerca' : 'Aggiungi una nuova configurazione per iniziare'}
               </p>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="mt-4 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-sm transition-colors"
+                >
+                  Pulisci ricerca
+                </button>
+              )}
             </div>
           ) : (
             <>
@@ -285,28 +351,40 @@ export default function App() {
         onAdd={handleAddConfig}
       />
 
-      <ConfigDrawer
-        isOpen={isDrawerOpen}
-        config={selectedConfig}
-        onClose={() => setIsDrawerOpen(false)}
-        onUpdate={handleUpdateConfig}
-        onDelete={handleDeleteConfig}
-        // Esecuzione API
-        onExecute={runExecution}
-        isExecuting={isExecuting}
-        // Log & History
-        logs={logs}
-        isLoadingLogs={isLoadingLogs}
-        onRefreshLogs={() => {
-          if (selectedConfig) refreshLogs(selectedConfig.id);
-        }}
-        onDeleteLog={async (logId: string) => {
-          if (selectedConfig) await removeLog(selectedConfig.id, logId);
-        }}
-        onDownload={(format) => {
-          if (selectedConfig) downloadLogs(selectedConfig.name, format);
-        }}
-      />
+      {selectedConfig && (
+        <ConfigDrawer
+          isOpen={isDrawerOpen}
+          config={selectedConfig}
+          onClose={() => setIsDrawerOpen(false)}
+          onUpdate={handleUpdateConfig}
+          onDelete={handleDeleteConfig}
+          // Esecuzione API
+          onExecute={handleExecuteWithFeedback}
+          isExecuting={isExecuting}
+          // Log & History
+          logs={logs}
+          isLoadingLogs={isLoadingLogs}
+          onRefreshLogs={() => {
+            if (selectedConfig) refreshLogs(selectedConfig.id);
+          }}
+          onDeleteLog={async (logId: string) => {
+            if (selectedConfig) {
+              try {
+                await removeLog(selectedConfig.id, logId);
+                alert("Log eliminato con successo!");
+              } catch (error) {
+                alert("Errore durante l'eliminazione del log");
+              }
+            }
+          }}
+          onDownload={(format) => {
+            if (selectedConfig) {
+              downloadLogs(selectedConfig.name, format);
+              alert(`Download ${format.toUpperCase()} iniziato`);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
