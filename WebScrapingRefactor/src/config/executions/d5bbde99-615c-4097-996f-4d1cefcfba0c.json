@@ -1,0 +1,12 @@
+{
+  "id": "d5bbde99-615c-4097-996f-4d1cefcfba0c",
+  "configId": "17074c9f-53e1-4ca5-9647-5114d9411b75",
+  "timestamp": "2026-02-11T14:17:10.105Z",
+  "parametersUsed": {
+    "selectedFields": [
+      "identifier"
+    ]
+  },
+  "resultCount": 5,
+  "status": "success"
+}

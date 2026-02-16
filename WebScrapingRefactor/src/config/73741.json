@@ -11,9 +11,11 @@
   "body": {
     "query": "",
     "hitsPerPage": 5,
-    "attributesToRetrieve": ["*"]
+    "attributesToRetrieve": [
+      "*"
+    ]
   },
-  "defaultLimit": 20,
   "dataPath": "",
-  "selectedFields": ["identifier"]
+  "selectedFields": [],
+  "id": "520bb7c1-7601-4558-8d45-c472521acc89"
 }

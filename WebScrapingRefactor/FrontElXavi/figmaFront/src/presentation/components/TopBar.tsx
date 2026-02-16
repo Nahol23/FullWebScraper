@@ -9,6 +9,7 @@ interface TopBarProps {
   onRefreshClick?: () => void;
   autoRefreshEnabled?: boolean;
   onAutoRefreshToggle?: () => void;
+   totalConfigs?: number; 
 }
 
 export function TopBar({ 

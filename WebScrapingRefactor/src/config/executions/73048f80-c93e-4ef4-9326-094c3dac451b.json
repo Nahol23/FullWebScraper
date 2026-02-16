@@ -1,0 +1,18 @@
+{
+  "id": "73048f80-c93e-4ef4-9326-094c3dac451b",
+  "configId": "46876f6d-9b32-48d2-993e-ee488e5e3a6f",
+  "timestamp": "2026-02-11T15:05:33.202Z",
+  "parametersUsed": {
+    "configId": "46876f6d-9b32-48d2-993e-ee488e5e3a6f",
+    "runtimeParams": {
+      "selectedFields": [
+        "name",
+        "url"
+      ],
+      "headers": {}
+    },
+    "timestamp": "2026-02-11T15:05:32.645Z"
+  },
+  "resultCount": 12,
+  "status": "success"
+}

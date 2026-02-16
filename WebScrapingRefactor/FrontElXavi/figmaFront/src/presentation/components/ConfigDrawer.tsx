@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect } from "react";
 import {
   Sheet,
@@ -7,11 +5,14 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-} from "./ui/sheet"; 
+} from "./ui/sheet";
 import { Badge } from "./ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { cn } from "./ui/utils"; 
-import type { ApiConfig, ExecutionHistory } from "../../domain/entities/ApiConfig";
+import { cn } from "./ui/utils";
+import type {
+  ApiConfig,
+  ExecutionHistory,
+} from "../../domain/entities/ApiConfig";
 import { ConfigurationTab } from "./drawer/ConfigurationTab";
 import { ExecuteTab } from "./drawer/ExecuteTab";
 import { HistoryTab } from "./drawer/HistoryTab";
@@ -22,7 +23,7 @@ interface ConfigDrawerProps {
   onClose: () => void;
   onUpdate: (config: ApiConfig) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
-  
+
   // Props per Execution (dal controller Execution)
   onExecute: (configId: string, params?: any) => Promise<void>;
   isExecuting: boolean;
@@ -30,7 +31,8 @@ interface ConfigDrawerProps {
   isLoadingLogs: boolean;
   onRefreshLogs: () => void;
   onDeleteLog: (logId: string) => Promise<void>;
-  onDownload: (format: 'json' | 'markdown') => void;
+  onDownload: (format: "json" | "markdown") => void;
+  lastResult?: any;
 }
 
 type TabType = "configuration" | "execute" | "history";
@@ -47,7 +49,8 @@ export function ConfigDrawer({
   isLoadingLogs,
   onRefreshLogs,
   onDeleteLog,
-  onDownload
+  onDownload,
+  lastResult,
 }: ConfigDrawerProps) {
   const [activeTab, setActiveTab] = useState<TabType>("execute");
   const [editedConfig, setEditedConfig] = useState<ApiConfig | null>(null);
@@ -85,7 +88,7 @@ export function ConfigDrawer({
                 "border font-mono text-xs px-2 py-0.5",
                 editedConfig.method === "GET"
                   ? "bg-green-500/10 border-green-500/50 text-green-400"
-                  : "bg-orange-500/10 border-orange-500/50 text-orange-400"
+                  : "bg-orange-500/10 border-orange-500/50 text-orange-400",
               )}
             >
               {editedConfig.method}
@@ -93,7 +96,10 @@ export function ConfigDrawer({
           </div>
           <SheetDescription className="text-sm text-zinc-400 font-mono flex items-center gap-1">
             <span className="opacity-50 italic">Endpoint:</span>
-            <span className="text-zinc-300">{editedConfig.baseUrl}{editedConfig.endpoint}</span>
+            <span className="text-zinc-300">
+              {editedConfig.baseUrl}
+              {editedConfig.endpoint}
+            </span>
           </SheetDescription>
         </SheetHeader>
 
@@ -108,7 +114,7 @@ export function ConfigDrawer({
               {[
                 { id: "configuration", label: "Configuration" },
                 { id: "execute", label: "Execute" },
-                { id: "history", label: "History" }
+                { id: "history", label: "History" },
               ].map((tab) => (
                 <TabsTrigger
                   key={tab.id}
@@ -117,7 +123,7 @@ export function ConfigDrawer({
                     "rounded-none border-b-2 px-4 py-3 font-medium text-sm transition-all data-[state=active]:bg-transparent",
                     activeTab === tab.id
                       ? "border-indigo-500 text-white"
-                      : "border-transparent text-zinc-500 hover:text-zinc-300"
+                      : "border-transparent text-zinc-500 hover:text-zinc-300",
                   )}
                 >
                   {tab.label}
@@ -142,17 +148,18 @@ export function ConfigDrawer({
             </TabsContent>
 
             <TabsContent value="execute" className="p-6 mt-0">
-              <ExecuteTab 
-                config={editedConfig} 
+              <ExecuteTab
+                config={editedConfig}
                 onUpdate={handleConfigUpdate}
-                onExecute={() => onExecute(editedConfig.id)}
+                onExecute={onExecute} // forward params through to parent
                 isExecuting={isExecuting}
                 lastLogs={logs.slice(0, 3)} // Mostra solo gli ultimi 3 nell'anteprima esecuzione
+                lastExecutionResult={lastResult}
               />
             </TabsContent>
 
             <TabsContent value="history" className="p-6 mt-0">
-              <HistoryTab 
+              <HistoryTab
                 logs={logs}
                 isLoading={isLoadingLogs}
                 onRefresh={onRefreshLogs}

@@ -1,0 +1,32 @@
+{
+  "id": "016c5e14-ad03-4cb8-97d5-046f51a2ee1d",
+  "configId": "17074c9f-53e1-4ca5-9647-5114d9411b75",
+  "timestamp": "2026-02-11T13:42:03.565Z",
+  "parametersUsed": {
+    "configId": "17074c9f-53e1-4ca5-9647-5114d9411b75",
+    "runtimeParams": {
+      "selectedFields": [
+        "identifier"
+      ],
+      "headers": {
+        "X-Algolia-Application-Id": "9WUDIPIUPO",
+        "X-Algolia-API-Key": "df8a06b8eb5d9bd0839e88fc7606560f",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "query": "",
+        "hitsPerPage": 5,
+        "attributesToRetrieve": [
+          "*"
+        ]
+      },
+      "queryParams": {
+        "v": "1"
+      },
+      "dataPath": " "
+    },
+    "timestamp": "2026-02-11T13:42:03.101Z"
+  },
+  "resultCount": 0,
+  "status": "success"
+}

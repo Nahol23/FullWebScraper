@@ -1,0 +1,11 @@
+{
+  "id": "fcd2dfce-ad1e-427a-b8ac-5f26ee305bea",
+  "configId": "46876f6d-9b32-48d2-993e-ee488e5e3a6f",
+  "timestamp": "2026-02-13T11:58:47.881Z",
+  "parametersUsed": {
+    "limit": 100,
+    "page": 5
+  },
+  "resultCount": 12,
+  "status": "success"
+}

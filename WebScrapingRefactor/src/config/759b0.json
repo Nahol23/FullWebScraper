@@ -1,0 +1,14 @@
+{
+  "name": "Agritechnica",
+  "baseUrl": "https://digital.agritechnica.com",
+  "endpoint": "/api/v1/search/exhibitors",
+  "method": "POST",
+  "body": {
+    "page": 3,
+    "limit": 100,
+    "nextResult": {}
+  },
+  "dataPath": "",
+  "selectedFields": [],
+  "id": "d9e81078-e31b-40bf-b6b8-bffe349b2099"
+}

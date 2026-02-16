@@ -445,26 +445,6 @@ export async function configRoutes(fastify: FastifyInstance) {
             },
           ],
         },
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              data: { type: "array" },
-              filteredBy: { type: "object" },
-              meta: {
-                type: "object",
-                properties: {
-                  paths: { type: "array", items: { type: "string" } },
-                  total: { type: "number" },
-                  limit: { type: "number" },
-                  validObjectsCount: { type: "number" },
-                },
-              },
-            },
-          },
-          404: errorResponseSchema,
-          500: errorResponseSchema,
-        },
       },
     },
     controller.execute,

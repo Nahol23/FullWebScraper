@@ -1,0 +1,15 @@
+{
+  "id": "963bc84b-3e64-4133-b20d-1669af21024d",
+  "configId": "35b3513b-c5ed-4546-9931-59ef47d09996",
+  "timestamp": "2026-02-12T11:16:17.500Z",
+  "parametersUsed": {
+    "configId": "35b3513b-c5ed-4546-9931-59ef47d09996",
+    "runtimeParams": {
+      "dataPath": "data.results"
+    },
+    "timestamp": "2026-02-12T11:16:16.975Z"
+  },
+  "resultCount": 0,
+  "status": "error",
+  "errorMessage": "[ApiAdapter] API Request Failed: 500 Internal Server Error - {\"status\":\"error\",\"message\":\"internal error\",\"correlationId\":\"92c629f7-7034-47e8-b052-3532219b9da5\"}"
+}

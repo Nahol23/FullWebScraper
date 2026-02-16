@@ -18,6 +18,7 @@ export interface ExecutionHistory {
   recordsExtracted?: number;
   errorMessage?: string;
   responsePreview?: any;
+  data?: string;
 }
 
 export interface ApiConfig {

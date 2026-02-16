@@ -35,12 +35,13 @@ const runExecution = async (configId: string, runtimeParams?: RuntimeParams) => 
   setIsExecuting(true);
   try {
     const validId = typeof configId === 'object' ? (configId as any).id : configId;
-    
     const response = await executeApiUseCase.execute(validId, runtimeParams || {});
-    
-    setLastResult(response); 
+    console.log("[useExecutionController] Received response:", response);
+    setLastResult(response);
+    console.log("[useExecutionController] lastResult set");
     await refreshLogs(validId);
   } catch (err: any) {
+    console.error("[useExecutionController] Error:", err);
     setError(err.message);
   } finally {
     setIsExecuting(false);
