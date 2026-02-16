@@ -1,20 +1,37 @@
-import { useState } from "react";
-import { Sparkles, Loader2, FileCode, ChevronDown, ChevronRight, X, Plus } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Sparkles,
+  Loader2,
+  FileCode,
+  ChevronDown,
+  ChevronRight,
+  X,
+  Plus,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "./ui/collapsible";
 import type { ApiConfig, ApiParam } from "../../domain/entities/ApiConfig";
 import { useConfigController } from "../hooks/useConfigController";
+import { useAnalysisController } from "../hooks/useAnalysisController";
 import { ValidationError } from "../../domain/errors/AppError";
+import { Analysis } from "@/domain/entities/Analysis";
+import { AnalysisDetailsModal } from "./AnalysisDetailsModal";
+import { cn } from "./ui/utils";
 
 interface AddConfigModalProps {
   isOpen: boolean;
@@ -28,16 +45,26 @@ interface KeyValueRow {
   value: string;
 }
 
-export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) {
+export function AddConfigModal({
+  isOpen,
+  onClose,
+  onAdd,
+}: AddConfigModalProps) {
   const { saveConfig } = useConfigController();
-  
+  const {
+    analyzeApi,
+    isAnalyzing: isBackendAnalyzing,
+    error: analysisError,
+    clearError: clearAnalysisError,
+  } = useAnalysisController();
+
   const [name, setName] = useState("");
   const [baseUrl, setBaseUrl] = useState("https://");
   const [endpoint, setEndpoint] = useState("/");
   const [method, setMethod] = useState<"GET" | "POST">("GET");
-
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [headerRows, setHeaderRows] = useState<KeyValueRow[]>([
-    { id: "1", key: "Content-Type", value: "application/json" }
+    { id: "1", key: "Content-Type", value: "application/json" },
   ]);
 
   const [queryRows, setQueryRows] = useState<KeyValueRow[]>([]);
@@ -55,34 +82,98 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
     type: "offset" as const,
     paramName: "offset",
     limitParam: "limit",
-    defaultLimit: 50
+    defaultLimit: 50,
   };
 
-  const addRow = (setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>) => {
-    setter(prev => [...prev, { id: crypto.randomUUID(), key: "", value: "" }]);
+  // Sync hook error with local error
+  useEffect(() => {
+    if (analysisError) {
+      setError(analysisError);
+      clearAnalysisError();
+    }
+  }, [analysisError, clearAnalysisError]);
+
+  const addRow = (
+    setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>,
+  ) => {
+    setter((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), key: "", value: "" },
+    ]);
   };
 
-  const removeRow = (id: string, setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>) => {
-    setter(prev => prev.filter(row => row.id !== id));
+  const removeRow = (
+    id: string,
+    setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>,
+  ) => {
+    setter((prev) => prev.filter((row) => row.id !== id));
   };
 
   const updateRow = (
-    id: string, 
-    field: "key" | "value", 
-    newValue: string, 
-    setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>
+    id: string,
+    field: "key" | "value",
+    newValue: string,
+    setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>,
   ) => {
-    setter(prev => prev.map(row => row.id === id ? { ...row, [field]: newValue } : row));
+    setter((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, [field]: newValue } : row)),
+    );
   };
+  const [lastAnalysis, setLastAnalysis] = useState<Analysis | null>(null);
+
 
   const handleAnalyze = async () => {
-    setIsAnalyzing(true);
     setError(null);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    const mockFields = ["id", "name", "email", "created_at", "updated_at"];
-    setAnalyzedFields(mockFields);
-    setIsAnalyzing(false);
-    if (!dataPath) setDataPath("data");
+    setIsAnalyzing(true);
+
+    try {
+      // Build full URL
+      const cleanBaseUrl = baseUrl.replace(/\/$/, "");
+      const cleanEndpoint = endpoint.startsWith("/")
+        ? endpoint
+        : "/" + endpoint;
+      const fullUrl = cleanBaseUrl + cleanEndpoint;
+
+      // Build headers object (skip empty keys)
+      const headers: Record<string, string> = {};
+      headerRows.forEach((row) => {
+        if (row.key.trim()) headers[row.key.trim()] = row.value;
+      });
+
+      // Parse body for POST
+      let body: any = undefined;
+      if (method === "POST" && bodyJson.trim()) {
+        try {
+          body = JSON.parse(bodyJson);
+        } catch {
+          setError("Invalid JSON in body parameters");
+          setIsAnalyzing(false);
+          return;
+        }
+      }
+
+      const analysis = await analyzeApi({
+        url: fullUrl,
+        method,
+        headers: Object.keys(headers).length > 0 ? headers : undefined,
+        body,
+      });
+
+      // Salva l'analisi completa per il riepilogo
+      setLastAnalysis(analysis);
+
+      // Update fields from analysis result
+      if (analysis.discoveredSchema?.suggestedFields?.length > 0) {
+        setAnalyzedFields(analysis.discoveredSchema.suggestedFields);
+      }
+      if (analysis.discoveredSchema?.dataPath) {
+        setDataPath(analysis.discoveredSchema.dataPath);
+      }
+    } catch (err) {
+      // Error already captured by hook and synced via useEffect
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handlePasteFromCurl = () => {
@@ -90,8 +181,16 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
     setEndpoint("/v1/users");
     setMethod("GET");
     setHeaderRows([
-      { id: crypto.randomUUID(), key: "Authorization", value: "Bearer token123" },
-      { id: crypto.randomUUID(), key: "Content-Type", value: "application/json" }
+      {
+        id: crypto.randomUUID(),
+        key: "Authorization",
+        value: "Bearer token123",
+      },
+      {
+        id: crypto.randomUUID(),
+        key: "Content-Type",
+        value: "application/json",
+      },
     ]);
   };
 
@@ -108,15 +207,15 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
 
     try {
       const headersObject: Record<string, string> = {};
-      headerRows.forEach(row => {
+      headerRows.forEach((row) => {
         if (row.key.trim()) headersObject[row.key] = row.value;
       });
 
       const validQueryParams: ApiParam[] = queryRows
-        .filter(row => row.key && row.key.trim() !== "")
-        .map(row => ({
+        .filter((row) => row.key && row.key.trim() !== "")
+        .map((row) => ({
           key: row.key.trim(),
-          value: row.value?.trim() || ""
+          value: row.value?.trim() || "",
         }));
 
       let bodyPayload: any = undefined;
@@ -135,7 +234,9 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
         baseUrl: baseUrl.trim(),
         endpoint: endpoint.trim(),
         method,
-        ...(Object.keys(headersObject).length > 0 && { headers: headersObject }),
+        ...(Object.keys(headersObject).length > 0 && {
+          headers: headersObject,
+        }),
         ...(validQueryParams.length > 0 && { queryParams: validQueryParams }),
         ...(method === "POST" && bodyPayload && { body: bodyPayload }),
         ...(dataPath.trim() && { dataPath: dataPath.trim() }),
@@ -145,11 +246,11 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
       };
 
       console.log("[Modal] Configurazione da salvare:", configPayload);
-      
+
       const newConfig = await saveConfig(configPayload);
-      
+
       console.log("[Modal] Configurazione salvata:", newConfig);
-      
+
       onAdd(newConfig);
       handleClose();
     } catch (err) {
@@ -157,7 +258,9 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
       if (err instanceof ValidationError) {
         setError(err.message);
       } else {
-        setError(err instanceof Error ? err.message : "Failed to save configuration");
+        setError(
+          err instanceof Error ? err.message : "Failed to save configuration",
+        );
       }
     } finally {
       setIsSaving(false);
@@ -169,7 +272,9 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
     setBaseUrl("https://");
     setEndpoint("/");
     setMethod("GET");
-    setHeaderRows([{ id: "1", key: "Content-Type", value: "application/json" }]);
+    setHeaderRows([
+      { id: "1", key: "Content-Type", value: "application/json" },
+    ]);
     setQueryRows([]);
     setBodyJson("{\n  \n}");
     setAnalyzedFields([]);
@@ -179,13 +284,17 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
     onClose();
   };
 
-  return (
+ return (
+  <>
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-zinc-950 border-zinc-800 text-white">
         <DialogHeader>
           <DialogTitle className="text-2xl font-semibold text-white">
             Add New API Configuration
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Fill in the details to create a new API configuration. You can also analyze the API to discover available fields.
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -307,7 +416,7 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
                   No query parameters. Add one if your API needs pagination or filtering.
                 </p>
               )}
-              {queryRows.some(row => !row.key || row.key.trim() === "") && (
+              {queryRows.some((row) => !row.key || row.key.trim() === "") && (
                 <p className="text-xs text-yellow-500 mt-1">
                   Parameters without a key will not be saved
                 </p>
@@ -385,7 +494,6 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-4 pt-4">
               <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 space-y-4">
-                
                 <div className="space-y-2">
                   <Label htmlFor="dataPath" className="text-sm text-zinc-300">
                     Data Path (Optional)
@@ -406,7 +514,7 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
 
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-zinc-400">Smart Tools</span>
-                  
+
                   <div className="flex gap-2">
                     <Button
                       type="button"
@@ -424,10 +532,10 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
                       variant="outline"
                       size="sm"
                       onClick={handleAnalyze}
-                      disabled={isAnalyzing}
+                      disabled={isAnalyzing || isBackendAnalyzing}
                       className="bg-indigo-600 hover:bg-indigo-700 border-0 text-white gap-2 h-8"
                     >
-                      {isAnalyzing ? (
+                      {isAnalyzing || isBackendAnalyzing ? (
                         <>
                           <Loader2 className="h-3.5 w-3.5 animate-spin" />
                           Analyzing...
@@ -466,12 +574,72 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
             </CollapsibleContent>
           </Collapsible>
 
+          {lastAnalysis && (
+            <div className="mt-4 space-y-2 border-t border-zinc-800 pt-4">
+              <h4 className="text-sm font-medium text-zinc-300">
+                Analysis Summary
+              </h4>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <span className="text-zinc-500">URL:</span>
+                <span className="text-zinc-300 font-mono truncate">
+                  {lastAnalysis.url}
+                </span>
+                <span className="text-zinc-500">Method:</span>
+                <span className="text-zinc-300">{lastAnalysis.method}</span>
+                <span className="text-zinc-500">Status:</span>
+                <span
+                  className={cn(
+                    "font-medium",
+                    lastAnalysis.status === "completed"
+                      ? "text-emerald-400"
+                      : "text-red-400",
+                  )}
+                >
+                  {lastAnalysis.status}
+                </span>
+                <span className="text-zinc-500">Analyzed at:</span>
+                <span className="text-zinc-300">
+                  {new Date(lastAnalysis.createdAt).toLocaleString()}
+                </span>
+              </div>
+              {lastAnalysis.discoveredSchema && (
+                <div className="mt-2">
+                  <p className="text-xs text-zinc-500">
+                    <span className="font-medium">Data Path:</span>{" "}
+                    <span className="text-indigo-400 font-mono">
+                      {lastAnalysis.discoveredSchema.dataPath || "(root)"}
+                    </span>
+                  </p>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    <span className="font-medium">Fields discovered:</span>{" "}
+                    <span className="text-white">
+                      {lastAnalysis.discoveredSchema.suggestedFields.length}
+                    </span>
+                  </p>
+                </div>
+              )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsDetailsModalOpen(true)}
+                className="mt-2 w-full bg-zinc-800 border-zinc-700 hover:bg-zinc-700"
+              >
+                <FileCode className="h-3.5 w-3.5 mr-2" />
+                View Full Analysis
+              </Button>
+            </div>
+          )}
+
           <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-3">
             <p className="text-xs text-zinc-400">
-              <span className="font-medium text-zinc-300">Pagination:</span> Default settings will be applied
+              <span className="font-medium text-zinc-300">Pagination:</span>{" "}
+              Default settings will be applied
             </p>
             <p className="text-xs text-zinc-500 mt-1 font-mono">
-              {baseUrl}{endpoint}?offset=0&limit=50
+              {baseUrl.replace(/\/$/, "")}
+              {endpoint.startsWith("/") ? endpoint : "/" + endpoint}
+              ?offset=0&limit=50
             </p>
           </div>
 
@@ -502,5 +670,12 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
         </form>
       </DialogContent>
     </Dialog>
-  );
+
+    <AnalysisDetailsModal
+      isOpen={isDetailsModalOpen}
+      onClose={() => setIsDetailsModalOpen(false)}
+      analysis={lastAnalysis}
+    />
+  </>
+);
 }

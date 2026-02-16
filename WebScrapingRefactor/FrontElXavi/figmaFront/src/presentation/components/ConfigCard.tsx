@@ -25,7 +25,7 @@ export function ConfigCard({ config, onClick }: ConfigCardProps) {
               "shrink-0 font-mono text-xs px-2 py-0.5",
               config.method === "GET"
                 ? "text-emerald-400 border-emerald-900 bg-emerald-500/10"
-                : "text-amber-400 border-amber-900 bg-amber-500/10"
+                : "text-amber-400 border-amber-900 bg-amber-500/10",
             )}
           >
             {config.method}
@@ -50,7 +50,7 @@ export function ConfigCard({ config, onClick }: ConfigCardProps) {
 
       <CardFooter className="pt-4 border-t border-zinc-800">
         <div className="flex items-center justify-between w-full text-xs text-zinc-500">
-          <span>{config.selectedFields.length} fields selected</span>
+          <span>{config.selectedFields?.length || 0} fields selected</span>
           <span className="opacity-0 group-hover:opacity-100 transition-opacity text-indigo-400">
             View details →
           </span>

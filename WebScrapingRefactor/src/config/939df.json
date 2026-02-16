@@ -1,0 +1,16 @@
+{
+  "name": "Poke",
+  "baseUrl": "https://pokeapi.co",
+  "endpoint": "/api/v2/pokemon/ditto",
+  "method": "GET",
+  "id": "8b253ee3-9132-4f6c-a888-23fef1302f74",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "pagination": {
+    "type": "offset",
+    "paramName": "offset",
+    "limitParam": "limit",
+    "defaultLimit": 50
+  }
+}

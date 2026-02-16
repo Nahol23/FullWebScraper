@@ -10,6 +10,23 @@ import { ExecuteApiUseCase } from "../application/usecases/ExecuteApiUseCase";
 import { FetchLogsUseCase } from "../application/usecases/FetchLogsUseCase";
 import { DeleteExecutionUseCase } from "../application/usecases/DeleteExecutionUseCase";
 import { DownloadLogsUseCase } from "../application/usecases/DownloadLogsUseCase";
+import type { IAnalysisRepository } from "../domain/ports/IAnalysisRepository";
+import type { Analysis } from "../domain/entities/Analysis";
+import { AnalysisRepository } from "@/infrastructure/api/AnalysisRepository";
+
+export class AnalyzeApiUseCase {
+  constructor(private readonly analysisRepository: IAnalysisRepository) {}
+
+  async execute(options: {
+    url: string;
+    method: 'GET' | 'POST';
+    headers?: Record<string, string>;
+    body?: any;
+  }): Promise<Analysis> {
+    // No additional business logic required at this layer – just delegate.
+    return this.analysisRepository.analyze(options);
+  }
+}
 
 const baseURL = (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
 const httpClient = new HttpClient(baseURL);
@@ -34,3 +51,7 @@ export const deleteExecutionUseCase = new DeleteExecutionUseCase(apiExecutionRep
 export const downloadLogsUseCase = new DownloadLogsUseCase(apiExecutionRepository);
 
 export { httpClient, configRepository, apiExecutionRepository };
+
+export const analysisRepository = new AnalysisRepository(httpClient);
+
+export const analyzeApiUseCase = new AnalyzeApiUseCase(analysisRepository);
