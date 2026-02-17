@@ -1,0 +1,70 @@
+{
+  "id": "6a927135-00e3-48fb-b647-95cd7d6892f9",
+  "url": "https://api.hubapi.com/cms/v3/hubdb/tables/847927518/rows?portalId=140962492",
+  "method": "GET",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "status": "completed",
+  "discoveredSchema": {
+    "suggestedFields": [
+      "total",
+      "results",
+      "results.id",
+      "results.createdAt",
+      "results.updatedAt",
+      "results.deletedAt",
+      "results.publishedAt",
+      "results.initialPublishedAt",
+      "results.renderOrder",
+      "results.isEdited",
+      "results.language",
+      "results.translatedFromId",
+      "results.groupId",
+      "results.accessRuleType",
+      "results.accessRuleIds",
+      "results.analyticsPageId",
+      "results.createdByUserId",
+      "results.updatedByUserId",
+      "results.internalUpdatedAt",
+      "results.internalUpdatedByUserId",
+      "results.publishStatus",
+      "results.path",
+      "results.name",
+      "results.translations",
+      "results.values",
+      "results.values.country",
+      "results.values.website",
+      "results.values.brands",
+      "results.values.address_1",
+      "results.values.address_2",
+      "results.values.hall",
+      "results.values.booth",
+      "results.values.highlight",
+      "results.values.crm_id",
+      "results.values.phone",
+      "results.values.pavilion",
+      "results.values.name",
+      "results.values.logo",
+      "results.values.categories",
+      "results.values.fax",
+      "results.values.email",
+      "results.childTableId",
+      "results.isSoftEditable",
+      "paging",
+      "paging.next",
+      "paging.next.after",
+      "paging.next.link",
+      "type"
+    ],
+    "dataPath": "results",
+    "params": [
+      {
+        "key": "portalId",
+        "value": "140962492",
+        "type": "number"
+      }
+    ]
+  },
+  "createdAt": "2026-02-17T09:34:52.264Z"
+}

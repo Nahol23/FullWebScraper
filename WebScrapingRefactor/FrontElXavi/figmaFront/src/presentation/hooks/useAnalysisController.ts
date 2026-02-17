@@ -7,26 +7,40 @@ export function useAnalysisController() {
   const [error, setError] = useState<string | null>(null);
   const [lastAnalysis, setLastAnalysis] = useState<Analysis | null>(null);
 
-  const analyzeApi = useCallback(async (options: {
-    url: string;
-    method: 'GET' | 'POST';
-    headers?: Record<string, string>;
-    body?: any;
-  }): Promise<Analysis> => {
-    setIsAnalyzing(true);
-    setError(null);
-    try {
-      const result = await analyzeApiUseCase.execute(options);
-      setLastAnalysis(result);
-      return result;
-    } catch (err: any) {
-      const message = err.message || 'Analysis failed';
-      setError(message);
-      throw err;
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }, []);
+  const analyzeApi = useCallback(
+    async (options: {
+      url: string;
+      method: "GET" | "POST";
+      headers?: Record<string, string>;
+      body?: any;
+    }): Promise<Analysis> => {
+      setIsAnalyzing(true);
+      setError(null);
+      try {
+        console.log(
+          "[useAnalysisController] Starting analysis with options:",
+          options,
+        );
+        const result = await analyzeApiUseCase.execute(options);
+        console.log("[useAnalysisController] Analysis result:", result);
+        console.log(
+          "[useAnalysisController] discoveredSchema:",
+          result?.discoveredSchema,
+        );
+        setLastAnalysis(result);
+        return result;
+      } catch (err: any) {
+        const message =
+          err.message || err.response?.data?.message || "Analysis failed";
+        console.error("[useAnalysisController] Error:", message, err);
+        setError(message);
+        throw err;
+      } finally {
+        setIsAnalyzing(false);
+      }
+    },
+    [],
+  );
 
   return {
     isAnalyzing,

@@ -390,12 +390,27 @@ export async function configRoutes(fastify: FastifyInstance) {
         response: {
           200: {
             type: "object",
+            additionalProperties: true,
             properties: {
-              sampleData: { type: "object", additionalProperties: true },
-              suggestedFields: {
-                type: "array",
-                items: { type: "string" },
+              id: { type: "string" },
+              url: { type: "string" },
+              method: { type: "string" },
+              body: { type: "object", additionalProperties: true },
+              headers: { type: "object", additionalProperties: true },
+              status: { type: "string" },
+              discoveredSchema: {
+                type: "object",
+                properties: {
+                  suggestedFields: {
+                    type: "array",
+                    items: { type: "string" },
+                  },
+                  dataPath: { type: "string" },
+                  params: { type: "array", additionalProperties: true },
+                },
+                additionalProperties: true,
               },
+              createdAt: { type: "string" },
             },
           },
           400: errorResponseSchema,

@@ -19,180 +19,194 @@ export class ExecuteApiUseCase {
   async execute(
     idOrName: string,
     runtimeParams?: Record<string, unknown>,
-  ): Promise<ApiResponseDTO | any> { // Modifica 1: tipo di ritorno più flessibile
-    // 1. Cerca per ID, se fallisce cerca per Nome
-    let config = await this.configRepo.findById(idOrName);
-    if (!config) {
-      config = await this.configRepo.findByName(idOrName);
-    }
-
-    if (!config) {
-      throw new Error(`Configurazione '${idOrName}' non trovata`);
-    }
-
-    const effectiveDataPath =
-      runtimeParams?.dataPath !== undefined
-        ? (runtimeParams.dataPath as string | undefined)
-        : config.dataPath;
-    const effectiveSelectedFields =
-      runtimeParams?.selectedFields !== undefined
-        ? (runtimeParams.selectedFields as string[] | undefined)
-        : config.selectedFields;
-    const effectiveLimit =
-      runtimeParams?.limit !== undefined
-        ? runtimeParams.limit
-        : config.pagination?.defaultLimit;
-
-    // --- COSTRUZIONE URL ---
-    const url = this.buildUrl(config.baseUrl, config.endpoint);
-
-    if (config.queryParams) {
-      config.queryParams.forEach((param) =>
-        url.searchParams.set(param.key, param.value),
-      );
-    }
-
-    // --- COSTRUZIONE BODY ---
-    let finalBody: any = undefined;
-    if (config.method.toUpperCase() !== "GET" && config.body) {
-      try {
-        finalBody =
-          typeof config.body === "string"
-            ? JSON.parse(config.body)
-            : JSON.parse(JSON.stringify(config.body));
-      } catch (e) {
-        finalBody = {}; // Fallback sicuro
-      }
-    }
-
-    // --- COSTRUZIONE HEADERS ---
-    let finalHeaders: Record<string, string> = {
-      ...(config.headers || {}),
-    };
-
-    let apiParams: Record<string, unknown> = {};
-    if (runtimeParams) {
-      // Estrai i meta-params che NON vanno nell'URL/Body
-      const { headers, dataPath, selectedFields, limit, ...rest } =
-        runtimeParams;
-
-      // Merge degli headers
-      if (headers) {
-        Object.entries(headers as Record<string, unknown>).forEach(([k, v]) => {
-          finalHeaders[k] = v === undefined || v === null ? "" : String(v);
-        });
-      }
-
-      // Il resto va in URL o Body
-      apiParams = Object.fromEntries(
-        Object.entries(rest).filter(([_, v]) => v !== undefined && v !== ""),
-      );
-    }
-
-    // --- MERGE PARAMETRI ---
-    if (Object.keys(apiParams).length > 0) {
-      this.mergeRuntimeParams(config.method, url, finalBody, apiParams);
-    }
-    
-    let responseData: unknown;
-    let status: "success" | "error" = "success";
-    let errorMessage: string | undefined;
-
-    console.log("[UseCase] API Request:", {
-      url: url.toString(),
-      method: config.method,
-      headers: finalHeaders,
-      body: config.method.toUpperCase() === "GET" ? undefined : finalBody,
-      apiParams,
-    });
-
+  ): Promise<ApiResponseDTO | any> {
     try {
-      responseData = await this.apiPort.request({
-        url: url.toString(),
-        method: config.method,
-        body: config.method.toUpperCase() === "GET" ? undefined : finalBody,
-        headers: finalHeaders,
-      });
-    } catch (error) {
-      status = "error";
-      errorMessage = (error as Error).message;
-      throw error;
-    } finally {
-      const execution: Execution = {
-        id: randomUUID(),
-        configId: config.id,
-        timestamp: new Date(),
-        parametersUsed: runtimeParams || {},
-        resultCount: 0,
-        status: status,
-        errorMessage: errorMessage,
+      // 1. Cerca per ID, se fallisce cerca per Nome
+      let config = await this.configRepo.findById(idOrName);
+      if (!config) {
+        config = await this.configRepo.findByName(idOrName);
+      }
+
+      if (!config) {
+        throw new Error(`Configurazione '${idOrName}' non trovata`);
+      }
+
+      const effectiveDataPath =
+        runtimeParams?.dataPath !== undefined
+          ? (runtimeParams.dataPath as string | undefined)
+          : config.dataPath;
+      const effectiveSelectedFields =
+        runtimeParams?.selectedFields !== undefined
+          ? (runtimeParams.selectedFields as string[] | undefined)
+          : config.selectedFields;
+      const effectiveLimit =
+        runtimeParams?.limit !== undefined
+          ? runtimeParams.limit
+          : config.pagination?.defaultLimit;
+
+      // --- COSTRUZIONE URL ---
+      const url = this.buildUrl(config.baseUrl, config.endpoint);
+
+      if (config.queryParams) {
+        config.queryParams.forEach((param) =>
+          url.searchParams.set(param.key, param.value),
+        );
+      }
+
+      // --- COSTRUZIONE BODY ---
+      let finalBody: any = undefined;
+      if (config.method.toUpperCase() !== "GET" && config.body) {
+        try {
+          finalBody =
+            typeof config.body === "string"
+              ? JSON.parse(config.body)
+              : JSON.parse(JSON.stringify(config.body));
+        } catch (e) {
+          finalBody = {}; // Fallback sicuro
+        }
+      }
+
+      // --- COSTRUZIONE HEADERS ---
+      let finalHeaders: Record<string, string> = {
+        ...(config.headers || {}),
       };
 
-      if (status === "success" && responseData) {
-        // Modifica 2: estrazione safe per il conteggio
-        const rawArray = this.extractArray(responseData, effectiveDataPath);
-        execution.resultCount = rawArray.length;
+      let apiParams: Record<string, unknown> = {};
+      if (runtimeParams) {
+        const { headers, dataPath, selectedFields, limit, ...rest } =
+          runtimeParams;
+
+        if (headers) {
+          Object.entries(headers as Record<string, unknown>).forEach(
+            ([k, v]) => {
+              finalHeaders[k] = v === undefined || v === null ? "" : String(v);
+            },
+          );
+        }
+
+        apiParams = Object.fromEntries(
+          Object.entries(rest).filter(([_, v]) => v !== undefined && v !== ""),
+        );
       }
 
-      await this.executionRepo.save(execution);
-    }
+      if (Object.keys(apiParams).length > 0) {
+        this.mergeRuntimeParams(config.method, url, finalBody, apiParams);
+      }
 
-    // --- MODIFICA 3: VERIFICA SE APPLICARE TRASFORMAZIONI ---
-    const hasDataPathTransform = 
-      (runtimeParams?.dataPath !== undefined) ||                    // override esplicito
-      (config.dataPath && runtimeParams?.dataPath === undefined);   // usa dataPath di config
+      let responseData: unknown;
+      let status: "success" | "error" = "success";
+      let errorMessage: string | undefined;
 
-    const hasSelectedFieldsTransform = 
-      (runtimeParams?.selectedFields !== undefined) ||
-      (config.selectedFields?.length && runtimeParams?.selectedFields === undefined);
+      console.log("[UseCase] API Request:", {
+        url: url.toString(),
+        method: config.method,
+        headers: finalHeaders,
+        body: config.method.toUpperCase() === "GET" ? undefined : finalBody,
+        apiParams,
+      });
 
-    const hasFilter = !!(config.filter && config.filter.field);
-    const hasLimit = runtimeParams?.limit !== undefined;
+      try {
+        responseData = await this.apiPort.request({
+          url: url.toString(),
+          method: config.method,
+          body: config.method.toUpperCase() === "GET" ? undefined : finalBody,
+          headers: finalHeaders,
+        });
+      } catch (error) {
+        status = "error";
+        errorMessage = (error as Error).message;
+        throw error;
+      } finally {
+        const execution: Execution = {
+          id: randomUUID(),
+          configId: config.id,
+          timestamp: new Date(),
+          parametersUsed: runtimeParams || {},
+          resultCount: 0,
+          status: status,
+          errorMessage: errorMessage,
+        };
 
-    const hasTransformations = hasDataPathTransform || hasSelectedFieldsTransform || hasFilter || hasLimit;
+        if (status === "success" && responseData) {
+          const rawArray = this.extractArray(responseData, effectiveDataPath);
+          execution.resultCount = rawArray.length;
+        }
 
-    // Se non ci sono trasformazioni, restituisci i dati grezzi
-    if (!hasTransformations) {
-      return responseData;
-    }
+        await this.executionRepo.save(execution);
+      }
 
-    // Altrimenti prosegui con le trasformazioni standard
-    let targetArray = this.extractArray(responseData, effectiveDataPath);
+      const hasDataPathTransform =
+        runtimeParams?.dataPath !== undefined ||
+        (config.dataPath && runtimeParams?.dataPath === undefined);
 
-    // --- APPLICA LIMIT SAFETY ---
-    targetArray = this.applyLimitSafety(
-      targetArray,
-      runtimeParams?.limit,
-      config.pagination?.defaultLimit,
-    );
+      const hasSelectedFieldsTransform =
+        runtimeParams?.selectedFields !== undefined ||
+        (config.selectedFields?.length &&
+          runtimeParams?.selectedFields === undefined);
 
-    // --- FILTRI ---
-    if (config.filter?.field && config.filter?.value !== undefined) {
-      targetArray = this.applyFilter(
+      const hasFilter = !!(config.filter && config.filter.field);
+      const hasLimit = runtimeParams?.limit !== undefined;
+
+      const hasTransformations =
+        hasDataPathTransform ||
+        hasSelectedFieldsTransform ||
+        hasFilter ||
+        hasLimit;
+
+      if (!hasTransformations) {
+        return responseData;
+      }
+
+      let targetArray = this.extractArray(responseData, effectiveDataPath);
+      targetArray = this.applyLimitSafety(
         targetArray,
-        config.filter as { field: string; value: unknown },
+        runtimeParams?.limit,
+        config.pagination?.defaultLimit,
       );
+      if (targetArray.length > 0) {
+        console.log(
+          "[ExecuteApiUseCase] Chiavi del primo elemento raw:",
+          Object.keys(targetArray),
+        );
+        console.log(
+          "[ExecuteApiUseCase] Primo elemento raw:",
+          JSON.stringify(targetArray[0], null, 2),
+        );
+      }
+      if (config.filter?.field && config.filter?.value !== undefined) {
+        targetArray = this.applyFilter(
+          targetArray,
+          config.filter as { field: string; value: unknown },
+        );
+      }
+
+      if (effectiveSelectedFields && effectiveSelectedFields.length > 0) {
+        targetArray = this.selectFields(targetArray, effectiveSelectedFields);
+      }
+
+      const validObjects = targetArray.filter(
+        (item) =>
+          item !== null && typeof item === "object" && !Array.isArray(item),
+      );
+
+      return {
+        data: targetArray,
+        filteredBy: config.filter,
+        meta: {
+          paths: effectiveDataPath ? [effectiveDataPath] : [],
+          total: targetArray.length,
+          limit:
+            typeof effectiveLimit === "number" ? effectiveLimit : undefined,
+          validObjectsCount: validObjects.length,
+        },
+      };
+    } catch (error) {
+      console.error("[ExecuteApiUseCase] Unhandled error:", error);
+      if (error instanceof Error) {
+        console.error("Stack:", error.stack);
+      }
+      throw error; // Rilancia per il gestore globale di Fastify
     }
-
-    if (effectiveSelectedFields && effectiveSelectedFields.length > 0) {
-      targetArray = this.selectFields(targetArray, effectiveSelectedFields);
-    }
-
-    const validObjects = targetArray.filter(
-      (item) =>
-        item !== null && typeof item === "object" && !Array.isArray(item),
-    );
-
-    return {
-      data: targetArray,
-      filteredBy: config.filter,
-      meta: {
-        paths: effectiveDataPath ? [effectiveDataPath] : [],
-        total: targetArray.length,
-        limit: typeof effectiveLimit === "number" ? effectiveLimit : undefined,
-        validObjectsCount: validObjects.length,
-      },
-    };
   }
 
   // Tutti i metodi privati rimangono identici

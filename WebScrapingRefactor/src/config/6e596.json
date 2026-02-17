@@ -1,9 +1,0 @@
-{
-  "name": "hupApi",
-  "baseUrl": "https://api.hubapi.com",
-  "endpoint": "/cms/v3/hubdb/tables/847927518/rows?portalId=140962492",
-  "method": "GET",
-  "dataPath": " ",
-  "selectedFields": [],
-  "id": "35b3513b-c5ed-4546-9931-59ef47d09996"
-}

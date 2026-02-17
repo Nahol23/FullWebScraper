@@ -1,0 +1,83 @@
+{
+  "id": "fdff1183-415e-4dbe-bac2-68eb05671530",
+  "url": "https://api.hubapi.com/cms/v3/hubdb/tables/847927518/rows?portalId=140962492&sort=name&limit=10&categories__contains=06&offset=20",
+  "method": "GET",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "status": "completed",
+  "discoveredSchema": {
+    "suggestedFields": [
+      "id",
+      "createdAt",
+      "updatedAt",
+      "deletedAt",
+      "publishedAt",
+      "initialPublishedAt",
+      "renderOrder",
+      "isEdited",
+      "language",
+      "translatedFromId",
+      "groupId",
+      "accessRuleType",
+      "accessRuleIds",
+      "analyticsPageId",
+      "createdByUserId",
+      "updatedByUserId",
+      "internalUpdatedAt",
+      "internalUpdatedByUserId",
+      "publishStatus",
+      "path",
+      "name",
+      "translations",
+      "values",
+      "values.country",
+      "values.website",
+      "values.brands",
+      "values.address_1",
+      "values.address_2",
+      "values.hall",
+      "values.booth",
+      "values.highlight",
+      "values.crm_id",
+      "values.phone",
+      "values.pavilion",
+      "values.name",
+      "values.logo",
+      "values.categories",
+      "values.fax",
+      "values.email",
+      "childTableId",
+      "isSoftEditable"
+    ],
+    "dataPath": "results",
+    "params": [
+      {
+        "key": "portalId",
+        "value": "140962492",
+        "type": "number"
+      },
+      {
+        "key": "sort",
+        "value": "name",
+        "type": "string"
+      },
+      {
+        "key": "limit",
+        "value": "10",
+        "type": "number"
+      },
+      {
+        "key": "categories__contains",
+        "value": "06",
+        "type": "number"
+      },
+      {
+        "key": "offset",
+        "value": "20",
+        "type": "number"
+      }
+    ]
+  },
+  "createdAt": "2026-02-17T10:57:33.199Z"
+}

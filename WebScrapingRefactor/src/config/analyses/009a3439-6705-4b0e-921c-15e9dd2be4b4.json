@@ -1,0 +1,38 @@
+{
+  "id": "009a3439-6705-4b0e-921c-15e9dd2be4b4",
+  "url": "https://dragonball-api.com/api/characters/",
+  "method": "GET",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "status": "completed",
+  "discoveredSchema": {
+    "suggestedFields": [
+      "items",
+      "items.id",
+      "items.name",
+      "items.ki",
+      "items.maxKi",
+      "items.race",
+      "items.gender",
+      "items.description",
+      "items.image",
+      "items.affiliation",
+      "items.deletedAt",
+      "meta",
+      "meta.totalItems",
+      "meta.itemCount",
+      "meta.itemsPerPage",
+      "meta.totalPages",
+      "meta.currentPage",
+      "links",
+      "links.first",
+      "links.previous",
+      "links.next",
+      "links.last"
+    ],
+    "dataPath": "items",
+    "params": []
+  },
+  "createdAt": "2026-02-17T09:15:56.447Z"
+}

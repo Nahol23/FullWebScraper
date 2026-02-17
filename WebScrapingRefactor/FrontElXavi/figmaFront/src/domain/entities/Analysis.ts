@@ -1,4 +1,8 @@
 export interface Analysis {
+  data: boolean;
+  fields: boolean;
+  suggestedFields: unknown;
+  dataPath: any;
   id: string;
   url: string;
   method: 'GET' | 'POST';

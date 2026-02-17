@@ -9,87 +9,83 @@ export class ApiExecutionRepository implements IApiExecutionRepository {
   constructor(private readonly httpClient: HttpClient) {}
 
   async execute(id: string, params?: RuntimeParams): Promise<ExecutionResult> {
-    try {
-      const response = await this.httpClient.post<any>(
-        `/executions/${id}/execute`,
-        {
-          configId: id,
-          runtimeParams: params || {},
-          timestamp: new Date().toISOString(),
-        }
-      );
+  try {
+    // MODIFICA: invia params direttamente come corpo della richiesta
+    const response = await this.httpClient.post<any>(
+      `/executions/${id}/execute`,
+      params || {} // <-- ora il body è direttamente l'oggetto RuntimeParams
+    );
 
-      const { data } = response;
-      const contentType = response.headers['content-type'];
+    const { data } = response;
+    const contentType = response.headers['content-type'];
 
+    if (!data) {
+      throw new ApiExecutionError("Nessun dato ricevuto dal server");
+    }
 
-      if (!data) {
-        throw new ApiExecutionError("Nessun dato ricevuto dal server");
-      }
+    // CASO 1: Risposta processata (ha già la struttura ExecutionResult)
+    if (
+      data &&
+      typeof data === "object" &&
+      "status" in data &&
+      "data" in data &&
+      "duration" in data
+    ) {
+      return data as ExecutionResult;
+    }
 
-      // CASO 1: Risposta processata (ha già la struttura ExecutionResult)
-      if (
-        data &&
-        typeof data === "object" &&
-        "status" in data &&
-        "data" in data &&
-        "duration" in data
-      ) {
-        return data as ExecutionResult;
-      }
-
-      // CASO 2: Risposta con struttura ApiResponseDTO (data + meta)
-      if (
-        data &&
-        typeof data === "object" &&
-        "data" in data &&
-        Array.isArray(data.data) &&
-        "meta" in data
-      ) {
-        return {
-          status: response.status,
-          statusText: response.statusText,
-          duration: 0,
-          data: data.data,
-          contentType,
-        } as ExecutionResult;
-      }
-
-      // CASO 3: Risposta grezza (array)
-      if (Array.isArray(data)) {
-        return {
-          status: response.status,
-          statusText: response.statusText,
-          duration: 0,
-          data: data,
-        } as ExecutionResult;
-      }
-
-      // CASO 4: Risposta grezza (oggetto qualsiasi)
-      if (typeof data === "object" && data !== null) {
-        return {
-          status: response.status,
-          statusText: response.statusText,
-          duration: 0,
-          data: data,
-        } as ExecutionResult;
-      }
-
-      // CASO 5: Fallback - avvolgi tutto in un array
+    // CASO 2: Risposta con struttura ApiResponseDTO (data + meta)
+    if (
+      data &&
+      typeof data === "object" &&
+      "data" in data &&
+      Array.isArray(data.data) &&
+      "meta" in data
+    ) {
       return {
         status: response.status,
         statusText: response.statusText,
         duration: 0,
-        data: [data],
+        data: data.data,
+        contentType,
       } as ExecutionResult;
-    } catch (error: any) {
-      throw new ApiExecutionError(
-        error.response?.data?.message || "Errore nell'esecuzione dell'API",
-        error.response?.status,
-        error.response?.data
-      );
     }
+
+    // CASO 3: Risposta grezza (array)
+    if (Array.isArray(data)) {
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        duration: 0,
+        data: data,
+      } as ExecutionResult;
+    }
+
+    // CASO 4: Risposta grezza (oggetto qualsiasi)
+    if (typeof data === "object" && data !== null) {
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        duration: 0,
+        data: data,
+      } as ExecutionResult;
+    }
+
+    // CASO 5: Fallback - avvolgi tutto in un array
+    return {
+      status: response.status,
+      statusText: response.statusText,
+      duration: 0,
+      data: [data],
+    } as ExecutionResult;
+  } catch (error: any) {
+    throw new ApiExecutionError(
+      error.response?.data?.message || "Errore nell'esecuzione dell'API",
+      error.response?.status,
+      error.response?.data
+    );
   }
+}
 
   async getLogsByConfig(configId: string, limit: number = 50): Promise<ExecutionHistory[]> {
     try {
