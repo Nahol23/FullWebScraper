@@ -9,7 +9,7 @@ import type { ApiConfig, ApiParam, PaginationConfig } from "../../../domain/enti
 interface ConfigurationTabProps {
   config: ApiConfig;
   onUpdate: (config: ApiConfig) => Promise<void>;
-  onDelete: (id: string) => void;
+  onDelete: (config: ApiConfig) => void; 
 }
 
 export function ConfigurationTab({
@@ -49,26 +49,26 @@ export function ConfigurationTab({
     );
   }, [config]);
 
- const handleSave = async () => {
-  const validQueryParams = queryParams
-    .filter(p => p.key && p.key.trim() !== "")
-    .map(p => ({ 
-      key: p.key.trim(), 
-      value: p.value?.trim() || "" 
-    }));
+  const handleSave = async () => {
+    const validQueryParams = queryParams
+      .filter(p => p.key && p.key.trim() !== "")
+      .map(p => ({ 
+        key: p.key.trim(), 
+        value: p.value?.trim() || "" 
+      }));
 
-  const updatedConfig: ApiConfig = {
-    ...config,
-    baseUrl,
-    endpoint,
-    headers: Object.keys(headers).length > 0 ? headers : undefined,
-    ...(validQueryParams.length > 0 && { queryParams: validQueryParams }),
-    dataPath: dataPath || undefined,
-    selectedFields: selectedFields.length > 0 ? selectedFields : undefined,
-    pagination,
+    const updatedConfig: ApiConfig = {
+      ...config,
+      baseUrl,
+      endpoint,
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
+      ...(validQueryParams.length > 0 && { queryParams: validQueryParams }),
+      dataPath: dataPath || undefined,
+      selectedFields: selectedFields.length > 0 ? selectedFields : undefined,
+      pagination,
+    };
+    await onUpdate(updatedConfig);
   };
-  await onUpdate(updatedConfig);
-};
 
   const handleAddQueryParam = () => {
     setQueryParams([...queryParams, { key: '', value: '' }]);
@@ -435,11 +435,7 @@ export function ConfigurationTab({
           Save Changes
         </Button>
         <Button
-          onClick={() => {
-            if (confirm("Are you sure you want to delete this configuration?")) {
-              onDelete(config.id);
-            }
-          }}
+          onClick={() => onDelete(config)} // Passa l'intero config
           variant="outline"
           className="bg-red-500/10 border-red-500/50 hover:bg-red-500/20 hover:border-red-500 text-red-400 gap-2"
         >

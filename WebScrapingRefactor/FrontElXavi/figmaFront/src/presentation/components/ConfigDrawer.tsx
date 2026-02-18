@@ -22,8 +22,7 @@ interface ConfigDrawerProps {
   config: ApiConfig | null;
   onClose: () => void;
   onUpdate: (config: ApiConfig) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
-
+  onDelete: (config: ApiConfig) => void; // Modifica: ora riceve l'intero config
   // Props per Execution (dal controller Execution)
   onExecute: (configId: string, params?: any) => Promise<void>;
   isExecuting: boolean;
@@ -55,10 +54,8 @@ export function ConfigDrawer({
   const [activeTab, setActiveTab] = useState<TabType>("execute");
   const [editedConfig, setEditedConfig] = useState<ApiConfig | null>(null);
 
-  // Sincronizza lo stato locale quando cambia la config selezionata
   useEffect(() => {
     if (config) {
-      // Deep copy per evitare mutazioni accidentali dello stato globale
       setEditedConfig(JSON.parse(JSON.stringify(config)));
       setActiveTab("execute");
     }
@@ -143,7 +140,7 @@ export function ConfigDrawer({
               <ConfigurationTab
                 config={editedConfig}
                 onUpdate={handleConfigUpdate}
-                onDelete={() => onDelete(editedConfig.id)}
+                onDelete={onDelete} 
               />
             </TabsContent>
 
@@ -151,9 +148,9 @@ export function ConfigDrawer({
               <ExecuteTab
                 config={editedConfig}
                 onUpdate={handleConfigUpdate}
-                onExecute={onExecute} // forward params through to parent
+                onExecute={onExecute}
                 isExecuting={isExecuting}
-                lastLogs={logs.slice(0, 3)} // Mostra solo gli ultimi 3 nell'anteprima esecuzione
+                lastLogs={logs.slice(0, 3)}
                 lastExecutionResult={lastResult}
               />
             </TabsContent>

@@ -1,9 +1,0 @@
-{
-  "name": "SwitchGames",
-  "baseUrl": "https://api.sampleapis.com",
-  "endpoint": "/switch/games",
-  "method": "GET",
-  "dataPath": "",
-  "selectedFields": [],
-  "id": "92971054-d23b-4e8b-8cdc-76972183f86e"
-}

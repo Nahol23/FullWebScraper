@@ -1,9 +1,18 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { toast, Toaster } from "sonner"; // Se usi sonner per i toast
+import { toast, Toaster } from "sonner";
 import { TopBar } from "../components/TopBar";
 import { ConfigCard } from "../components/ConfigCard";
 import { AddConfigModal } from "../components/AddConfigModal";
 import { ConfigDrawer } from "../components/ConfigDrawer";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "../components/ui/dialog";
+import { Button } from "../components/ui/button";
 
 // Controller Hooks
 import { useConfigController } from "../hooks/useConfigController";
@@ -46,6 +55,8 @@ export default function App() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(6);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+  // Stato per il dialog di conferma eliminazione
+  const [configToDelete, setConfigToDelete] = useState<ApiConfig | null>(null);
 
   // --- EFFETTI ---
   // Caricamento iniziale dal backend
@@ -137,26 +148,34 @@ export default function App() {
     [updateConfig],
   );
 
-  const handleDeleteConfig = useCallback(
-    async (id: string) => {
-      if (
-        window.confirm(
-          "Sei sicuro di voler eliminare questa configurazione? Tutti i log associati verranno persi.",
-        )
-      ) {
-        try {
-          await deleteConfig(id);
-          setIsDrawerOpen(false);
-          setSelectedConfig(null);
-          toast.success("Configurazione eliminata con successo!");
-        } catch (error) {
-          console.error("Errore eliminazione:", error);
-          toast.error("Errore durante l'eliminazione");
-        }
+  // Handler per aprire il dialog di conferma eliminazione (dalla card o dal drawer)
+  const handleDeleteClick = useCallback((config: ApiConfig) => {
+    setConfigToDelete(config);
+  }, []);
+
+  // Conferma eliminazione
+  const handleConfirmDelete = useCallback(async () => {
+    if (!configToDelete) return;
+    try {
+      await deleteConfig(configToDelete.id);
+      // Se la configurazione eliminata è quella attualmente aperta nel drawer, chiudi il drawer
+      if (selectedConfig?.id === configToDelete.id) {
+        setIsDrawerOpen(false);
+        setSelectedConfig(null);
       }
-    },
-    [deleteConfig],
-  );
+      toast.success("Configurazione eliminata con successo!");
+    } catch (error) {
+      console.error("Errore eliminazione:", error);
+      toast.error("Errore durante l'eliminazione");
+    } finally {
+      setConfigToDelete(null);
+    }
+  }, [configToDelete, deleteConfig, selectedConfig]);
+
+  // Annulla eliminazione
+  const handleCancelDelete = useCallback(() => {
+    setConfigToDelete(null);
+  }, []);
 
   const handleExecuteWithFeedback = useCallback(
     async (configId: string, params?: any) => {
@@ -461,6 +480,7 @@ export default function App() {
                     key={config.id}
                     config={config}
                     onClick={() => handleConfigClick(config)}
+                    onDelete={handleDeleteClick} 
                   />
                 ))}
               </div>
@@ -546,7 +566,7 @@ export default function App() {
         config={selectedConfig}
         onClose={() => setIsDrawerOpen(false)}
         onUpdate={handleUpdateConfig}
-        onDelete={handleDeleteConfig}
+        onDelete={handleDeleteClick} 
         // Esecuzione API
         onExecute={handleExecuteWithFeedback}
         isExecuting={isExecuting}
@@ -574,6 +594,35 @@ export default function App() {
         }}
         lastResult={lastResult}
       />
+
+      {/* Dialog di conferma eliminazione */}
+      <Dialog open={!!configToDelete} onOpenChange={(open) => !open && setConfigToDelete(null)}>
+        <DialogContent className="bg-zinc-950 border-zinc-800 text-white">
+          <DialogHeader>
+            <DialogTitle>Elimina configurazione</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              Sei sicuro di voler eliminare la configurazione{" "}
+              <span className="font-semibold text-white">"{configToDelete?.name}"</span>?
+              Questa azione è irreversibile e tutti i log associati verranno persi.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={handleCancelDelete}
+              className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-white"
+            >
+              Annulla
+            </Button>
+            <Button
+              onClick={handleConfirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Elimina
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
