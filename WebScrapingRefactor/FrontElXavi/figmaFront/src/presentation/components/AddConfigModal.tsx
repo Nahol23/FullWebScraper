@@ -213,7 +213,6 @@ export function AddConfigModal({
     }
   };
 
-
   const handleSelectAll = () => {
     const newSelectAll = !selectAll;
     setSelectAll(newSelectAll);
@@ -235,6 +234,10 @@ export function AddConfigModal({
       method: method,
       ...(analysisResult && { fullAnalysis: analysisResult }),
     };
+    selectedFields.forEach((field) => {
+      const escapedField = field.replace(/\|/g, "\\|");
+      content += `| \`${escapedField}\` |\n`;
+    });
 
     if (format === "json") {
       content = JSON.stringify(dataToExport, null, 2);
