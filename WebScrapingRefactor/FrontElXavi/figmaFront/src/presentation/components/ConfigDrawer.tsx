@@ -17,6 +17,7 @@ import { ConfigurationTab } from "./drawer/ConfigurationTab";
 import { ExecuteTab } from "./drawer/ExecuteTab";
 import { HistoryTab } from "./drawer/HistoryTab";
 
+
 interface ConfigDrawerProps {
   isOpen: boolean;
   config: ApiConfig | null;
@@ -72,7 +73,7 @@ export function ConfigDrawer({
     <Sheet open={isOpen} onOpenChange={onClose}>
       <SheetContent
         side="right"
-        className="w-full sm:max-w-2xl bg-zinc-950 border-zinc-800 p-0 flex flex-col gap-0"
+        className="w-full sm:max-w-2xl bg-zinc-950 border-zinc-800 p-0 flex flex-col gap-0 h-full max-h-screen"
       >
         {/* Header */}
         <SheetHeader className="px-6 py-4 border-b border-zinc-800 space-y-3 shrink-0">
@@ -104,7 +105,7 @@ export function ConfigDrawer({
         <Tabs
           value={activeTab}
           onValueChange={(v: string) => setActiveTab(v as TabType)}
-          className="flex-1 flex flex-col min-h-0"
+          className="flex-1 flex flex-col min-h-0 h-full overflow-hidden"
         >
           <div className="border-b border-zinc-800 px-6 shrink-0 bg-zinc-950/50 backdrop-blur-sm z-10">
             <TabsList className="bg-transparent border-0 p-0 h-auto w-full justify-start gap-2">
@@ -134,37 +135,60 @@ export function ConfigDrawer({
             </TabsList>
           </div>
 
-          {/* Tab Content Area - Scrollable */}
-          <div className="flex-1 overflow-y-auto custom-scrollbar">
-            <TabsContent value="configuration" className="p-6 mt-0">
-              <ConfigurationTab
-                config={editedConfig}
-                onUpdate={handleConfigUpdate}
-                onDelete={onDelete} 
-              />
-            </TabsContent>
+         {/* Tab Content Area */}
+<div className="flex-1 relative min-h-0">
 
-            <TabsContent value="execute" className="p-6 mt-0">
-              <ExecuteTab
-                config={editedConfig}
-                onUpdate={handleConfigUpdate}
-                onExecute={onExecute}
-                isExecuting={isExecuting}
-                lastLogs={logs.slice(0, 3)}
-                lastExecutionResult={lastResult}
-              />
-            </TabsContent>
+  <TabsContent 
+    value="configuration" 
+    className="m-0 absolute inset-0 data-[state=inactive]:hidden"
+  >
+    <div className="absolute inset-0 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-transparent">
+      <div className="p-6 w-full min-w-0">
+        <ConfigurationTab
+          config={editedConfig}
+          onUpdate={handleConfigUpdate}
+          onDelete={onDelete} 
+        />
+      </div>
+    </div>
+  </TabsContent>
 
-            <TabsContent value="history" className="p-6 mt-0">
-              <HistoryTab
-                logs={logs}
-                isLoading={isLoadingLogs}
-                onRefresh={onRefreshLogs}
-                onDeleteLog={onDeleteLog}
-                onDownload={onDownload}
-              />
-            </TabsContent>
-          </div>
+  <TabsContent 
+    value="execute" 
+    className="m-0 absolute inset-0 data-[state=inactive]:hidden"
+  >
+    <div className="absolute inset-0 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-transparent">
+      <div className="p-6 w-full min-w-0">
+        <ExecuteTab
+          config={editedConfig}
+          onUpdate={handleConfigUpdate}
+          onExecute={onExecute}
+          isExecuting={isExecuting}
+          lastLogs={logs.slice(0, 3)}
+          lastExecutionResult={lastResult}
+        />
+      </div>
+    </div>
+  </TabsContent>
+
+  <TabsContent 
+    value="history" 
+    className="m-0 absolute inset-0 data-[state=inactive]:hidden"
+  >
+    <div className="absolute inset-0 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-transparent">
+      <div className="p-6 w-full min-w-0">
+        <HistoryTab
+          logs={logs}
+          isLoading={isLoadingLogs}
+          onRefresh={onRefreshLogs}
+          onDeleteLog={onDeleteLog}
+          onDownload={onDownload}
+        />
+      </div>
+    </div>
+  </TabsContent>
+
+</div>
         </Tabs>
       </SheetContent>
     </Sheet>
