@@ -1,20 +1,39 @@
-import { useState } from "react";
-import { Sparkles, Loader2, FileCode, ChevronDown, ChevronRight, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Sparkles,
+  Loader2,
+  FileCode,
+  ChevronDown,
+  ChevronRight,
+  X,
+  Plus,
+  Download,
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
-import type { ApiConfig } from "../../domain/entities/ApiConfig";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "./ui/collapsible";
+import { Checkbox } from "./ui/checkbox";
+import type { ApiConfig, ApiParam } from "../../domain/entities/ApiConfig";
 import { useConfigController } from "../hooks/useConfigController";
+import { useAnalysisController } from "../hooks/useAnalysisController";
 import { ValidationError } from "../../domain/errors/AppError";
+import { Analysis } from "@/domain/entities/Analysis";
+import { AnalysisDetailsModal } from "./AnalysisDetailsModal";
+import { cn } from "./ui/utils";
 
 interface AddConfigModalProps {
   isOpen: boolean;
@@ -22,80 +41,281 @@ interface AddConfigModalProps {
   onAdd: (config: ApiConfig) => void;
 }
 
-export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) {
+interface KeyValueRow {
+  id: string;
+  key: string;
+  value: string;
+}
+
+export function AddConfigModal({
+  isOpen,
+  onClose,
+  onAdd,
+}: AddConfigModalProps) {
   const { saveConfig } = useConfigController();
+  const {
+    analyzeApi,
+    isAnalyzing: isBackendAnalyzing,
+    error: analysisError,
+    clearError: clearAnalysisError,
+  } = useAnalysisController();
+
   const [name, setName] = useState("");
   const [baseUrl, setBaseUrl] = useState("https://");
   const [endpoint, setEndpoint] = useState("/");
   const [method, setMethod] = useState<"GET" | "POST">("GET");
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [headerRows, setHeaderRows] = useState<KeyValueRow[]>([
+    { id: "1", key: "Content-Type", value: "application/json" },
+  ]);
 
-  // Headers
-  const [headers, setHeaders] = useState<Record<string, string>>({
-    "Content-Type": "application/json",
-  });
+  const [queryRows, setQueryRows] = useState<KeyValueRow[]>([]);
 
-  // Body (for POST)
   const [bodyJson, setBodyJson] = useState("{\n  \n}");
 
-  // Advanced settings
   const [showAdvanced, setShowAdvanced] = useState(false);
-
-  // Smart Analyze states
+  const [dataPath, setDataPath] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analyzedFields, setAnalyzedFields] = useState<string[]>([]);
+
+  // Stato per i campi analizzati e selezionati
+  const [availableFields, setAvailableFields] = useState<string[]>([]);
+  const [selectedFields, setSelectedFields] = useState<string[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
+
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [lastAnalysis, setLastAnalysis] = useState<Analysis | null>(null);
+
+  const defaultPagination = {
+    type: "offset" as const,
+    paramName: "offset",
+    limitParam: "limit",
+    defaultLimit: 50,
+  };
+
+  // Sync hook error with local error
+  useEffect(() => {
+    if (analysisError) {
+      setError(analysisError);
+      clearAnalysisError();
+    }
+  }, [analysisError, clearAnalysisError]);
+
+  const addRow = (
+    setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>,
+  ) => {
+    setter((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), key: "", value: "" },
+    ]);
+  };
+
+  const removeRow = (
+    id: string,
+    setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>,
+  ) => {
+    setter((prev) => prev.filter((row) => row.id !== id));
+  };
+
+  const updateRow = (
+    id: string,
+    field: "key" | "value",
+    newValue: string,
+    setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>,
+  ) => {
+    setter((prev) =>
+      prev.map((row) => (row.id === id ? { ...row, [field]: newValue } : row)),
+    );
+  };
 
   const handleAnalyze = async () => {
-    setIsAnalyzing(true);
     setError(null);
+    setIsAnalyzing(true);
+    setAvailableFields([]);
+    setSelectedFields([]);
+    setSelectAll(false);
+    setAnalysisResult(null);
 
-    // Simulate API analysis
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // Build full URL
+      const cleanBaseUrl = baseUrl.replace(/\/$/, "");
+      const cleanEndpoint = endpoint.startsWith("/")
+        ? endpoint
+        : "/" + endpoint;
+      const fullUrl = cleanBaseUrl + cleanEndpoint;
 
-    // Mock discovered fields based on endpoint
-    const mockFields = ["id", "name", "email", "created_at", "updated_at"];
+      // Build headers object (skip empty keys)
+      const headers: Record<string, string> = {};
+      headerRows.forEach((row) => {
+        if (row.key.trim()) headers[row.key.trim()] = row.value;
+      });
 
-    setAnalyzedFields(mockFields);
-    setIsAnalyzing(false);
+      // Parse body for POST
+      let body: any = undefined;
+      if (method === "POST" && bodyJson.trim()) {
+        try {
+          body = JSON.parse(bodyJson);
+        } catch {
+          setError("Invalid JSON in body parameters");
+          setIsAnalyzing(false);
+          return;
+        }
+      }
+
+      const analysis = await analyzeApi({
+        url: fullUrl,
+        method,
+        headers: Object.keys(headers).length > 0 ? headers : undefined,
+        body,
+      });
+
+      console.log("[AddConfigModal] Analysis result:", analysis);
+
+      // Salva l'analisi completa
+      setLastAnalysis(analysis);
+      setAnalysisResult(analysis);
+
+      // Estrai i campi in base alla struttura della risposta
+      let fields: string[] = [];
+
+      if (analysis.suggestedFields && Array.isArray(analysis.suggestedFields)) {
+        fields = analysis.suggestedFields;
+      } else if (analysis.discoveredSchema?.suggestedFields) {
+        fields = analysis.discoveredSchema.suggestedFields;
+      } else if (analysis.fields && Array.isArray(analysis.fields)) {
+        fields = analysis.fields;
+      } else if (analysis.data && typeof analysis.data === "object") {
+        // Prova a estrarre i campi dall'oggetto data
+        fields = Object.keys(analysis.data);
+      }
+
+      setAvailableFields(fields);
+      // Auto-select all fields by setting selectAll true and updating selectedFields
+      if (fields.length > 0) {
+        setSelectAll(true);
+        setSelectedFields(fields);
+      } else {
+        setSelectAll(false);
+        setSelectedFields([]);
+      }
+
+      // Estrai dataPath
+      if (analysis.discoveredSchema?.dataPath) {
+        setDataPath(analysis.discoveredSchema.dataPath);
+      } else if (analysis.dataPath) {
+        setDataPath(analysis.dataPath);
+      }
+    } catch (err) {
+      console.error("[AddConfigModal] Analysis error:", err);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+
+  const handleSelectAll = () => {
+    const newSelectAll = !selectAll;
+    setSelectAll(newSelectAll);
+    setSelectedFields(newSelectAll ? [...availableFields] : []);
+  };
+
+  const handleDownloadFields = (format: "json" | "markdown" | "html") => {
+    if (!analysisResult) return;
+
+    let content = "";
+    let mime = "";
+    let ext = "";
+
+    const dataToExport = {
+      fields: selectedFields,
+      dataPath: dataPath,
+      timestamp: new Date().toISOString(),
+      url: `${baseUrl}${endpoint}`,
+      method: method,
+      ...(analysisResult && { fullAnalysis: analysisResult }),
+    };
+
+    if (format === "json") {
+      content = JSON.stringify(dataToExport, null, 2);
+      mime = "application/json";
+      ext = "json";
+    } else if (format === "markdown") {
+      content = `# API Analysis Report\n\n`;
+      content += `- **URL**: ${baseUrl}${endpoint}\n`;
+      content += `- **Method**: ${method}\n`;
+      content += `- **Data Path**: ${dataPath || "(root)"}\n`;
+      content += `- **Analyzed at**: ${new Date().toLocaleString()}\n\n`;
+      content += `## Selected Fields (${selectedFields.length})\n\n`;
+
+      if (selectedFields.length > 0) {
+        content += `| Field |\n`;
+        content += `|-------|\n`;
+        selectedFields.forEach((field) => {
+          content += `| \`${field}\` |\n`;
+        });
+      } else {
+        content += `No fields selected.\n`;
+      }
+
+      mime = "text/markdown";
+      ext = "md";
+    } else if (format === "html") {
+      content = `<!DOCTYPE html>
+<html>
+<head>
+  <title>API Analysis Report</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; background: #111; color: #fff; padding: 2rem; }
+    h1 { color: #818cf8; }
+    .field { background: #1f2937; padding: 0.5rem; border-radius: 0.375rem; margin: 0.25rem 0; }
+    .field code { color: #94a3b8; }
+    .stats { color: #9ca3af; }
+  </style>
+</head>
+<body>
+  <h1>API Analysis Report</h1>
+  <div class="stats">
+    <p><strong>URL:</strong> ${baseUrl}${endpoint}</p>
+    <p><strong>Method:</strong> ${method}</p>
+    <p><strong>Data Path:</strong> ${dataPath || "(root)"}</p>
+    <p><strong>Analyzed at:</strong> ${new Date().toLocaleString()}</p>
+  </div>
+  <h2>Selected Fields (${selectedFields.length})</h2>
+  <div>
+    ${selectedFields.map((field) => `<div class="field"><code>${field}</code></div>`).join("")}
+  </div>
+</body>
+</html>`;
+      mime = "text/html";
+      ext = "html";
+    }
+
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `api-analysis.${ext}`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handlePasteFromCurl = () => {
-    // Mock cURL paste functionality
     setBaseUrl("https://api.example.com");
     setEndpoint("/v1/users");
     setMethod("GET");
-    setHeaders({
-      Authorization: "Bearer token123",
-      "Content-Type": "application/json",
-    });
-  };
-
-  const handleAddHeader = () => {
-    const newKey = `Header-${Object.keys(headers).length + 1}`;
-    setHeaders({ ...headers, [newKey]: "" });
-  };
-
-  const handleRemoveHeader = (key: string) => {
-    const newHeaders = { ...headers };
-    delete newHeaders[key];
-    setHeaders(newHeaders);
-  };
-
-  const handleHeaderKeyChange = (oldKey: string, newKey: string) => {
-    const newHeaders: Record<string, string> = {};
-    Object.entries(headers).forEach(([k, v]) => {
-      if (k === oldKey) {
-        newHeaders[newKey] = v;
-      } else {
-        newHeaders[k] = v;
-      }
-    });
-    setHeaders(newHeaders);
-  };
-
-  const handleHeaderValueChange = (key: string, value: string) => {
-    setHeaders({ ...headers, [key]: value });
+    setHeaderRows([
+      {
+        id: crypto.randomUUID(),
+        key: "Authorization",
+        value: "Bearer token123",
+      },
+      {
+        id: crypto.randomUUID(),
+        key: "Content-Type",
+        value: "application/json",
+      },
+    ]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -110,10 +330,22 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
     setIsSaving(true);
 
     try {
-      let bodyParams: Record<string, any> = {};
-      if (method === "POST") {
+      const headersObject: Record<string, string> = {};
+      headerRows.forEach((row) => {
+        if (row.key.trim()) headersObject[row.key] = row.value;
+      });
+
+      const validQueryParams: ApiParam[] = queryRows
+        .filter((row) => row.key && row.key.trim() !== "")
+        .map((row) => ({
+          key: row.key.trim(),
+          value: row.value?.trim() || "",
+        }));
+
+      let bodyPayload: any = undefined;
+      if (method === "POST" && bodyJson.trim()) {
         try {
-          bodyParams = JSON.parse(bodyJson);
+          bodyPayload = JSON.parse(bodyJson);
         } catch {
           setError("Invalid JSON in body parameters");
           setIsSaving(false);
@@ -121,41 +353,38 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
         }
       }
 
-      const newConfig = await saveConfig({
+      const configPayload: Omit<ApiConfig, "id"> = {
         name: name.trim(),
         baseUrl: baseUrl.trim(),
         endpoint: endpoint.trim(),
         method,
-        headers,
-        bodyParams,
-        paginationSettings: {
-          offsetParam: "offset",
-          limitParam: "limit",
-          initialOffset: 0,
-          limitPerPage: 50,
-        },
-        selectedFields: analyzedFields,
+        ...(Object.keys(headersObject).length > 0 && {
+          headers: headersObject,
+        }),
+        ...(validQueryParams.length > 0 && { queryParams: validQueryParams }),
+        ...(method === "POST" && bodyPayload && { body: bodyPayload }),
+        ...(dataPath.trim() && { dataPath: dataPath.trim() }),
+        pagination: defaultPagination,
+        ...(selectedFields.length > 0 && { selectedFields }),
         executionHistory: [],
-      });
+      };
+
+      console.log("[Modal] Configurazione da salvare:", configPayload);
+
+      const newConfig = await saveConfig(configPayload);
+
+      console.log("[Modal] Configurazione salvata:", newConfig);
 
       onAdd(newConfig);
-      
-      // Reset form
-      setName("");
-      setBaseUrl("https://");
-      setEndpoint("/");
-      setMethod("GET");
-      setHeaders({ "Content-Type": "application/json" });
-      setBodyJson("{\n  \n}");
-      setAnalyzedFields([]);
-      setShowAdvanced(false);
-      setError(null);
-      onClose();
+      handleClose();
     } catch (err) {
+      console.error("[Modal] Errore salvataggio:", err);
       if (err instanceof ValidationError) {
         setError(err.message);
       } else {
-        setError(err instanceof Error ? err.message : "Failed to save configuration");
+        setError(
+          err instanceof Error ? err.message : "Failed to save configuration",
+        );
       }
     } finally {
       setIsSaving(false);
@@ -167,257 +396,520 @@ export function AddConfigModal({ isOpen, onClose, onAdd }: AddConfigModalProps) 
     setBaseUrl("https://");
     setEndpoint("/");
     setMethod("GET");
-    setHeaders({ "Content-Type": "application/json" });
+    setHeaderRows([
+      { id: "1", key: "Content-Type", value: "application/json" },
+    ]);
+    setQueryRows([]);
     setBodyJson("{\n  \n}");
-    setAnalyzedFields([]);
+    setAvailableFields([]);
+    setSelectedFields([]);
+    setSelectAll(false);
     setShowAdvanced(false);
+    setDataPath("");
     setError(null);
+    setAnalysisResult(null);
+    setLastAnalysis(null);
     onClose();
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-zinc-950 border-zinc-800 text-white">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-semibold text-white">
-            Add New API Configuration
-          </DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-zinc-950 border-zinc-800 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-semibold text-white">
+              Add New API Configuration
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Fill in the details to create a new API configuration. You can
+              also analyze the API to discover available fields.
+            </DialogDescription>
+          </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-3 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Basic Configuration */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
-              Basic Configuration
-            </h3>
-
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm text-zinc-300">
-                Configuration Name *
-              </Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="My API Config"
-                className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="method" className="text-sm text-zinc-300">
-                  HTTP Method
-                </Label>
-                <select
-                  id="method"
-                  value={method}
-                  onChange={(e) => setMethod(e.target.value as "GET" | "POST")}
-                  className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
-                >
-                  <option value="GET">GET</option>
-                  <option value="POST">POST</option>
-                </select>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-3 rounded-lg text-sm">
+                {error}
               </div>
+            )}
 
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="baseUrl" className="text-sm text-zinc-300">
-                  Base URL *
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
+                Basic Configuration
+              </h3>
+
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm text-zinc-300">
+                  Configuration Name *
                 </Label>
                 <Input
-                  id="baseUrl"
-                  value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
-                  placeholder="https://api.example.com"
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="My API Config"
+                  className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="method" className="text-sm text-zinc-300">
+                    HTTP Method
+                  </Label>
+                  <select
+                    id="method"
+                    value={method}
+                    onChange={(e) =>
+                      setMethod(e.target.value as "GET" | "POST")
+                    }
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                  </select>
+                </div>
+
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor="baseUrl" className="text-sm text-zinc-300">
+                    Base URL *
+                  </Label>
+                  <Input
+                    id="baseUrl"
+                    value={baseUrl}
+                    onChange={(e) => setBaseUrl(e.target.value)}
+                    placeholder="https://api.example.com"
+                    className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="endpoint" className="text-sm text-zinc-300">
+                  Endpoint Path *
+                </Label>
+                <Input
+                  id="endpoint"
+                  value={endpoint}
+                  onChange={(e) => setEndpoint(e.target.value)}
+                  placeholder="/api/v1/data"
                   className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
                   required
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="endpoint" className="text-sm text-zinc-300">
-                Endpoint Path *
-              </Label>
-              <Input
-                id="endpoint"
-                value={endpoint}
-                onChange={(e) => setEndpoint(e.target.value)}
-                placeholder="/api/v1/data"
-                className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
-                required
-              />
-            </div>
-          </div>
+            <div className="space-y-4 pt-4 border-t border-zinc-800">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
+                  Query Parameters
+                </h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addRow(setQueryRows)}
+                  className="bg-indigo-600 hover:bg-indigo-700 border-0 text-white gap-1 h-8"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add Param
+                </Button>
+              </div>
 
-          {/* Headers */}
-          <div className="space-y-4 pt-4 border-t border-zinc-800">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
-                HTTP Headers
-              </h3>
+              <div className="space-y-2">
+                {queryRows.map((row) => (
+                  <div key={row.id} className="flex gap-2">
+                    <Input
+                      value={row.key}
+                      onChange={(e) =>
+                        updateRow(row.id, "key", e.target.value, setQueryRows)
+                      }
+                      placeholder="Key (e.g. page)"
+                      className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
+                    />
+                    <Input
+                      value={row.value}
+                      onChange={(e) =>
+                        updateRow(row.id, "value", e.target.value, setQueryRows)
+                      }
+                      placeholder="Value (e.g. 1)"
+                      className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removeRow(row.id, setQueryRows)}
+                      className="bg-zinc-900 border-zinc-800 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 flex-shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                {queryRows.length === 0 && (
+                  <p className="text-sm text-zinc-500 text-center py-4 italic">
+                    No query parameters. Add one if your API needs pagination or
+                    filtering.
+                  </p>
+                )}
+                {queryRows.some((row) => !row.key || row.key.trim() === "") && (
+                  <p className="text-xs text-yellow-500 mt-1">
+                    Parameters without a key will not be saved
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-4 border-t border-zinc-800">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
+                  HTTP Headers
+                </h3>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addRow(setHeaderRows)}
+                  className="bg-zinc-800 hover:bg-zinc-700 border-0 text-white gap-1 h-8"
+                >
+                  <Plus className="h-3.5 w-3.5" /> Add Header
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {headerRows.map((row) => (
+                  <div key={row.id} className="flex gap-2">
+                    <Input
+                      value={row.key}
+                      onChange={(e) =>
+                        updateRow(row.id, "key", e.target.value, setHeaderRows)
+                      }
+                      placeholder="Header Key"
+                      className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
+                    />
+                    <Input
+                      value={row.value}
+                      onChange={(e) =>
+                        updateRow(
+                          row.id,
+                          "value",
+                          e.target.value,
+                          setHeaderRows,
+                        )
+                      }
+                      placeholder="Header Value"
+                      className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => removeRow(row.id, setHeaderRows)}
+                      className="bg-zinc-900 border-zinc-800 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 flex-shrink-0"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {method === "POST" && (
+              <div className="space-y-4 pt-4 border-t border-zinc-800">
+                <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
+                  Body Parameters (JSON)
+                </h3>
+                <Textarea
+                  value={bodyJson}
+                  onChange={(e) => setBodyJson(e.target.value)}
+                  placeholder='{\n  "key": "value"\n}'
+                  className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm min-h-[150px]"
+                />
+              </div>
+            )}
+
+            <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+              <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-zinc-300 hover:text-white transition-colors">
+                {showAdvanced ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+                Advanced Settings & Analysis
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-4">
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dataPath" className="text-sm text-zinc-300">
+                      Data Path (Optional)
+                    </Label>
+                    <Input
+                      id="dataPath"
+                      value={dataPath}
+                      onChange={(e) => setDataPath(e.target.value)}
+                      placeholder="e.g. data.results"
+                      className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
+                    />
+                    <p className="text-xs text-zinc-500">
+                      Path to the array of items in the JSON response. Leave
+                      empty to use root.
+                    </p>
+                  </div>
+
+                  <div className="h-px bg-zinc-800 my-2" />
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-zinc-400">Smart Tools</span>
+
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handlePasteFromCurl}
+                        className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-white gap-2 h-8"
+                      >
+                        <FileCode className="h-3.5 w-3.5" />
+                        Paste cURL
+                      </Button>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleAnalyze}
+                        disabled={isAnalyzing || isBackendAnalyzing}
+                        className="bg-indigo-600 hover:bg-indigo-700 border-0 text-white gap-2 h-8"
+                      >
+                        {isAnalyzing || isBackendAnalyzing ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            Analyzing...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-3.5 w-3.5" />
+                            Analyze API
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {availableFields.length > 0 && (
+                    <div className="space-y-3 mt-4">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs text-zinc-400">
+                          Discovered Fields ({selectedFields.length}/
+                          {availableFields.length} selected):
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleSelectAll}
+                            className="text-xs h-7 px-2 text-indigo-400 hover:text-indigo-300"
+                          >
+                            {selectAll ? "Deselect All" : "Select All"}
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="max-h-[200px] overflow-y-auto space-y-1 border border-zinc-800 rounded-lg p-2">
+                        {availableFields.map((field) => (
+                          <div
+                            key={field}
+                            className="flex items-center gap-2 p-1 hover:bg-zinc-800/50 rounded"
+                          >
+                            <Checkbox
+                              checked={selectedFields.includes(field)}
+                              onCheckedChange={(checked) => {
+                                // Radix passes boolean | "indeterminate"
+                                if (typeof checked === "boolean") {
+                                  if (checked) {
+                                    setSelectedFields((prev) =>
+                                      Array.from(new Set([...prev, field])),
+                                    );
+                                  } else {
+                                    setSelectedFields((prev) =>
+                                      prev.filter((f) => f !== field),
+                                    );
+                                  }
+                                  setSelectAll(false);
+                                }
+                              }}
+                              className="data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
+                            />
+                            <span
+                              className="text-xs font-mono text-zinc-300 flex-1 cursor-default"
+                              onClick={() => {
+                                // allow toggling by clicking label text without causing double-calls
+                                const isSelected =
+                                  selectedFields.includes(field);
+                                if (isSelected) {
+                                  setSelectedFields((prev) =>
+                                    prev.filter((f) => f !== field),
+                                  );
+                                } else {
+                                  setSelectedFields((prev) =>
+                                    Array.from(new Set([...prev, field])),
+                                  );
+                                }
+                                setSelectAll(false);
+                              }}
+                            >
+                              {field}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Download buttons for selected fields */}
+                      {selectedFields.length > 0 && (
+                        <div className="flex gap-2 mt-3">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDownloadFields("json")}
+                            className="flex-1 bg-zinc-900 border-zinc-800 text-xs h-8 gap-1"
+                          >
+                            <Download className="h-3 w-3" /> JSON
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDownloadFields("markdown")}
+                            className="flex-1 bg-zinc-900 border-zinc-800 text-xs h-8 gap-1"
+                          >
+                            <Download className="h-3 w-3" /> Markdown
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDownloadFields("html")}
+                            className="flex-1 bg-zinc-900 border-zinc-800 text-xs h-8 gap-1"
+                          >
+                            <Download className="h-3 w-3" /> HTML
+                          </Button>
+                        </div>
+                      )}
+
+                      <p className="text-xs text-zinc-500">
+                        Select the fields you want to extract from the API
+                        response.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+
+            {lastAnalysis && (
+              <div className="mt-4 space-y-2 border-t border-zinc-800 pt-4">
+                <h4 className="text-sm font-medium text-zinc-300">
+                  Analysis Summary
+                </h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <span className="text-zinc-500">URL:</span>
+                  <span className="text-zinc-300 font-mono truncate">
+                    {lastAnalysis.url}
+                  </span>
+                  <span className="text-zinc-500">Method:</span>
+                  <span className="text-zinc-300">{lastAnalysis.method}</span>
+                  <span className="text-zinc-500">Status:</span>
+                  <span
+                    className={cn(
+                      "font-medium",
+                      lastAnalysis.status === "completed"
+                        ? "text-emerald-400"
+                        : "text-red-400",
+                    )}
+                  >
+                    {lastAnalysis.status}
+                  </span>
+                  <span className="text-zinc-500">Analyzed at:</span>
+                  <span className="text-zinc-300">
+                    {new Date(lastAnalysis.createdAt).toLocaleString()}
+                  </span>
+                </div>
+                {lastAnalysis.discoveredSchema && (
+                  <div className="mt-2">
+                    <p className="text-xs text-zinc-500">
+                      <span className="font-medium">Data Path:</span>{" "}
+                      <span className="text-indigo-400 font-mono">
+                        {lastAnalysis.discoveredSchema.dataPath || "(root)"}
+                      </span>
+                    </p>
+                    <p className="text-xs text-zinc-500 mt-1">
+                      <span className="font-medium">Fields discovered:</span>{" "}
+                      <span className="text-white">
+                        {lastAnalysis.discoveredSchema.suggestedFields.length}
+                      </span>
+                    </p>
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsDetailsModalOpen(true)}
+                  className="mt-2 w-full bg-zinc-800 border-zinc-700 hover:bg-zinc-700"
+                >
+                  <FileCode className="h-3.5 w-3.5 mr-2" />
+                  View Full Analysis
+                </Button>
+              </div>
+            )}
+
+            <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-3">
+              <p className="text-xs text-zinc-400">
+                <span className="font-medium text-zinc-300">Pagination:</span>{" "}
+                Default settings will be applied
+              </p>
+              <p className="text-xs text-zinc-500 mt-1 font-mono">
+                {baseUrl.replace(/\/$/, "")}
+                {endpoint.startsWith("/") ? endpoint : "/" + endpoint}
+                ?offset=0&limit=50
+              </p>
+            </div>
+
+            <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
-                onClick={handleAddHeader}
-                className="bg-indigo-600 hover:bg-indigo-700 border-0 text-white gap-1 h-8"
+                onClick={handleClose}
+                className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-white"
               >
-                <X className="h-3.5 w-3.5 rotate-45" />
-                Add Header
+                Cancel
               </Button>
-            </div>
-
-            <div className="space-y-2">
-              {Object.entries(headers).map(([key, value]) => (
-                <div key={key} className="flex gap-2">
-                  <Input
-                    value={key}
-                    onChange={(e) => handleHeaderKeyChange(key, e.target.value)}
-                    placeholder="Header name"
-                    className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
-                  />
-                  <Input
-                    value={value}
-                    onChange={(e) => handleHeaderValueChange(key, e.target.value)}
-                    placeholder="Header value"
-                    className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon"
-                    onClick={() => handleRemoveHeader(key)}
-                    className="bg-zinc-900 border-zinc-800 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 flex-shrink-0"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Body Parameters (POST only) */}
-          {method === "POST" && (
-            <div className="space-y-4 pt-4 border-t border-zinc-800">
-              <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
-                Body Parameters (JSON)
-              </h3>
-              <Textarea
-                value={bodyJson}
-                onChange={(e) => setBodyJson(e.target.value)}
-                placeholder='{\n  "key": "value"\n}'
-                className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm min-h-[150px]"
-              />
-            </div>
-          )}
-
-          {/* Advanced Settings */}
-          <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-            <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-zinc-300 hover:text-white transition-colors">
-              {showAdvanced ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-              Advanced Settings
-            </CollapsibleTrigger>
-            <CollapsibleContent className="space-y-4 pt-4">
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-zinc-400">Smart Tools</span>
-                  
-                  <div className="flex gap-2">
-                    {/* cURL Button */}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handlePasteFromCurl}
-                      className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-white gap-2 h-8"
-                    >
-                      <FileCode className="h-3.5 w-3.5" />
-                      Paste cURL
-                    </Button>
-
-                    {/* Analyze Button */}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAnalyze}
-                      disabled={isAnalyzing}
-                      className="bg-indigo-600 hover:bg-indigo-700 border-0 text-white gap-2 h-8"
-                    >
-                      {isAnalyzing ? (
-                        <>
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          Analyzing...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-3.5 w-3.5" />
-                          Analyze API
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-
-                {analyzedFields.length > 0 && (
-                  <div className="space-y-2">
-                    <Label className="text-xs text-zinc-400">
-                      Discovered Fields:
-                    </Label>
-                    <div className="flex flex-wrap gap-2">
-                      {analyzedFields.map((field) => (
-                        <span
-                          key={field}
-                          className="px-2 py-1 bg-indigo-500/20 text-indigo-300 rounded text-xs border border-indigo-500/30"
-                        >
-                          {field}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
+              <Button
+                type="submit"
+                disabled={isSaving}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+              >
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Add Configuration"
                 )}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-white"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSaving}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Add Configuration"
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+      <AnalysisDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+        analysis={lastAnalysis}
+      />
+    </>
   );
 }

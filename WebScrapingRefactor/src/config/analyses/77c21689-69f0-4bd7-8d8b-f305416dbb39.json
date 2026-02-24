@@ -1,0 +1,17 @@
+{
+  "id": "77c21689-69f0-4bd7-8d8b-f305416dbb39",
+  "url": "https://jsonplaceholder.typicode.com/posts",
+  "method": "GET",
+  "status": "completed",
+  "discoveredSchema": {
+    "suggestedFields": [
+      "userId",
+      "id",
+      "title",
+      "body"
+    ],
+    "dataPath": "",
+    "params": []
+  },
+  "createdAt": "2026-02-16T12:55:17.468Z"
+}

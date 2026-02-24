@@ -1,0 +1,25 @@
+{
+  "id": "11813199-85b5-49d9-8176-c79208513bf1",
+  "url": "https://api.agify.io/?name=meelad",
+  "method": "GET",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "status": "completed",
+  "discoveredSchema": {
+    "suggestedFields": [
+      "count",
+      "name",
+      "age"
+    ],
+    "dataPath": "",
+    "params": [
+      {
+        "key": "name",
+        "value": "meelad",
+        "type": "string"
+      }
+    ]
+  },
+  "createdAt": "2026-02-16T15:55:36.307Z"
+}

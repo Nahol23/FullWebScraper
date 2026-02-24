@@ -1,0 +1,50 @@
+{
+  "name": "Agritechnica",
+  "baseUrl": "https://digital.agritechnica.com",
+  "endpoint": "/api/v1/search/exhibitors",
+  "method": "POST",
+  "id": "39626243-a7c2-4ece-a7d0-1507366746ea",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "page": 3,
+    "limit": 100,
+    "nextResult": {}
+  },
+  "pagination": {
+    "type": "offset",
+    "paramName": "offset",
+    "limitParam": "limit",
+    "defaultLimit": 50
+  },
+  "dataPath": "data.list",
+  "selectedFields": [
+    "id",
+    "external_id",
+    "name",
+    "about",
+    "url",
+    "is_parent_exhibitor",
+    "owner_id",
+    "country",
+    "city",
+    "region",
+    "is_pavilion",
+    "logo",
+    "isNew",
+    "stands",
+    "stands.hall_id",
+    "stands.hall",
+    "stands.mapsPeopleFloorId",
+    "stands.stands_count",
+    "stands.stand",
+    "stands.stands",
+    "stands.stands.id",
+    "stands.stands.name",
+    "category_id",
+    "count_child_exhibitors",
+    "role",
+    "objectType"
+  ]
+}

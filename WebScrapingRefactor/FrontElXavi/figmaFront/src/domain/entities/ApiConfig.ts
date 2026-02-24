@@ -1,21 +1,24 @@
-/**
- * Domain Entity: ApiConfig
- * Pure TypeScript - No React, No Axios dependencies
- */
+export interface ApiParam {
+  key: string;
+  value: string;
+}
+
+export interface PaginationConfig {
+  type: "page" | "offset";
+  paramName: string;
+  limitParam: string;
+  defaultLimit: number;
+}
 
 export interface ExecutionHistory {
   id: string;
   timestamp: string;
-  status: "success" | "error";
+  status: number;
+  duration: number;
   recordsExtracted?: number;
   errorMessage?: string;
-}
-
-export interface PaginationSettings {
-  offsetParam: string;
-  limitParam: string;
-  initialOffset: number;
-  limitPerPage: number;
+  responsePreview?: any;
+  data?: string;
 }
 
 export interface ApiConfig {
@@ -24,9 +27,16 @@ export interface ApiConfig {
   baseUrl: string;
   endpoint: string;
   method: "GET" | "POST";
-  headers: Record<string, string>;
-  bodyParams: Record<string, any>;
-  paginationSettings: PaginationSettings;
-  selectedFields: string[];
-  executionHistory: ExecutionHistory[];
+  queryParams?: ApiParam[];
+  headers?: Record<string, string>;
+  body?: any;
+  dataPath?: string;
+  pagination?: PaginationConfig;
+  filter?: {
+    field: string;
+    value: any;
+  };
+  selectedFields?: string[];
+  // Mantieni executionHistory solo lato frontend se serve per UI
+  executionHistory?: ExecutionHistory[];
 }

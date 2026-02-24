@@ -1,0 +1,14 @@
+{
+  "id": "2204332e-0792-49a6-b49b-2743798bd68f",
+  "configId": "0a0d7754-6b51-4c01-b1ed-46b100f1c766",
+  "timestamp": "2026-02-17T10:11:47.945Z",
+  "parametersUsed": {
+    "dataPath": "results",
+    "selectedFields": [],
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "resultCount": 1000,
+  "status": "success"
+}

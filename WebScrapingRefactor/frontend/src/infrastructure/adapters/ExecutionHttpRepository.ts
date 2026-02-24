@@ -5,11 +5,11 @@ import type { ApiResponseDTO } from "../../types/ApiResponseDTO";
 
 export class ExecutionHttpRepository implements ExecutionRepository {
   async execute(
-    name: string,
+    configId: string,
     runtimeParams?: Record<string, unknown>
   ): Promise<ApiResponseDTO> {
     const { data } = await apiClient.post<ApiResponseDTO>(
-      `/executions/${name}/execute`,
+      `/executions/${configId}/execute`,
       runtimeParams
     );
     return data;
@@ -18,5 +18,16 @@ export class ExecutionHttpRepository implements ExecutionRepository {
   async getLogs(): Promise<Execution[]> {
     const { data } = await apiClient.get<Execution[]>("/executions");
     return data;
+  }
+
+  async getLogsByConfig(configId: string): Promise<Execution[]> {
+    const { data } = await apiClient.get<Execution[]>(
+      `/executions/${configId}`
+    );
+    return data;
+  }
+
+  async deleteLog(configId: string, logId: string): Promise<void> {
+    await apiClient.delete(`/executions/${configId}/${logId}`);
   }
 }

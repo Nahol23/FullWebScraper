@@ -3,24 +3,8 @@
   "baseUrl": "https://potterapi-fedeperin.vercel.app/en",
   "endpoint": "/books",
   "method": "GET",
-  "queryParams": [
-    {
-      "key": "v",
-      "value": "1"
-    }
-  ],
-  "headers": {
-    "Authorization": "Bearer token123",
-    "Content-Type": "application/json",
-    "X-Custom-Header": "value"
-  },
-  "body": {
-    "param1": "value1",
-    "param2": "value2",
-    "offset": 20
-  },
   "defaultLimit": 20,
   "dataPath": "",
-  "selectedFields": ["title", "description"],
+  "selectedFields": [],
   "id": "dac0fe20-2b14-44b1-b086-b84d333920f6"
 }

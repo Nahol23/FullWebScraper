@@ -1,75 +1,88 @@
-/**
- * Application Use Case: ExecuteApiUseCase
- * Business logic for executing API calls
- * Pure TypeScript - No React, No Axios dependencies
- */
-
-import type { ApiConfig } from "../../domain/entities/ApiConfig";
-import type { ExecutionResult } from "../../domain/entities/ExecutionResult";
 import type { RuntimeParams } from "../../domain/entities/RuntimeParams";
-import type { ExecutionHistory } from "../../domain/entities/ApiConfig";
 import type { IApiExecutionRepository } from "../../domain/ports/IApiExecutionRepository";
 import type { IConfigRepository } from "../../domain/ports/IConfigRepository";
-import { ApiExecutionError } from "../../domain/errors/AppError";
+import { ConfigNotFoundError } from "../../domain/errors/AppError";
 
 export class ExecuteApiUseCase {
   constructor(
     private readonly apiExecutionRepository: IApiExecutionRepository,
-    private readonly configRepository: IConfigRepository
+    private readonly configRepository: IConfigRepository,
   ) {}
 
-  async execute(
-    configId: string,
-    runtimeParams?: RuntimeParams
-  ): Promise<{ result: ExecutionResult; updatedConfig: ApiConfig }> {
-    // Get configuration
+  async execute(configId: string, runtimeParams?: RuntimeParams) {
     const config = await this.configRepository.getById(configId);
     if (!config) {
-      throw new Error(`Configuration with id ${configId} not found`);
+      throw new ConfigNotFoundError(configId);
     }
 
-    // Execute API call
-    const startTime = Date.now();
-    let result: ExecutionResult;
-    
-    try {
-      result = await this.apiExecutionRepository.execute(config, runtimeParams);
-    } catch (error) {
-      if (error instanceof ApiExecutionError) {
-        throw error;
-      }
-      throw new ApiExecutionError(
-        error instanceof Error ? error.message : "Unknown error occurred",
-        undefined,
-        error
+    const mergedParams: RuntimeParams = {};
+
+    if (runtimeParams?.dataPath !== undefined) {
+      mergedParams.dataPath = runtimeParams.dataPath;
+    } else if (config.dataPath?.trim()) {
+      mergedParams.dataPath = config.dataPath.trim();
+    }
+
+    if (runtimeParams?.selectedFields !== undefined) {
+      mergedParams.selectedFields = runtimeParams.selectedFields;
+    } else if (config.selectedFields?.length) {
+      mergedParams.selectedFields = config.selectedFields;
+    }
+
+    if (runtimeParams?.headers !== undefined) {
+      mergedParams.headers = runtimeParams.headers;
+    } else if (config.headers && Object.keys(config.headers).length > 0) {
+      mergedParams.headers = config.headers;
+    }
+
+    if (runtimeParams?.body !== undefined) {
+      mergedParams.body = runtimeParams.body;
+    } else if (config.body !== undefined && config.body !== null) {
+      mergedParams.body = config.body;
+    }
+
+    if (runtimeParams?.queryParams !== undefined) {
+      mergedParams.queryParams = runtimeParams.queryParams;
+    } else if (config.queryParams?.length) {
+      mergedParams.queryParams = config.queryParams.reduce(
+        (acc, param) => {
+          if (param.key?.trim()) {
+            acc[param.key.trim()] = param.value?.trim() ?? "";
+          }
+          return acc;
+        },
+        {} as Record<string, string>,
       );
+      if (Object.keys(mergedParams.queryParams).length === 0) {
+        delete mergedParams.queryParams;
+      }
     }
 
-    const duration = Date.now() - startTime;
-    result.duration = duration;
+   
+    if (runtimeParams) {
+      if (runtimeParams.page !== undefined) mergedParams.page = runtimeParams.page;
+      if (runtimeParams.limit !== undefined) mergedParams.limit = runtimeParams.limit;
+      if (runtimeParams.filters !== undefined) mergedParams.filters = runtimeParams.filters;
+    }
 
-    // Create execution history entry
-    const historyEntry: ExecutionHistory = {
-      id: Date.now().toString(),
-      timestamp: new Date().toISOString(),
-      status: result.status >= 200 && result.status < 300 ? "success" : "error",
-      recordsExtracted: Array.isArray(result.data?.data)
-        ? result.data.data.length
-        : undefined,
-      errorMessage:
-        result.status >= 400
-          ? `${result.status} ${result.statusText}`
-          : undefined,
-    };
+    const cleanParams = Object.fromEntries(
+      Object.entries(mergedParams).filter(([key, value]) => {
+        if (key === "selectedFields" && Array.isArray(value)) {
+          return true; 
+        }
+        if (value === undefined || value === null) return false;
+        if (typeof value === "string" && value.trim() === "") return false;
+        if (typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0) return false;
+        if (Array.isArray(value) && value.length === 0 && key !== "selectedFields") return false;
+        return true;
+      }),
+    );
 
-    // Update config with execution history
-    const updatedConfig: ApiConfig = {
-      ...config,
-      executionHistory: [historyEntry, ...config.executionHistory],
-    };
+    console.log("[ExecuteApiUseCase] Parametri finali inviati:", cleanParams);
 
-    await this.configRepository.update(updatedConfig);
+    const result = await this.apiExecutionRepository.execute(config.id, cleanParams);
 
-    return { result, updatedConfig };
+    console.log("[ExecuteApiUseCase] Risultato ricevuto:", result);
+    return result;
   }
 }

@@ -12,19 +12,12 @@ export class SaveConfigUseCase {
   constructor(private readonly configRepository: IConfigRepository) {}
 
   async execute(config: Omit<ApiConfig, "id">): Promise<ApiConfig> {
-    // Validate configuration
-    this.validateConfig(config);
+  this.validateConfig(config);
 
-    // Create new config with ID
-    const newConfig: ApiConfig = {
-      ...config,
-      id: Date.now().toString(),
-    };
-
-    // Save configuration
-    return await this.configRepository.save(newConfig);
-  }
-
+  return await this.configRepository.save({
+    ...config,
+  } as ApiConfig);
+}
   private validateConfig(config: Omit<ApiConfig, "id">): void {
     if (!config.name || config.name.trim().length === 0) {
       throw new ValidationError("Configuration name is required", "name");

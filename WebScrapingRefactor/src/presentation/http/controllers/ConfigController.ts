@@ -1,7 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { ApiConfig } from "../../../domain/entities/ApiConfig";
 import { ExecuteApiUseCase } from "../../../application/usecases/Api/ExecuteApiUseCase";
-import * as fs from 'fs';
+import * as fs from "fs";
 
 import { UpdateConfigUseCase } from "../../../application/usecases/Configs/UpdateConfigUseCase";
 import { GetAllConfigsUseCase } from "../../../application/usecases/Configs/GetAllConfigsUseCase";
@@ -13,8 +13,13 @@ import { DeleteConfigUseCase } from "../../../application/usecases/Configs/Delet
 import { CreateAnalysisUseCase } from "../../../application/usecases/Analysis/CreateAnalysisUseCase";
 import { GetAllAnalysesUseCase } from "../../../application/usecases/Analysis/GetAllAnalysisUseCase";
 import { GetAllExecutionsUseCase } from "../../../application/usecases/Execution/GetAllExecutionsUseCase";
-import { DownloadAllUseCase, ExportFormat } from "../../../application/usecases/Api/DownloadAllUseCase";
+import {
+  DownloadAllUseCase,
+  ExportFormat,
+} from "../../../application/usecases/Api/DownloadAllUseCase";
 import { randomUUID } from "crypto";
+import { DeleteExecutionUseCase } from "../../../application/usecases/Execution/DeleteExecutionUsecase";
+import { GetAllExecutionsByConfigUseCase } from "../../../application/usecases/Execution/GetAllExecutionByConfigUseCase";
 
 export class ConfigController {
   constructor(
@@ -28,6 +33,8 @@ export class ConfigController {
     private createAnalysisUseCase: CreateAnalysisUseCase,
     private getAllAnalysesUseCase: GetAllAnalysesUseCase,
     private getAllExecutionsUseCase: GetAllExecutionsUseCase,
+    private getAllExecutionByconfigUsecase: GetAllExecutionsByConfigUseCase,
+    private deleteExecutionUsecase: DeleteExecutionUseCase,
     private downloadAllUseCase: DownloadAllUseCase,
   ) {}
 
@@ -58,7 +65,6 @@ export class ConfigController {
       return reply.status(404).send({ error: "Configurazione non trovata" });
     return reply.send(config);
   };
-
 
   create = async (
     req: FastifyRequest<{ Body: ApiConfig }>,
@@ -126,73 +132,132 @@ export class ConfigController {
     }>,
     reply: FastifyReply,
   ) => {
-    // console.log(
-    //   "Body ricevuto dal Controller:",
-    //   JSON.stringify(request.body, null, 2),
-    // );
+    console.log(
+      "[ConfigController.analyze] Body ricevuto:",
+      JSON.stringify(request.body, null, 2),
+    );
     const { url, method, body, headers } = request.body;
+    console.log("[ConfigController.analyze] Params extracted:", {
+      url,
+      method,
+      body,
+      headers,
+    });
     const result = await this.createAnalysisUseCase.execute(
       url,
       method,
       body,
       headers,
     );
-    return reply.status(200).send(result);
+    console.log(
+      "[ConfigController.analyze] Result from use case:",
+      JSON.stringify(result, null, 2),
+    );
+    const plainResult = JSON.parse(JSON.stringify(result));
+    console.log(
+      "[ConfigController.analyze] Converted to plain object:",
+      JSON.stringify(plainResult, null, 2),
+    );
+    console.log(
+      "[ConfigController.analyze] About to send response with status 200",
+    );
+    reply.status(200).send(plainResult);
+    console.log("[ConfigController.analyze] Response sent");
+    return;
   };
+
 
   execute = async (
-    request: FastifyRequest<{ Params: { name: string }; Body: Record<string, any> }>,
-    reply: FastifyReply
+    request: FastifyRequest<{
+      Params: { name: string };
+      Body: Record<string, any>;
+    }>,
+    reply: FastifyReply,
   ) => {
-    const { name } = request.params;
-    const runtimeParams = request.body;
-    const result = await this.executeApiUseCase.execute(name, runtimeParams);
-    return reply.status(200).send(result);
+    try {
+      const { name } = request.params;
+      const runtimeParams = request.body;
+      const result = await this.executeApiUseCase.execute(name, runtimeParams);
+      return reply.status(200).send(result);
+    } catch (error) {
+      request.log.error(
+        {
+          err: error,
+          params: request.params,
+          body: request.body,
+        },
+        "[ConfigController.execute] Errore durante execute",
+      );
+      throw error;
+    }
+  };
+  getExecutionsByConfig = async (
+    req: FastifyRequest<{ Params: { configId: string } }>,
+    reply: FastifyReply,
+  ) => {
+    const { configId } = req.params;
+    const results = await this.getAllExecutionByconfigUsecase.execute(configId);
+    return reply.status(200).send(results);
+  };
+  deleteExecution = async (
+    req: FastifyRequest<{ Params: { configId: string; executionId: string } }>,
+    reply: FastifyReply,
+  ) => {
+    const { executionId } = req.params;
+    await this.deleteExecutionUsecase.execute(executionId);
+    return reply.status(204).send();
   };
 
-
- download = async (
-    req: FastifyRequest<{ Params: { configName: string }; Querystring: { format?: ExportFormat } }>,
-    reply: FastifyReply
+  download = async (
+    req: FastifyRequest<{
+      Params: { configName: string };
+      Querystring: { format?: ExportFormat };
+    }>,
+    reply: FastifyReply,
   ) => {
     const { configName } = req.params;
-    const format = req.query.format || 'json';
+    const format = req.query.format || "json";
 
     try {
       // 1. Qui riceviamo il PERCORSO (path) del file, non il contenuto
-      const filePath = await this.downloadAllUseCase.execute(configName, format);
+      const filePath = await this.downloadAllUseCase.execute(
+        configName,
+        format,
+      );
 
-
-      const safeFileName = configName.replace(/[^a-zA-Z0-9-_]/g, '_');
-      const extension = format === 'markdown' ? 'md' : 'json';
-      const contentType = format === 'markdown' ? 'text/markdown' : 'application/json';
+      const safeFileName = configName.replace(/[^a-zA-Z0-9-_]/g, "_");
+      const extension = format === "markdown" ? "md" : "json";
+      const contentType =
+        format === "markdown" ? "text/markdown" : "application/json";
 
       // 2. Impostiamo gli header corretti
-      reply.header('Content-Type', contentType);
-      reply.header('Content-Disposition', `attachment; filename="${safeFileName}.${extension}"`);
+      reply.header("Content-Type", contentType);
+      reply.header(
+        "Content-Disposition",
+        `attachment; filename="${safeFileName}.${extension}"`,
+      );
 
-      
       const stream = fs.createReadStream(filePath);
 
-      stream.on('close', () => {
+      stream.on("close", () => {
         fs.unlink(filePath, (err) => {
           if (err) {
-            req.log.error(`Errore cancellazione file temp ${filePath}: ${err.message}`);
+            req.log.error(
+              `Errore cancellazione file temp ${filePath}: ${err.message}`,
+            );
           } else {
             req.log.info(`File temporaneo cancellato: ${filePath}`);
           }
         });
       });
 
-
-
       return reply.send(stream);
-
     } catch (error) {
       req.log.error(error);
       return reply.status(500).send({
-         error: "DownloadFailed", 
-        message: (error as Error).message });
+        error: "DownloadFailed",
+        message: (error as Error).message,
+      });
     }
   };
 }

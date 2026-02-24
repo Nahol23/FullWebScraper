@@ -1,0 +1,13 @@
+{
+  "id": "4471601a-e494-4269-bea0-022d428802f0",
+  "configId": "17074c9f-53e1-4ca5-9647-5114d9411b75",
+  "timestamp": "2026-02-11T14:10:52.809Z",
+  "parametersUsed": {
+    "selectedFields": [
+      "identifier",
+      "name"
+    ]
+  },
+  "resultCount": 230,
+  "status": "success"
+}

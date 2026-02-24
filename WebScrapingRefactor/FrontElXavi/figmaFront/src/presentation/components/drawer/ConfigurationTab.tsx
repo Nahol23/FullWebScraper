@@ -1,19 +1,15 @@
-/**
- * Presentation Layer: ConfigurationTab Component
- * Dumb UI Component - Uses Controller Hook via parent
- */
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Trash2, Plus, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import type { ApiConfig } from "../../../domain/entities/ApiConfig";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
+import type { ApiConfig, ApiParam, PaginationConfig } from "../../../domain/entities/ApiConfig";
 
 interface ConfigurationTabProps {
   config: ApiConfig;
-  onUpdate: (config: ApiConfig) => void;
-  onDelete: (id: string) => void;
+  onUpdate: (config: ApiConfig) => Promise<void>;
+  onDelete: (config: ApiConfig) => void; 
 }
 
 export function ConfigurationTab({
@@ -23,20 +19,69 @@ export function ConfigurationTab({
 }: ConfigurationTabProps) {
   const [baseUrl, setBaseUrl] = useState(config.baseUrl);
   const [endpoint, setEndpoint] = useState(config.endpoint);
-  const [headers, setHeaders] = useState(config.headers);
-  const [paginationSettings, setPaginationSettings] = useState(
-    config.paginationSettings
+  const [headers, setHeaders] = useState<Record<string, string>>(config.headers ?? {});
+  const [queryParams, setQueryParams] = useState<ApiParam[]>(config.queryParams ?? []);
+  const [dataPath, setDataPath] = useState(config.dataPath || "");
+  const [selectedFields, setSelectedFields] = useState<string[]>(config.selectedFields || []);
+  const [pagination, setPagination] = useState<PaginationConfig>(
+    config.pagination ?? {
+      type: "offset",
+      paramName: "offset",
+      limitParam: "limit",
+      defaultLimit: 50,
+    }
   );
 
-  const handleSave = () => {
+  useEffect(() => {
+    setBaseUrl(config.baseUrl ?? "");
+    setEndpoint(config.endpoint ?? "");
+    setHeaders(config.headers ?? {});
+    setQueryParams(config.queryParams ?? []);
+    setDataPath(config.dataPath || "");
+    setSelectedFields(config.selectedFields || []);
+    setPagination(
+      config.pagination ?? {
+        type: "offset",
+        paramName: "offset",
+        limitParam: "limit",
+        defaultLimit: 50,
+      }
+    );
+  }, [config]);
+
+  const handleSave = async () => {
+    const validQueryParams = queryParams
+      .filter(p => p.key && p.key.trim() !== "")
+      .map(p => ({ 
+        key: p.key.trim(), 
+        value: p.value?.trim() || "" 
+      }));
+
     const updatedConfig: ApiConfig = {
       ...config,
       baseUrl,
       endpoint,
-      headers,
-      paginationSettings,
+      headers: Object.keys(headers).length > 0 ? headers : undefined,
+      ...(validQueryParams.length > 0 && { queryParams: validQueryParams }),
+      dataPath: dataPath || undefined,
+      selectedFields: selectedFields.length > 0 ? selectedFields : undefined,
+      pagination,
     };
-    onUpdate(updatedConfig);
+    await onUpdate(updatedConfig);
+  };
+
+  const handleAddQueryParam = () => {
+    setQueryParams([...queryParams, { key: '', value: '' }]);
+  };
+
+  const handleRemoveQueryParam = (index: number) => {
+    setQueryParams(queryParams.filter((_, i) => i !== index));
+  };
+
+  const handleQueryParamChange = (index: number, field: 'key' | 'value', value: string) => {
+    const updated = [...queryParams];
+    updated[index] = { ...updated[index], [field]: value };
+    setQueryParams(updated);
   };
 
   const handleAddHeader = () => {
@@ -64,6 +109,17 @@ export function ConfigurationTab({
 
   const handleHeaderValueChange = (key: string, value: string) => {
     setHeaders({ ...headers, [key]: value });
+  };
+
+  const handleAddSelectedField = () => {
+    const newField = prompt("Enter field name (e.g., data.results.id):");
+    if (newField && newField.trim()) {
+      setSelectedFields([...selectedFields, newField.trim()]);
+    }
+  };
+
+  const handleRemoveSelectedField = (index: number) => {
+    setSelectedFields(selectedFields.filter((_, i) => i !== index));
   };
 
   return (
@@ -98,6 +154,81 @@ export function ConfigurationTab({
             placeholder="/api/v1/data"
             className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
           />
+        </div>
+      </div>
+
+      {/* Data Path */}
+      <div className="space-y-4 pt-4 border-t border-zinc-800">
+        <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
+          Data Extraction
+        </h3>
+
+        <div className="space-y-2">
+          <Label htmlFor="dataPath" className="text-sm text-zinc-300">
+            Data Path (Optional)
+          </Label>
+          <Input
+            id="dataPath"
+            value={dataPath}
+            onChange={(e) => setDataPath(e.target.value)}
+            placeholder="e.g., data.results or response.items"
+            className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
+          />
+          <p className="text-xs text-zinc-500">
+            Path to the array of items in the JSON response. Leave empty to extract from root.
+          </p>
+        </div>
+      </div>
+
+      {/* Query Parameters */}
+      <div className="space-y-4 pt-4 border-t border-zinc-800">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
+            Query Parameters
+          </h3>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAddQueryParam}
+            className="bg-indigo-600 hover:bg-indigo-700 border-0 text-white gap-1 h-8"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Param
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          {queryParams.map((param, index) => (
+            <div key={index} className="flex gap-2">
+              <Input
+                value={param.key}
+                onChange={(e) => handleQueryParamChange(index, 'key', e.target.value)}
+                placeholder="Parameter name"
+                className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
+              />
+              <Input
+                value={param.value}
+                onChange={(e) => handleQueryParamChange(index, 'value', e.target.value)}
+                placeholder="Parameter value"
+                className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => handleRemoveQueryParam(index)}
+                className="bg-zinc-900 border-zinc-800 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 flex-shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          {queryParams.length === 0 && (
+            <p className="text-sm text-zinc-500 text-center py-4">
+              No query parameters configured.
+            </p>
+          )}
         </div>
       </div>
 
@@ -147,7 +278,50 @@ export function ConfigurationTab({
           ))}
           {Object.keys(headers).length === 0 && (
             <p className="text-sm text-zinc-500 text-center py-4">
-              No headers configured. Click "Add Header" to add one.
+              No headers configured.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Selected Fields */}
+      <div className="space-y-4 pt-4 border-t border-zinc-800">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
+            Fields to Extract
+          </h3>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAddSelectedField}
+            className="bg-indigo-600 hover:bg-indigo-700 border-0 text-white gap-1 h-8"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Add Field
+          </Button>
+        </div>
+
+        <div className="space-y-2">
+          {selectedFields.map((field, index) => (
+            <div key={index} className="flex items-center gap-2">
+              <span className="flex-1 bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-sm font-mono text-zinc-300">
+                {field}
+              </span>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => handleRemoveSelectedField(index)}
+                className="bg-zinc-900 border-zinc-800 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 flex-shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          {selectedFields.length === 0 && (
+            <p className="text-sm text-zinc-500 text-center py-4">
+              No fields selected. Add fields to extract from the API response.
             </p>
           )}
         </div>
@@ -156,24 +330,44 @@ export function ConfigurationTab({
       {/* Pagination Settings */}
       <div className="space-y-4 pt-4 border-t border-zinc-800">
         <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
-          Pagination Logic
+          Pagination Settings
         </h3>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="offsetParam" className="text-sm text-zinc-300">
-              Offset Parameter
+            <Label htmlFor="paginationType" className="text-sm text-zinc-300">
+              Type
+            </Label>
+            <Select
+              value={pagination.type}
+              onValueChange={(value: "page" | "offset") => 
+                setPagination({...pagination, type: value})
+              }
+            >
+              <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white">
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="page">Page-based</SelectItem>
+                <SelectItem value="offset">Offset-based</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="paramName" className="text-sm text-zinc-300">
+              {pagination.type === "page" ? "Page Param" : "Offset Param"}
             </Label>
             <Input
-              id="offsetParam"
-              value={paginationSettings.offsetParam}
+              id="paramName"
+              value={pagination.paramName}
               onChange={(e) =>
-                setPaginationSettings({
-                  ...paginationSettings,
-                  offsetParam: e.target.value,
+                setPagination({
+                  ...pagination,
+                  paramName: e.target.value,
                 })
               }
-              placeholder="offset"
+              placeholder={pagination.type === "page" ? "page" : "offset"}
               className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
             />
           </div>
@@ -184,10 +378,10 @@ export function ConfigurationTab({
             </Label>
             <Input
               id="limitParam"
-              value={paginationSettings.limitParam}
+              value={pagination.limitParam}
               onChange={(e) =>
-                setPaginationSettings({
-                  ...paginationSettings,
+                setPagination({
+                  ...pagination,
                   limitParam: e.target.value,
                 })
               }
@@ -197,35 +391,17 @@ export function ConfigurationTab({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="initialOffset" className="text-sm text-zinc-300">
-              Initial Offset
+            <Label htmlFor="defaultLimit" className="text-sm text-zinc-300">
+              Default Limit
             </Label>
             <Input
-              id="initialOffset"
+              id="defaultLimit"
               type="number"
-              value={paginationSettings.initialOffset}
+              value={pagination.defaultLimit}
               onChange={(e) =>
-                setPaginationSettings({
-                  ...paginationSettings,
-                  initialOffset: parseInt(e.target.value) || 0,
-                })
-              }
-              className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="limitPerPage" className="text-sm text-zinc-300">
-              Items Per Page
-            </Label>
-            <Input
-              id="limitPerPage"
-              type="number"
-              value={paginationSettings.limitPerPage}
-              onChange={(e) =>
-                setPaginationSettings({
-                  ...paginationSettings,
-                  limitPerPage: parseInt(e.target.value) || 10,
+                setPagination({
+                  ...pagination,
+                  defaultLimit: parseInt(e.target.value) || 50,
                 })
               }
               className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
@@ -238,8 +414,13 @@ export function ConfigurationTab({
             Example URL:{" "}
             <span className="text-zinc-300 font-mono">
               {baseUrl}
-              {endpoint}?{paginationSettings.offsetParam}=0&
-              {paginationSettings.limitParam}={paginationSettings.limitPerPage}
+              {endpoint}
+              {queryParams.length > 0 
+                ? `?${queryParams.map(p => `${p.key}=${p.value}`).join('&')}`
+                : ''}
+              {queryParams.length > 0 ? '&' : '?'}
+              {pagination.paramName}=1&
+              {pagination.limitParam}={pagination.defaultLimit}
             </span>
           </p>
         </div>
@@ -254,13 +435,7 @@ export function ConfigurationTab({
           Save Changes
         </Button>
         <Button
-          onClick={() => {
-            if (
-              confirm("Are you sure you want to delete this configuration?")
-            ) {
-              onDelete(config.id);
-            }
-          }}
+          onClick={() => onDelete(config)} // Passa l'intero config
           variant="outline"
           className="bg-red-500/10 border-red-500/50 hover:bg-red-500/20 hover:border-red-500 text-red-400 gap-2"
         >

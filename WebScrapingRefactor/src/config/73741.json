@@ -1,0 +1,38 @@
+{
+  "name": "naidex",
+  "baseUrl": "https://9WUDIPIUPO-dsn.algolia.net",
+  "endpoint": "/1/indexes/production-247-2dd9ba24-bf3b-11f0-a417-000000000000-exhibitors-2026/query",
+  "method": "POST",
+  "id": "bde1ed17-9ebe-489c-9d00-e2b76144fcfa",
+  "headers": {
+    "Content-Type": "application/json",
+    "X-Algolia-Application-Id": "9WUDIPIUPO",
+    "X-Algolia-API-Key": "df8a06b8eb5d9bd0839e88fc7606560f"
+  },
+  "body": {
+    "query": "",
+    "hitsPerPage": 5,
+    "attributesToRetrieve": [
+      "*"
+    ]
+  },
+  "pagination": {
+    "type": "offset",
+    "paramName": "offset",
+    "limitParam": "limit",
+    "defaultLimit": 50
+  },
+  "dataPath": "hits",
+  "selectedFields": [
+    "hits.identifier",
+    "hits.name",
+    "hits.biography",
+    "hits.products",
+    "hits.social_links",
+    "hits.social_links.url",
+    "hits.created_at",
+    "hits.show_email",
+    "hits.show_addresses",
+    "hits.show_phones"
+  ]
+}

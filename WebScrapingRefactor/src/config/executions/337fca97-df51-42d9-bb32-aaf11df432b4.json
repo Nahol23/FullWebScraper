@@ -1,0 +1,21 @@
+{
+  "id": "337fca97-df51-42d9-bb32-aaf11df432b4",
+  "configId": "0a0d7754-6b51-4c01-b1ed-46b100f1c766",
+  "timestamp": "2026-02-17T10:49:07.218Z",
+  "parametersUsed": {
+    "dataPath": "results",
+    "selectedFields": [
+      "total",
+      "results",
+      "values",
+      "country",
+      "website",
+      "brands"
+    ],
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "resultCount": 1000,
+  "status": "success"
+}

@@ -1,10 +1,18 @@
-import { ConfigList } from "./components/ConfigList";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Dashboard } from "./pages/Dashboard";
+import "./index.css";
 
-export default function App() {
+const queryClient = new QueryClient();
+
+function App() {
   return (
-    <div style={{ padding: 20 }}>
-      <h1>API Config Manager</h1>
-      <ConfigList/>
-    </div>
+    <QueryClientProvider client={queryClient}>
+      <div className="dark min-h-screen bg-background">
+        <Dashboard />
+      </div>
+    </QueryClientProvider>
+    
   );
 }
+
+export default App;

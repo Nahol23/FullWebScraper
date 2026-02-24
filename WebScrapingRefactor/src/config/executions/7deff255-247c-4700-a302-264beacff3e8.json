@@ -1,0 +1,33 @@
+{
+  "id": "7deff255-247c-4700-a302-264beacff3e8",
+  "configId": "0a0d7754-6b51-4c01-b1ed-46b100f1c766",
+  "timestamp": "2026-02-17T10:16:17.358Z",
+  "parametersUsed": {
+    "dataPath": "results",
+    "selectedFields": [
+      "results",
+      "results.values",
+      "results.values.country",
+      "results.values.website",
+      "results.values.brands",
+      "results.values.address_1",
+      "results.values.address_2",
+      "results.values.hall",
+      "results.values.booth",
+      "results.values.highlight",
+      "results.values.crm_id",
+      "results.values.phone",
+      "results.values.pavilion",
+      "results.values.name",
+      "results.values.logo",
+      "results.values.categories",
+      "results.values.fax",
+      "results.values.email"
+    ],
+    "headers": {
+      "Content-Type": "application/json"
+    }
+  },
+  "resultCount": 1000,
+  "status": "success"
+}

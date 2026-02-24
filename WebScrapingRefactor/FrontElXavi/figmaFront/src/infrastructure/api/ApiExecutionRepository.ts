@@ -1,9 +1,4 @@
-/**
- * Infrastructure: ApiExecutionRepository Implementation
- * Implements IApiExecutionRepository using Axios
- */
-
-import type { ApiConfig } from "../../domain/entities/ApiConfig";
+import type { ExecutionHistory } from "../../domain/entities/ApiConfig";
 import type { ExecutionResult } from "../../domain/entities/ExecutionResult";
 import type { RuntimeParams } from "../../domain/entities/RuntimeParams";
 import type { IApiExecutionRepository } from "../../domain/ports/IApiExecutionRepository";
@@ -11,130 +6,125 @@ import { ApiExecutionError } from "../../domain/errors/AppError";
 import { HttpClient } from "../http/httpClient";
 
 export class ApiExecutionRepository implements IApiExecutionRepository {
-  private httpClient: HttpClient;
+  constructor(private readonly httpClient: HttpClient) {}
 
-  constructor(httpClient?: HttpClient) {
-    this.httpClient = httpClient || new HttpClient();
-  }
+  async execute(id: string, params?: RuntimeParams): Promise<ExecutionResult> {
+  try {
+    // MODIFICA: invia params direttamente come corpo della richiesta
+    const response = await this.httpClient.post<any>(
+      `/executions/${id}/execute`,
+      params || {} // <-- ora il body è direttamente l'oggetto RuntimeParams
+    );
 
-  async execute(
-    config: ApiConfig,
-    runtimeParams?: RuntimeParams
-  ): Promise<ExecutionResult> {
-    const startTime = Date.now();
+    const { data } = response;
+    const contentType = response.headers['content-type'];
 
-    try {
-      // Build URL with query parameters
-      const url = this.buildUrl(config, runtimeParams);
+    if (!data) {
+      throw new ApiExecutionError("Nessun dato ricevuto dal server");
+    }
 
-      // Prepare headers
-      const headers = { ...config.headers };
+    // CASO 1: Risposta processata (ha già la struttura ExecutionResult)
+    if (
+      data &&
+      typeof data === "object" &&
+      "status" in data &&
+      "data" in data &&
+      "duration" in data
+    ) {
+      return data as ExecutionResult;
+    }
 
-      // Execute request
-      let response;
-      if (config.method === "GET") {
-        response = await this.httpClient.get(url, { headers });
-      } else if (config.method === "POST") {
-        const body = this.buildBody(config, runtimeParams);
-        response = await this.httpClient.post(url, body, { headers });
-      } else {
-        throw new ApiExecutionError(`Unsupported method: ${config.method}`);
-      }
-
-      const duration = Date.now() - startTime;
-
+    // CASO 2: Risposta con struttura ApiResponseDTO (data + meta)
+    if (
+      data &&
+      typeof data === "object" &&
+      "data" in data &&
+      Array.isArray(data.data) &&
+      "meta" in data
+    ) {
       return {
         status: response.status,
         statusText: response.statusText,
-        duration,
-        data: response.data,
-      };
+        duration: 0,
+        data: data.data,
+        contentType,
+      } as ExecutionResult;
+    }
+
+    // CASO 3: Risposta grezza (array)
+    if (Array.isArray(data)) {
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        duration: 0,
+        data: data,
+      } as ExecutionResult;
+    }
+
+    // CASO 4: Risposta grezza (oggetto qualsiasi)
+    if (typeof data === "object" && data !== null) {
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        duration: 0,
+        data: data,
+      } as ExecutionResult;
+    }
+
+    // CASO 5: Fallback - avvolgi tutto in un array
+    return {
+      status: response.status,
+      statusText: response.statusText,
+      duration: 0,
+      data: [data],
+    } as ExecutionResult;
+  } catch (error: any) {
+    throw new ApiExecutionError(
+      error.response?.data?.message || "Errore nell'esecuzione dell'API",
+      error.response?.status,
+      error.response?.data
+    );
+  }
+}
+
+  async getLogsByConfig(configId: string, limit: number = 50): Promise<ExecutionHistory[]> {
+    try {
+      const response = await this.httpClient.get<ExecutionHistory[]>(
+        `/executions/${configId}`,
+        { params: { limit } }
+      );
+      return response.data;
     } catch (error: any) {
-      if (error instanceof ApiExecutionError) {
-        throw error;
-      }
-
-      if (error.response) {
-        // API responded with error status
-        throw new ApiExecutionError(
-          error.response.statusText || "API request failed",
-          error.response.status,
-          error.response.data
-        );
-      } else if (error.request) {
-        // Request made but no response received
-        throw new ApiExecutionError(
-          "No response received from API",
-          0,
-          error.message
-        );
-      } else {
-        // Error setting up request
-        throw new ApiExecutionError(
-          error.message || "Failed to execute API request",
-          undefined,
-          error
-        );
-      }
+      throw new ApiExecutionError(
+        "Errore nel recupero della cronologia esecuzioni",
+        error.response?.status
+      );
     }
   }
 
-  private buildUrl(config: ApiConfig, runtimeParams?: RuntimeParams): string {
-    const baseUrl = config.baseUrl.endsWith("/")
-      ? config.baseUrl.slice(0, -1)
-      : config.baseUrl;
-    const endpoint = config.endpoint.startsWith("/")
-      ? config.endpoint
-      : `/${config.endpoint}`;
-    let url = `${baseUrl}${endpoint}`;
-
-    // Add query parameters for GET requests
-    if (config.method === "GET" && runtimeParams) {
-      const params = new URLSearchParams();
-
-      // Add pagination params
-      if (runtimeParams.page !== undefined) {
-        params.append(
-          config.paginationSettings.offsetParam,
-          String(runtimeParams.page)
-        );
-      }
-      if (runtimeParams.limit !== undefined) {
-        params.append(
-          config.paginationSettings.limitParam,
-          String(runtimeParams.limit)
-        );
-      }
-
-      // Add other runtime params
-      if (runtimeParams.filters) {
-        Object.entries(runtimeParams.filters).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
-            params.append(key, String(value));
-          }
-        });
-      }
-
-      const queryString = params.toString();
-      if (queryString) {
-        url += `?${queryString}`;
-      }
+  async deleteLog(configId: string, executionId: string): Promise<void> {
+    try {
+      await this.httpClient.delete(`/executions/${configId}/${executionId}`);
+    } catch (error: any) {
+      throw new ApiExecutionError(
+        "Errore durante l'eliminazione del log",
+        error.response?.status
+      );
     }
-
-    return url;
   }
 
-  private buildBody(
-    config: ApiConfig,
-    runtimeParams?: RuntimeParams
-  ): Record<string, any> {
-    const body: Record<string, any> = { ...config.bodyParams };
-
-    // Merge runtime params into body
-    if (runtimeParams) {
-      Object.assign(body, runtimeParams);
+  async downloadLogs(configName: string, format: string): Promise<Blob> {
+    try {
+      const response = await this.httpClient.get(`/download/${configName}`, {
+        params: { format },
+        responseType: 'blob'
+      });
+      return response.data;
+    } catch (error: any) {
+      throw new ApiExecutionError(
+        "Errore durante la generazione del file di download",
+        error.response?.status
+      );
     }
-
-    return body;
   }
 }

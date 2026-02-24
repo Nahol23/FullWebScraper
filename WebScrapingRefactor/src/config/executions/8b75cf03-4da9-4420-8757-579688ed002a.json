@@ -1,0 +1,15 @@
+{
+  "id": "8b75cf03-4da9-4420-8757-579688ed002a",
+  "configId": "46876f6d-9b32-48d2-993e-ee488e5e3a6f",
+  "timestamp": "2026-02-13T11:48:20.768Z",
+  "parametersUsed": {
+    "configId": "46876f6d-9b32-48d2-993e-ee488e5e3a6f",
+    "runtimeParams": {
+      "page": 1,
+      "limit": 100
+    },
+    "timestamp": "2026-02-13T11:48:20.113Z"
+  },
+  "resultCount": 12,
+  "status": "success"
+}

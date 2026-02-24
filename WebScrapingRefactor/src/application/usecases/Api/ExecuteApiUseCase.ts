@@ -1,157 +1,240 @@
 import { IConfigRepository } from "../../../domain/ports/IConfigRepository";
 import { IApiPort } from "../../../domain/ports/Api/IApiPort";
 import { ApiResponseDTO } from "../../dto/ApiResponseDto";
-import { getNestedData, findFirstArrayPath } from "../../../infrastructure/utils/ObjectUtils";
+import {
+  getNestedData,
+  findFirstArrayPath,
+} from "../../../infrastructure/utils/ObjectUtils";
 import { IExecutionRepository } from "../../../domain/ports/Execution/IExecutionRepository";
 import { Execution } from "../../../domain/entities/Execution";
 import { randomUUID } from "crypto";
+
 export class ExecuteApiUseCase {
   constructor(
     private readonly configRepo: IConfigRepository,
     private readonly executionRepo: IExecutionRepository,
-    private readonly apiPort: IApiPort
+    private readonly apiPort: IApiPort,
   ) {}
 
-  async execute(idOrName: string, runtimeParams?: Record<string, unknown>): Promise<ApiResponseDTO> {
-    
-    // 1. Cerca per ID, se fallisce cerca per Nome (Logica Robustezza dal Main)
-    let config = await this.configRepo.findById(idOrName);
-    if (!config) {
-      config = await this.configRepo.findByName(idOrName);
-    }
-
-    if (!config) {
-      throw new Error(`Configurazione '${idOrName}' non trovata`);
-    }
-
-
-    const effectiveDataPath = runtimeParams?.dataPath !== undefined 
-    ? runtimeParams.dataPath as string|undefined
-    : config.dataPath;
-    const effectiveSelectedFields = runtimeParams?.selectedFields !== undefined
-     ? runtimeParams.selectedFields as string[]|undefined
-     : config.selectedFields;
-    const effectiveLimit = runtimeParams?.limit !== undefined 
-    ? runtimeParams.limit 
-    : config.pagination?.defaultLimit;
-
-
-    // --- COSTRUZIONE URL ---
-    const url = this.buildUrl(config.baseUrl, config.endpoint);
-    
-    if (config.queryParams) {
-      config.queryParams.forEach(param => url.searchParams.set(param.key, param.value));
-    }
-    
-    // --- COSTRUZIONE BODY ---
-    let finalBody = config.body !== undefined && config.body !== null
-      ? JSON.parse(JSON.stringify(config.body))
-      : undefined;
-
-    // --- COSTRUZIONE HEADERS ---
-    const finalHeaders: Record<string, string> = {
-      ...(config.headers || {})
-    };
-
-      let apiParams: Record<string, unknown> = {};
-    if (runtimeParams) {
-      // Estrai i meta-params che NON vanno nell'URL/Body
-      const { headers, dataPath, selectedFields, limit, ...rest } = runtimeParams;
-      
-      // Merge degli headers
-      if (headers) {
-        Object.assign(finalHeaders, headers as Record<string, string>);
-      }
-      
-      // Il resto va in URL o Body
-      apiParams = rest;
-    }
-
-    // --- MERGE PARAMETRI ---
-    if (Object.keys(apiParams).length > 0) {
-      this.mergeRuntimeParams(config.method, url, finalBody, apiParams);
-    }
-    let responseData: unknown;
-    let status: "success" | "error" = "success";
-    let errorMessage: string | undefined;
-
+  async execute(
+    idOrName: string,
+    runtimeParams?: Record<string, unknown>,
+  ): Promise<ApiResponseDTO | any> {
     try {
-      responseData = await this.apiPort.request({
-        url: url.toString(),
-        method: config.method,
-        body: config.method.toUpperCase() === 'GET' ? undefined : finalBody,
-        headers: finalHeaders
-      });
-    } catch (error) {
-      status = "error";
-      errorMessage = (error as Error).message;
-      throw error; 
-    } finally {
-      const execution: Execution = {
-        id: randomUUID(),
-        configId: config.id,
-        timestamp: new Date(),
-        parametersUsed: runtimeParams || {},
-        resultCount: 0, 
-        status: status,
-        errorMessage: errorMessage
+      // 1. Cerca per ID, se fallisce cerca per Nome
+      let config = await this.configRepo.findById(idOrName);
+      if (!config) {
+        config = await this.configRepo.findByName(idOrName);
+      }
+
+      if (!config) {
+        throw new Error(`Configurazione '${idOrName}' non trovata`);
+      }
+
+      const effectiveDataPath =
+        runtimeParams?.dataPath !== undefined
+          ? (runtimeParams.dataPath as string | undefined)
+          : config.dataPath;
+      const effectiveSelectedFields =
+        runtimeParams?.selectedFields !== undefined
+          ? (runtimeParams.selectedFields as string[] | undefined)
+          : config.selectedFields;
+      const effectiveLimit =
+        runtimeParams?.limit !== undefined
+          ? runtimeParams.limit
+          : config.pagination?.defaultLimit;
+
+      // --- COSTRUZIONE URL ---
+      const url = this.buildUrl(config.baseUrl, config.endpoint);
+
+      if (config.queryParams) {
+        config.queryParams.forEach((param) =>
+          url.searchParams.set(param.key, param.value),
+        );
+      }
+
+      // --- COSTRUZIONE BODY ---
+      let finalBody: any = undefined;
+      if (config.method.toUpperCase() !== "GET" && config.body) {
+        try {
+          finalBody =
+            typeof config.body === "string"
+              ? JSON.parse(config.body)
+              : JSON.parse(JSON.stringify(config.body));
+        } catch (e) {
+          finalBody = {}; // Fallback sicuro
+        }
+      }
+
+      // --- COSTRUZIONE HEADERS ---
+      let finalHeaders: Record<string, string> = {
+        ...(config.headers || {}),
       };
 
-      if (status === "success" && responseData) {
-        const rawArray = this.extractArray(responseData, effectiveDataPath);
-        execution.resultCount = rawArray.length;
+      let apiParams: Record<string, unknown> = {};
+      if (runtimeParams) {
+        const { headers, dataPath, selectedFields, limit, ...rest } =
+          runtimeParams;
+
+        if (headers) {
+          Object.entries(headers as Record<string, unknown>).forEach(
+            ([k, v]) => {
+              finalHeaders[k] = v === undefined || v === null ? "" : String(v);
+            },
+          );
+        }
+
+        apiParams = Object.fromEntries(
+          Object.entries(rest).filter(([_, v]) => v !== undefined && v !== ""),
+        );
       }
 
-      await this.executionRepo.save(execution);
+      if (Object.keys(apiParams).length > 0) {
+        this.mergeRuntimeParams(config.method, url, finalBody, apiParams);
+      }
+
+      let responseData: unknown;
+      let status: "success" | "error" = "success";
+      let errorMessage: string | undefined;
+
+      console.log("[UseCase] API Request:", {
+        url: url.toString(),
+        method: config.method,
+        headers: finalHeaders,
+        body: config.method.toUpperCase() === "GET" ? undefined : finalBody,
+        apiParams,
+      });
+
+      try {
+        responseData = await this.apiPort.request({
+          url: url.toString(),
+          method: config.method,
+          body: config.method.toUpperCase() === "GET" ? undefined : finalBody,
+          headers: finalHeaders,
+        });
+      } catch (error) {
+        status = "error";
+        errorMessage = (error as Error).message;
+        throw error;
+      } finally {
+        const execution: Execution = {
+          id: randomUUID(),
+          configId: config.id,
+          timestamp: new Date(),
+          parametersUsed: runtimeParams || {},
+          resultCount: 0,
+          status: status,
+          errorMessage: errorMessage,
+        };
+
+        if (status === "success" && responseData) {
+          const rawArray = this.extractArray(responseData, effectiveDataPath);
+          execution.resultCount = rawArray.length;
+        }
+
+        await this.executionRepo.save(execution);
+      }
+
+      const hasDataPathTransform =
+        runtimeParams?.dataPath !== undefined ||
+        (config.dataPath && runtimeParams?.dataPath === undefined);
+
+      const hasSelectedFieldsTransform =
+        runtimeParams?.selectedFields !== undefined ||
+        (config.selectedFields?.length &&
+          runtimeParams?.selectedFields === undefined);
+
+      const hasFilter = !!(config.filter && config.filter.field);
+      const hasLimit = runtimeParams?.limit !== undefined;
+
+      const hasTransformations =
+        hasDataPathTransform ||
+        hasSelectedFieldsTransform ||
+        hasFilter ||
+        hasLimit;
+
+      if (!hasTransformations) {
+        return responseData;
+      }
+
+      let targetArray = this.extractArray(responseData, effectiveDataPath);
+      targetArray = this.applyLimitSafety(
+        targetArray,
+        runtimeParams?.limit,
+        config.pagination?.defaultLimit,
+      );
+      if (targetArray.length > 0) {
+        console.log(
+          "[ExecuteApiUseCase] Chiavi del primo elemento raw:",
+          Object.keys(targetArray),
+        );
+        console.log(
+          "[ExecuteApiUseCase] Primo elemento raw:",
+          JSON.stringify(targetArray[0], null, 2),
+        );
+      }
+      if (config.filter?.field && config.filter?.value !== undefined) {
+        targetArray = this.applyFilter(
+          targetArray,
+          config.filter as { field: string; value: unknown },
+        );
+      }
+
+      if (effectiveSelectedFields && effectiveSelectedFields.length > 0) {
+        targetArray = this.selectFields(targetArray, effectiveSelectedFields);
+      }
+
+      const validObjects = targetArray.filter(
+        (item) =>
+          item !== null && typeof item === "object" && !Array.isArray(item),
+      );
+
+      return {
+        data: targetArray,
+        filteredBy: config.filter,
+        meta: {
+          paths: effectiveDataPath ? [effectiveDataPath] : [],
+          total: targetArray.length,
+          limit:
+            typeof effectiveLimit === "number" ? effectiveLimit : undefined,
+          validObjectsCount: validObjects.length,
+        },
+      };
+    } catch (error) {
+      console.error("[ExecuteApiUseCase] Unhandled error:", error);
+      if (error instanceof Error) {
+        console.error("Stack:", error.stack);
+      }
+      throw error; // Rilancia per il gestore globale di Fastify
     }
-
-    let targetArray = this.extractArray(responseData, effectiveDataPath);
-
-    // --- APPLICA LIMIT SAFETY ---
-    targetArray = this.applyLimitSafety(targetArray, runtimeParams?.limit, config.pagination?.defaultLimit);
-
-    // --- FILTRI ---
-    if (config.filter?.field && config.filter?.value !== undefined) {
-      targetArray = this.applyFilter(targetArray, config.filter as { field: string; value: unknown });
-    }
-
-    if (effectiveSelectedFields && effectiveSelectedFields.length > 0) {
-      targetArray = this.selectFields(targetArray, effectiveSelectedFields);
-    }
-
-    const validObjects = targetArray.filter(
-      item => item !== null && typeof item === 'object' && !Array.isArray(item)
-    );
-
-    return {
-      data: targetArray,
-      filteredBy: config.filter,
-      meta: {
-        paths: effectiveDataPath ? [effectiveDataPath] : [],
-        total: targetArray.length,
-        limit: typeof effectiveLimit === 'number' ? effectiveLimit : undefined,
-        validObjectsCount: validObjects.length,
-      },
-    };
   }
 
-
+  // Tutti i metodi privati rimangono identici
   private buildUrl(baseUrl: string, endpoint: string): URL {
     const base = baseUrl.replace(/\/+$/, "");
-    const path = endpoint.replace(/^\/+/, "").replace(/\/+$/, "");
-    return new URL(`${base}/${path}`);
+    const [path, queryString] = endpoint.split("?");
+    const cleanPath = path.replace(/^\/+/, "").replace(/\/+$/, "");
+
+    const url = new URL(`${base}/${cleanPath}`);
+
+    if (queryString) {
+      const params = new URLSearchParams(queryString);
+      params.forEach((value, key) => url.searchParams.set(key, value));
+    }
+
+    return url;
   }
 
   private mergeRuntimeParams(
     method: string,
     url: URL,
     body: Record<string, unknown> | undefined,
-    runtimeParams: Record<string, unknown>
+    runtimeParams: Record<string, unknown>,
   ): void {
     const isPost = method.toUpperCase() === "POST";
 
     Object.entries(runtimeParams).forEach(([key, value]) => {
-      const hasDot = key.includes('.');
+      const hasDot = key.includes(".");
       const existsInBody = body ? this.keyExistsInObject(body, key) : false;
 
       if (isPost && body && (hasDot || existsInBody)) {
@@ -180,25 +263,25 @@ export class ExecuteApiUseCase {
       return responseData;
     }
 
-    return responseData !== null && responseData !== undefined 
-      ? [responseData] 
+    return responseData !== null && responseData !== undefined
+      ? [responseData]
       : [];
   }
 
   private applyFilter(
     data: unknown[],
-    filter: { field: string; value: unknown }
+    filter: { field: string; value: unknown },
   ): unknown[] {
-    return data.filter(item => {
+    return data.filter((item) => {
       const value = this.getNestedValue(item, filter.field);
-      return value == filter.value; 
+      return value == filter.value;
     });
   }
 
   private selectFields(data: unknown[], fields: string[]): unknown[] {
-    return data.map(item => {
+    return data.map((item) => {
       const filtered: Record<string, unknown> = {};
-      fields.forEach(field => {
+      fields.forEach((field) => {
         filtered[field] = this.getNestedValue(item, field);
       });
       return filtered;
@@ -206,20 +289,23 @@ export class ExecuteApiUseCase {
   }
 
   private getNestedValue(obj: unknown, path: string): unknown {
-    return path.split('.').reduce<unknown>((current, key) => {
-      if (current && typeof current === 'object' && !Array.isArray(current)) {
+    return path.split(".").reduce<unknown>((current, key) => {
+      if (current && typeof current === "object" && !Array.isArray(current)) {
         return (current as Record<string, unknown>)[key];
       }
       return undefined;
     }, obj);
   }
 
-  private keyExistsInObject(obj: Record<string, unknown>, key: string): boolean {
+  private keyExistsInObject(
+    obj: Record<string, unknown>,
+    key: string,
+  ): boolean {
     const parts = key.split(".");
     let current: unknown = obj;
 
     for (const part of parts) {
-      if (!current || typeof current !== 'object' || Array.isArray(current)) {
+      if (!current || typeof current !== "object" || Array.isArray(current)) {
         return false;
       }
       const currentObj = current as Record<string, unknown>;
@@ -234,7 +320,7 @@ export class ExecuteApiUseCase {
   private setNestedValue(
     obj: Record<string, unknown>,
     key: string,
-    value: unknown
+    value: unknown,
   ): void {
     const parts = key.split(".");
     let current: Record<string, unknown> = obj;
@@ -243,7 +329,7 @@ export class ExecuteApiUseCase {
       const part = parts[i];
       if (
         !(part in current) ||
-        typeof current[part] !== 'object' ||
+        typeof current[part] !== "object" ||
         current[part] === null ||
         Array.isArray(current[part])
       ) {
@@ -254,16 +340,13 @@ export class ExecuteApiUseCase {
     current[parts[parts.length - 1]] = value;
   }
 
-  // ✅ CONFLITTO RISOLTO: Mantenuto il metodo privato dal branch HEAD
   private applyLimitSafety(
     data: unknown[],
-    runtimeLimit: unknown, // Passiamo 'unknown' per testare la robustezza
-    configDefaultLimit?: number
+    runtimeLimit: unknown,
+    configDefaultLimit?: number,
   ): unknown[] {
-    
     let limit: number | undefined = undefined;
 
-    // 1. Parsing Robusto
     if (runtimeLimit !== undefined && runtimeLimit !== null) {
       const parsed = Number(runtimeLimit);
       if (!isNaN(parsed) && parsed >= 0) {
@@ -271,23 +354,18 @@ export class ExecuteApiUseCase {
       }
     }
 
-    // 2. Fallback Config
     if (limit === undefined && configDefaultLimit) {
       limit = configDefaultLimit;
     }
 
-    // 3. Logica Core
-    // Se limit è 0 (Download All) -> Ritorna tutto
     if (limit === 0) {
       return data;
     }
 
-    // Se c'è un limite valido e l'array è troppo lungo -> Taglia
     if (limit !== undefined && limit > 0 && data.length > limit) {
       return data.slice(0, limit);
     }
 
-    // Altrimenti ritorna originale
     return data;
   }
 }

@@ -24,6 +24,8 @@ import { ExecuteApiUseCase } from "../../../application/usecases/Api/ExecuteApiU
 import { GetAllAnalysesUseCase } from "../../../application/usecases/Analysis/GetAllAnalysisUseCase";
 import { GetAllExecutionsUseCase } from "../../../application/usecases/Execution/GetAllExecutionsUseCase";
 import { DownloadAllUseCase } from "../../../application/usecases/Api/DownloadAllUseCase";
+import { GetAllExecutionsByConfigUseCase } from "../../../application/usecases/Execution/GetAllExecutionByConfigUseCase";
+import { DeleteExecutionUseCase } from "../../../application/usecases/Execution/DeleteExecutionUsecase";
 
 export async function configRoutes(fastify: FastifyInstance) {
   // 1. REPOSITORIES AND ADAPTERS
@@ -34,8 +36,15 @@ export async function configRoutes(fastify: FastifyInstance) {
   const formatService = new FormatDataService(); // Istanziamo qui il servizio
 
   // 2. USE CASES (Logic strictly preserved as requested)
-  const createAnalysisUseCase = new CreateAnalysisUseCase(apiAdapter, analysisRepo);
-  const executeApiUseCase = new ExecuteApiUseCase(configRepo, executionRepo, apiAdapter);
+  const createAnalysisUseCase = new CreateAnalysisUseCase(
+    apiAdapter,
+    analysisRepo,
+  );
+  const executeApiUseCase = new ExecuteApiUseCase(
+    configRepo,
+    executionRepo,
+    apiAdapter,
+  );
 
   const getAllConfigsUseCase = new GetAllConfigsUseCase(configRepo);
   const getConfigByIdUseCase = new GetConfigByIdUseCase(configRepo);
@@ -45,15 +54,17 @@ export async function configRoutes(fastify: FastifyInstance) {
   const deleteConfigUseCase = new DeleteConfigUseCase(configRepo);
   const getAllAnalysesUseCase = new GetAllAnalysesUseCase(analysisRepo);
   const getAllExecutionsUseCase = new GetAllExecutionsUseCase(executionRepo);
-  
-  
+  const getAllExecutionByConfigUseCase = new GetAllExecutionsByConfigUseCase(
+    executionRepo,
+  );
+  const deleteExecutionUsecase = new DeleteExecutionUseCase(executionRepo);
+
   const downloadAllUseCase = new DownloadAllUseCase(
     configRepo,
     executeApiUseCase,
-    formatService
+    formatService,
   );
 
-  
   const controller = new ConfigController(
     updateConfigUseCase,
     getAllConfigsUseCase,
@@ -61,14 +72,16 @@ export async function configRoutes(fastify: FastifyInstance) {
     getConfigByIdUseCase,
     saveConfigUseCase,
     deleteConfigUseCase,
-    executeApiUseCase, // Rimosso "as any" se i tipi sono allineati
+    executeApiUseCase,
     createAnalysisUseCase,
     getAllAnalysesUseCase,
     getAllExecutionsUseCase,
-    downloadAllUseCase
+    getAllExecutionByConfigUseCase,
+    deleteExecutionUsecase,
+    downloadAllUseCase,
   );
 
-   const errorResponseSchema = {
+  const errorResponseSchema = {
     type: "object",
     properties: {
       error: { type: "string" },
@@ -78,26 +91,24 @@ export async function configRoutes(fastify: FastifyInstance) {
     },
   };
 
-  
   const idParamSchema = {
     type: "object",
     required: ["id"],
     properties: { id: { type: "string" } },
   };
 
-  
   const configBodySchema = {
     type: "object",
     required: ["name", "baseUrl", "endpoint", "method"],
     properties: {
       // TODO: Decidere se includere 'id' in base alla response effettiva
-       id: { type: "string", readOnly: true },
-      
+      id: { type: "string", readOnly: true },
+
       name: { type: "string", examples: ["Nome API"] },
       baseUrl: { type: "string", examples: ["https://api.esempio.it"] },
       endpoint: { type: "string", examples: ["/v1/data"] },
       method: { type: "string", enum: ["GET", "POST"], examples: ["GET"] },
-      
+
       queryParams: {
         type: "array",
         items: {
@@ -110,7 +121,7 @@ export async function configRoutes(fastify: FastifyInstance) {
         },
         examples: [[{ key: "v", value: "1" }]],
       },
-      
+
       headers: {
         type: "object",
         additionalProperties: { type: "string" },
@@ -122,7 +133,7 @@ export async function configRoutes(fastify: FastifyInstance) {
           },
         ],
       },
-      
+
       body: {
         type: "object",
         additionalProperties: true,
@@ -133,8 +144,7 @@ export async function configRoutes(fastify: FastifyInstance) {
           },
         ],
       },
-      
-      
+
       pagination: {
         type: "object",
         nullable: true,
@@ -142,28 +152,30 @@ export async function configRoutes(fastify: FastifyInstance) {
           type: { type: "string", enum: ["offset", "page"] },
           paramName: { type: "string" },
           limitParam: { type: "string" },
-          defaultLimit: { type: "number" }
+          defaultLimit: { type: "number" },
         },
-        examples: [{
-          type: "page",
-          paramName: "page",
-          limitParam: "limit",
-          defaultLimit: 50
-        }]
+        examples: [
+          {
+            type: "page",
+            paramName: "page",
+            limitParam: "limit",
+            defaultLimit: 50,
+          },
+        ],
       },
-      
+
       dataPath: { type: "string", examples: ["data.results"] },
-      
+
       filter: {
         type: "object",
         nullable: true,
         properties: {
           field: { type: "string" },
-          value: { type: ["string", "number", "boolean"] }
+          value: { type: ["string", "number", "boolean"] },
         },
-        examples: [{ field: "status", value: "active" }]
+        examples: [{ field: "status", value: "active" }],
       },
-      
+
       selectedFields: {
         type: "array",
         items: { type: "string" },
@@ -179,7 +191,7 @@ export async function configRoutes(fastify: FastifyInstance) {
       baseUrl: { type: "string", examples: ["https://api.esempio.it"] },
       endpoint: { type: "string", examples: ["/v1/data"] },
       method: { type: "string", enum: ["GET", "POST"], examples: ["GET"] },
-      
+
       queryParams: {
         type: "array",
         items: {
@@ -191,17 +203,17 @@ export async function configRoutes(fastify: FastifyInstance) {
           },
         },
       },
-      
+
       headers: {
         type: "object",
         additionalProperties: { type: "string" },
       },
-      
+
       body: {
         type: "object",
         additionalProperties: true,
       },
-      
+
       pagination: {
         type: "object",
         nullable: true,
@@ -209,21 +221,21 @@ export async function configRoutes(fastify: FastifyInstance) {
           type: { type: "string", enum: ["offset", "page"] },
           paramName: { type: "string" },
           limitParam: { type: "string" },
-          defaultLimit: { type: "number" }
-        }
+          defaultLimit: { type: "number" },
+        },
       },
-      
+
       dataPath: { type: "string" },
-      
+
       filter: {
         type: "object",
         nullable: true,
         properties: {
           field: { type: "string" },
-          value: { type: ["string", "number", "boolean"] }
-        }
+          value: { type: ["string", "number", "boolean"] },
+        },
       },
-      
+
       selectedFields: {
         type: "array",
         items: { type: "string" },
@@ -237,7 +249,6 @@ export async function configRoutes(fastify: FastifyInstance) {
     properties: { name: { type: "string" } },
   };
 
-  
   const configNameParamSchema = {
     type: "object",
     required: ["configName"],
@@ -247,12 +258,10 @@ export async function configRoutes(fastify: FastifyInstance) {
   const downloadQuerySchema = {
     type: "object",
     properties: {
-      format: { type: "string", enum: ["json", "markdown"] }
-    }
+      format: { type: "string", enum: ["json", "markdown"] },
+    },
   };
 
- 
-  
   fastify.get(
     "/configs",
     {
@@ -362,7 +371,6 @@ export async function configRoutes(fastify: FastifyInstance) {
     controller.delete,
   );
 
-  
   fastify.post(
     "/executions/analyze",
     {
@@ -382,12 +390,27 @@ export async function configRoutes(fastify: FastifyInstance) {
         response: {
           200: {
             type: "object",
+            additionalProperties: true,
             properties: {
-              sampleData: { type: "object", additionalProperties: true },
-              suggestedFields: {
-                type: "array",
-                items: { type: "string" },
+              id: { type: "string" },
+              url: { type: "string" },
+              method: { type: "string" },
+              body: { type: "object", additionalProperties: true },
+              headers: { type: "object", additionalProperties: true },
+              status: { type: "string" },
+              discoveredSchema: {
+                type: "object",
+                properties: {
+                  suggestedFields: {
+                    type: "array",
+                    items: { type: "string" },
+                  },
+                  dataPath: { type: "string" },
+                  params: { type: "array", additionalProperties: true },
+                },
+                additionalProperties: true,
               },
+              createdAt: { type: "string" },
             },
           },
           400: errorResponseSchema,
@@ -419,8 +442,6 @@ export async function configRoutes(fastify: FastifyInstance) {
     controller.getAllAnalyses,
   );
 
- 
-  
   fastify.post(
     "/executions/:name/execute",
     {
@@ -428,38 +449,20 @@ export async function configRoutes(fastify: FastifyInstance) {
         summary: "Execute API config with optional runtime params",
         tags: ["Execution"],
         params: nameParamSchema,
-        body: { 
-          type: "object", 
+        body: {
+          type: "object",
           additionalProperties: true,
-          examples: [{
-            limit: 10,
-            page: 1,
-            headers: { "X-Custom": "value" }
-          }]
-        },
-        response: {
-          200: {
-            type: "object",
-            properties: {
-              data: { type: "array" },
-              filteredBy: { type: "object" },
-              meta: {
-                type: "object",
-                properties: {
-                  paths: { type: "array", items: { type: "string" } },
-                  total: { type: "number" },
-                  limit: { type: "number" },
-                  validObjectsCount: { type: "number" }
-                }
-              }
-            }
-          },
-          404: errorResponseSchema,
-          500: errorResponseSchema,
+          examples: [
+            {
+              limit: 10,
+              page: 1,
+              headers: { "X-Custom": "value" },
+            },
+          ],
         },
       },
     },
-    controller.execute, 
+    controller.execute,
   );
 
   fastify.get(
@@ -482,9 +485,53 @@ export async function configRoutes(fastify: FastifyInstance) {
     },
     controller.getAllExecutions,
   );
+  fastify.get(
+    "/executions/:configId",
+    {
+      schema: {
+        summary: "Get executions config history",
+        tags: ["Execution"],
+        response: {
+          200: {
+            type: "array",
+            items: {
+              type: "object",
+              additionalProperties: true,
+            },
+          },
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.getExecutionsByConfig,
+  );
 
+  fastify.delete(
+    "/executions/:configId/:executionId",
+    {
+      schema: {
+        summary: "Delete execution history entry",
+        tags: ["Execution"],
+        params: {
+          type: "object",
+          properties: {
+            configId: { type: "string" },
+            executionId: { type: "string" },
+          },
+          required: ["configId", "executionId"],
+        },
+        response: {
+          204: {
+            type: "null",
+            description: "Execution deleted successfully",
+          },
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.deleteExecution,
+  );
 
-  
   fastify.get(
     "/configs/:configName/download",
     {
@@ -497,7 +544,7 @@ export async function configRoutes(fastify: FastifyInstance) {
           200: {
             description: "File scaricato con successo",
             type: "string",
-            format: "binary"
+            format: "binary",
           },
           404: errorResponseSchema,
           500: errorResponseSchema,
@@ -507,4 +554,3 @@ export async function configRoutes(fastify: FastifyInstance) {
     controller.download,
   );
 }
-

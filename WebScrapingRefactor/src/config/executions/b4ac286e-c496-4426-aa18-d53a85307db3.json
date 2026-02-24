@@ -1,0 +1,12 @@
+{
+  "id": "b4ac286e-c496-4426-aa18-d53a85307db3",
+  "configId": "46876f6d-9b32-48d2-993e-ee488e5e3a6f",
+  "timestamp": "2026-02-13T15:15:47.705Z",
+  "parametersUsed": {
+    "page": 1,
+    "limit": 10,
+    "nextResult": {}
+  },
+  "resultCount": 12,
+  "status": "success"
+}

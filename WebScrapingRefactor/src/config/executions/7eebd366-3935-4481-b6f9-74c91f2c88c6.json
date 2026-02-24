@@ -1,0 +1,18 @@
+{
+  "id": "7eebd366-3935-4481-b6f9-74c91f2c88c6",
+  "configId": "d9e81078-e31b-40bf-b6b8-bffe349b2099",
+  "timestamp": "2026-02-13T16:09:15.103Z",
+  "parametersUsed": {
+    "configId": "d9e81078-e31b-40bf-b6b8-bffe349b2099",
+    "runtimeParams": {
+      "body": {
+        "page": 3,
+        "limit": 100,
+        "nextResult": {}
+      }
+    },
+    "timestamp": "2026-02-13T16:09:12.382Z"
+  },
+  "resultCount": 60,
+  "status": "success"
+}
