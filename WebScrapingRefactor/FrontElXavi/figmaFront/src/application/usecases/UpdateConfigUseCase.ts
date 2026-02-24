@@ -22,9 +22,10 @@ export class UpdateConfigUseCase {
     this.validateConfig(config);
 
     // Update configuration
-    return await this.configRepository.update(config);
-  }
+   await this.configRepository.update(config.id, config);
+    return config;
 
+  }
   private validateConfig(config: ApiConfig): void {
     if (!config.name || config.name.trim().length === 0) {
       throw new ValidationError("Configuration name is required", "name");

@@ -34,8 +34,12 @@
   "homepage": "https://github.com/EidolonPoe/WebScrapingProva#readme",
   "devDependencies": {
     "@types/node": "^24.10.9",
+    "@types/uuid": "^10.0.0",
     "@types/ws": "^8.18.1",
-    "@vitest/coverage-v8": "^4.0.17",
+    "@typescript-eslint/eslint-plugin": "^8.56.0",
+    "@typescript-eslint/parser": "^8.56.0",
+    "@vitest/coverage-v8": "^4.0.18",
+    "eslint": "^10.0.1",
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
