@@ -44,8 +44,8 @@ export function ExecuteTab({
   const [inputMode, setInputMode] = useState<"easy" | "raw">("easy");
 
   // --- Easy Mode state ---
-  const [easyPage, setEasyPage] = useState("1");
-  const [easyLimit, setEasyLimit] = useState("100");
+  const [easyPage, setEasyPage] = useState("");
+  const [easyLimit, setEasyLimit] = useState("");
   const [customHeaders, setCustomHeaders] = useState(
     JSON.stringify(config.headers || {}, null, 2),
   );

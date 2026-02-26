@@ -52,6 +52,10 @@ export class ExecuteApiUseCase {
           url.searchParams.set(param.key, param.value),
         );
       }
+      console.log(
+        "[ExecuteApiUseCase] URL finale con queryParams:",
+        url.toString(),
+      );
 
       // --- COSTRUZIONE BODY ---
       let finalBody: any = undefined;
@@ -73,8 +77,14 @@ export class ExecuteApiUseCase {
 
       let apiParams: Record<string, unknown> = {};
       if (runtimeParams) {
-        const { headers, dataPath, selectedFields, limit, ...rest } =
-          runtimeParams;
+        const {
+          headers,
+          dataPath,
+          selectedFields,
+          limit,
+          queryParams,
+          ...rest
+        } = runtimeParams;
 
         if (headers) {
           Object.entries(headers as Record<string, unknown>).forEach(
@@ -91,6 +101,20 @@ export class ExecuteApiUseCase {
 
       if (Object.keys(apiParams).length > 0) {
         this.mergeRuntimeParams(config.method, url, finalBody, apiParams);
+      }
+
+      //  gestione parametri di query da runtimeParams.queryParams
+      if (
+        runtimeParams?.queryParams &&
+        typeof runtimeParams.queryParams === "object"
+      ) {
+        Object.entries(
+          runtimeParams.queryParams as Record<string, unknown>,
+        ).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            url.searchParams.set(key, String(value));
+          }
+        });
       }
 
       let responseData: unknown;
