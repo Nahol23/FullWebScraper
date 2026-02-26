@@ -346,7 +346,7 @@ export function ExecuteTab({
               <Badge
                 key={index}
                 variant="outline"
-                className="bg-zinc-800 text-zinc-300 font-mono text-xs"
+                className="bg-zinc-800 text-zinc-300 font-mono text-xs whitespace-normal break-words"
               >
                 {field}
               </Badge>

@@ -83,9 +83,23 @@ export class ExecuteApiUseCase {
           selectedFields,
           limit,
           queryParams,
+          body,
           ...rest
         } = runtimeParams;
 
+        if (body !== undefined) {
+          if (typeof body === "string") {
+            try {
+              finalBody = JSON.parse(body);
+            } catch {
+              finalBody = body;
+            }
+          } else {
+            finalBody = body;
+          }
+        }
+
+        // Gestione headers...
         if (headers) {
           Object.entries(headers as Record<string, unknown>).forEach(
             ([k, v]) => {

@@ -3,20 +3,14 @@
   "baseUrl": "https://digital.agritechnica.com",
   "endpoint": "/api/v1/search/exhibitors",
   "method": "POST",
-  "id": "39626243-a7c2-4ece-a7d0-1507366746ea",
+  "id": "4fbf0869-94c0-4e6b-81b3-3ea265cd4ea5",
   "headers": {
     "Content-Type": "application/json"
   },
   "body": {
-    "page": 3,
+    "page": 2,
     "limit": 100,
     "nextResult": {}
-  },
-  "pagination": {
-    "type": "offset",
-    "paramName": "offset",
-    "limitParam": "limit",
-    "defaultLimit": 50
   },
   "dataPath": "data.list",
   "selectedFields": [
