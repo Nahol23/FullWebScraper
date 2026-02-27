@@ -1,0 +1,34 @@
+{
+  "id": "5130495b-fd9e-42cd-a3ef-cdd685327fc7",
+  "configId": "bde1ed17-9ebe-489c-9d00-e2b76144fcfa",
+  "timestamp": "2026-02-26T10:33:55.767Z",
+  "parametersUsed": {
+    "dataPath": "hits",
+    "selectedFields": [
+      "hits.identifier",
+      "hits.name",
+      "hits.biography",
+      "hits.products",
+      "hits.social_links",
+      "hits.social_links.url",
+      "hits.created_at",
+      "hits.show_email",
+      "hits.show_addresses",
+      "hits.show_phones"
+    ],
+    "headers": {
+      "Content-Type": "application/json",
+      "X-Algolia-Application-Id": "9WUDIPIUPO",
+      "X-Algolia-API-Key": "df8a06b8eb5d9bd0839e88fc7606560f"
+    },
+    "body": {
+      "query": "",
+      "hitsPerPage": 10,
+      "attributesToRetrieve": [
+        "*"
+      ]
+    }
+  },
+  "resultCount": 10,
+  "status": "success"
+}

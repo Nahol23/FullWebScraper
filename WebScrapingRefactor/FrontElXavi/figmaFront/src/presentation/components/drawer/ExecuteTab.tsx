@@ -112,7 +112,7 @@ export function ExecuteTab({
     }
   }, [latestResult]);
 
-  // Sincronizza stati quando cambia la configurazione
+  // Sincronizza stati con la configurazione solo quando cambia l'id (nuova configurazione)
   useEffect(() => {
     setCustomHeaders(JSON.stringify(config.headers || {}, null, 2));
     setCustomBody(JSON.stringify(config.body || {}, null, 2));
@@ -134,21 +134,21 @@ export function ExecuteTab({
     );
     setCustomDataPath(config.dataPath || "");
     setUseCustomSelectedFields(false);
-  }, [config]);
+    // Resetta anche page/limit quando si cambia configurazione
+    setEasyPage("");
+    setEasyLimit("");
+  }, [config.id]); // solo quando l'id cambia
+
   useEffect(() => {
     console.log("[ExecuteTab] latestResult changed:", latestResult);
   }, [latestResult]);
+
   const handleExecute = async () => {
     let params: RuntimeParams = {};
 
     if (inputMode === "easy") {
       try {
-        if (easyPage && easyPage.trim() !== "") {
-          params.page = parseInt(easyPage, 10);
-        }
-        if (easyLimit && easyLimit.trim() !== "") {
-          params.limit = parseInt(easyLimit, 10);
-        }
+        // --- Gestione parametri base ---
         if (customDataPath !== undefined) {
           params.dataPath = customDataPath;
         }
@@ -190,11 +190,39 @@ export function ExecuteTab({
         } else if (config.selectedFields && config.selectedFields.length > 0) {
           params.selectedFields = config.selectedFields;
         }
+
+        // --- Gestione specifica di page/limit in base al metodo HTTP ---
+        if (config.method === "POST") {
+          // Per POST: page e limit vanno nel body
+          let bodyObj = params.body ? { ...params.body } : {};
+          if (easyPage && easyPage.trim() !== "") {
+            bodyObj.page = parseInt(easyPage, 10);
+          }
+          if (easyLimit && easyLimit.trim() !== "") {
+            // Per Algolia si chiama hitsPerPage; se la tua API usa un nome diverso, modifica qui
+            bodyObj.hitsPerPage = parseInt(easyLimit, 10);
+          }
+          if (Object.keys(bodyObj).length > 0) {
+            params.body = bodyObj;
+          }
+          // Rimuovi eventuali page/limit a livello radice
+          delete params.page;
+          delete params.limit;
+        } else {
+          // Per GET: page e limit vanno come query parameters
+          if (easyPage && easyPage.trim() !== "") {
+            params.page = parseInt(easyPage, 10);
+          }
+          if (easyLimit && easyLimit.trim() !== "") {
+            params.limit = parseInt(easyLimit, 10);
+          }
+        }
       } catch (e) {
         alert("Errore nel formato JSON di Headers, Body o Query Parameters.");
         return;
       }
     } else {
+      // Modalità raw
       try {
         params = JSON.parse(rawJsonParams);
         if (config.dataPath && !params.dataPath) {
@@ -206,6 +234,7 @@ export function ExecuteTab({
       }
     }
 
+    // Pulisce i parametri vuoti
     const cleanParams = Object.fromEntries(
       Object.entries(params).filter(([key, value]) => {
         if (key === "selectedFields" && Array.isArray(value)) return true;
