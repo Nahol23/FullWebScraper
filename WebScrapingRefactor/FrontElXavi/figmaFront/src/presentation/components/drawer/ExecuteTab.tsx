@@ -26,7 +26,6 @@ import type { RuntimeParams } from "../../../domain/entities/RuntimeParams";
 import { flattenJson } from "../../utils/flattenJson";
 import { ResultViewerModal } from "../ResultViewerModal";
 
-
 interface ExecuteTabProps {
   config: ApiConfig;
   onExecute: (configId: string, params?: RuntimeParams) => Promise<void>;
@@ -48,7 +47,7 @@ export function ExecuteTab({
 
   const [easyPage, setEasyPage] = useState("");
   const [easyLimit, setEasyLimit] = useState("");
-
+  const [isFieldsOpen, setIsFieldsOpen] = useState(false);
   const [customHeaders, setCustomHeaders] = useState(
     JSON.stringify(config.headers || {}, null, 2),
   );
@@ -373,7 +372,6 @@ export function ExecuteTab({
                     return [];
                   }
                 })()
-
               : config.selectedFields || [];
 
             if (!allFields || allFields.length === 0) {
@@ -384,13 +382,14 @@ export function ExecuteTab({
               );
             }
 
-                const MAX_VISIBLE_BADGES = 3;
-                const visibleFields = allFields.slice(0, MAX_VISIBLE_BADGES);
-                const hiddenCount = allFields.length - visibleFields.length;
+            const MAX_VISIBLE_BADGES = 3;
+            const visibleFields = allFields.slice(0, MAX_VISIBLE_BADGES);
+            const hiddenCount = allFields.length - visibleFields.length;
 
-           return (
-                <div className=" mb-2">
-                  {(isFieldsOpen ? allFields : visibleFields).map((field: string, index: number) => (
+            return (
+              <div className=" mb-2">
+                {(isFieldsOpen ? allFields : visibleFields).map(
+                  (field: string, index: number) => (
                     <Badge
                       key={index}
                       variant="outline"
@@ -398,21 +397,21 @@ export function ExecuteTab({
                     >
                       {field}
                     </Badge>
-                  ))}
+                  ),
+                )}
 
-                  {hiddenCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setIsFieldsOpen(!isFieldsOpen)}
-                      className="px-2 py-1 rounded-full bg-zinc-800 text-zinc-300 text-xs border border-zinc-700 hover:bg-zinc-700 transition-colors"
-                    >
-                      {isFieldsOpen ? "mostra meno" : `+${hiddenCount} altri`}
-                    </button>
-                  )}
-                </div>
-              );
+                {hiddenCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setIsFieldsOpen(!isFieldsOpen)}
+                    className="px-2 py-1 rounded-full bg-zinc-800 text-zinc-300 text-xs border border-zinc-700 hover:bg-zinc-700 transition-colors"
+                  >
+                    {isFieldsOpen ? "mostra meno" : `+${hiddenCount} altri`}
+                  </button>
+                )}
+              </div>
+            );
           })()}
-
 
           {useCustomSelectedFields && (
             <div>
