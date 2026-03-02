@@ -1,0 +1,28 @@
+{
+  "name": "Switch Games",
+  "baseUrl": "https://api.sampleapis.com",
+  "endpoint": "/switch/games",
+  "method": "GET",
+  "id": "680a5a8a-4fff-4f1a-96b4-45381caf6ee8",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "pagination": {
+    "type": "offset",
+    "paramName": "offset",
+    "limitParam": "limit",
+    "defaultLimit": 50
+  },
+  "selectedFields": [
+    "id",
+    "name",
+    "genre",
+    "developers",
+    "publishers",
+    "releaseDates",
+    "releaseDates.Japan",
+    "releaseDates.NorthAmerica",
+    "releaseDates.Europe",
+    "releaseDates.Australia"
+  ]
+}

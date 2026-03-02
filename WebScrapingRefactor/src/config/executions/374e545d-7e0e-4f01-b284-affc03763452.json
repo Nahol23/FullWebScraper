@@ -1,0 +1,63 @@
+{
+  "id": "374e545d-7e0e-4f01-b284-affc03763452",
+  "configId": "63c45711-b339-4ecf-96a6-52433f88df3f",
+  "timestamp": "2026-02-26T10:02:58.416Z",
+  "parametersUsed": {
+    "dataPath": "results",
+    "selectedFields": [
+      "id",
+      "createdAt",
+      "updatedAt",
+      "deletedAt",
+      "publishedAt",
+      "initialPublishedAt",
+      "renderOrder",
+      "isEdited",
+      "language",
+      "translatedFromId",
+      "groupId",
+      "accessRuleType",
+      "accessRuleIds",
+      "analyticsPageId",
+      "createdByUserId",
+      "updatedByUserId",
+      "internalUpdatedAt",
+      "internalUpdatedByUserId",
+      "publishStatus",
+      "path",
+      "name",
+      "translations",
+      "values",
+      "values.country",
+      "values.website",
+      "values.brands",
+      "values.address_1",
+      "values.address_2",
+      "values.hall",
+      "values.booth",
+      "values.highlight",
+      "values.crm_id",
+      "values.phone",
+      "values.pavilion",
+      "values.name",
+      "values.logo",
+      "values.categories",
+      "values.fax",
+      "values.email",
+      "childTableId",
+      "isSoftEditable"
+    ],
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "queryParams": {
+      "sort": "name",
+      "limit": "10",
+      "categories_contains": "07",
+      "offset": "20"
+    }
+  },
+  "resultCount": 0,
+  "status": "error",
+  "errorMessage": "[ApiAdapter] API Request Failed: 500 Internal Server Error - {\"status\":\"error\",\"message\":\"internal error\",\"correlationId\":\"019c9966-d338-7143-9460-7a5bf25f12b5\"}"
+}

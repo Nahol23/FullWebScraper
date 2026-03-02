@@ -17,37 +17,45 @@ interface ResultViewerModalProps {
   onClose: () => void;
   result: ExecutionResult | null;
 }
+function safeMarkdownCell(value: any): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'object') {
+    // Serializza oggetti/array in JSON compatto
+    return JSON.stringify(value).replace(/\|/g, '\\|').replace(/\n/g, ' ');
+  }
+  // Per stringhe e primitivi, escape delle pipe
+  return String(value).replace(/\|/g, '\\|').replace(/\n/g, ' ');
+}
 
 // Helper: convert JSON to Markdown table if possible
 function jsonToMarkdownTable(data: any): string {
-  if (!data) return "No data";
-  if (typeof data !== "object") return String(data);
+  if (!data) return 'No data';
+  if (typeof data !== 'object') return String(data);
 
-  // If it's an array of objects
+  // Caso array di oggetti
   if (
     Array.isArray(data) &&
     data.length > 0 &&
-    data.every((item) => typeof item === "object" && item !== null)
+    data.every((item) => typeof item === 'object' && item !== null)
   ) {
     const headers = Array.from(new Set(data.flatMap(Object.keys)));
     if (headers.length === 0) return JSON.stringify(data, null, 2);
 
-    const headerRow = `| ${headers.join(" | ")} |`;
-    const separator = `| ${headers.map(() => "---").join(" | ")} |`;
+    const headerRow = `| ${headers.join(' | ')} |`;
+    const separator = `| ${headers.map(() => '---').join(' | ')} |`;
     const bodyRows = data
       .map(
         (item) =>
-          `| ${headers.map((h) => String(item[h] ?? "").replace(/\|/g, "\\|")).join(" | ")} |`,
+          `| ${headers.map((h) => safeMarkdownCell(item[h])).join(' | ')} |`
       )
-      .join("\n");
+      .join('\n');
 
     return `${headerRow}\n${separator}\n${bodyRows}`;
   }
 
-  // Fallback to code block
-  return "```json\n" + JSON.stringify(data, null, 2) + "\n```";
+  // Se è un array ma non di oggetti, o un oggetto singolo, mostra come blocco di codice
+  return '```json\n' + JSON.stringify(data, null, 2) + '\n```';
 }
-
 export function ResultViewerModal({
   isOpen,
   onClose,

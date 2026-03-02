@@ -3,13 +3,30 @@ import { Trash2, Plus, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../components/ui/select";
-import type { ApiConfig, ApiParam, PaginationConfig } from "../../../domain/entities/ApiConfig";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../../components/ui/dialog"; // Import del dialog
+import type {
+  ApiConfig,
+  ApiParam,
+  PaginationConfig,
+} from "../../../domain/entities/ApiConfig";
 
 interface ConfigurationTabProps {
   config: ApiConfig;
   onUpdate: (config: ApiConfig) => Promise<void>;
-  onDelete: (config: ApiConfig) => void; 
+  onDelete: (config: ApiConfig) => void;
 }
 
 export function ConfigurationTab({
@@ -19,18 +36,28 @@ export function ConfigurationTab({
 }: ConfigurationTabProps) {
   const [baseUrl, setBaseUrl] = useState(config.baseUrl);
   const [endpoint, setEndpoint] = useState(config.endpoint);
-  const [headers, setHeaders] = useState<Record<string, string>>(config.headers ?? {});
-  const [queryParams, setQueryParams] = useState<ApiParam[]>(config.queryParams ?? []);
+  const [headers, setHeaders] = useState<Record<string, string>>(
+    config.headers ?? {},
+  );
+  const [queryParams, setQueryParams] = useState<ApiParam[]>(
+    config.queryParams ?? [],
+  );
   const [dataPath, setDataPath] = useState(config.dataPath || "");
-  const [selectedFields, setSelectedFields] = useState<string[]>(config.selectedFields || []);
+  const [selectedFields, setSelectedFields] = useState<string[]>(
+    config.selectedFields || [],
+  );
   const [pagination, setPagination] = useState<PaginationConfig>(
     config.pagination ?? {
       type: "offset",
       paramName: "offset",
       limitParam: "limit",
       defaultLimit: 50,
-    }
+    },
   );
+
+  // Stato per il dialog di aggiunta campo
+  const [isAddFieldDialogOpen, setIsAddFieldDialogOpen] = useState(false);
+  const [newFieldValue, setNewFieldValue] = useState("");
 
   useEffect(() => {
     setBaseUrl(config.baseUrl ?? "");
@@ -45,16 +72,16 @@ export function ConfigurationTab({
         paramName: "offset",
         limitParam: "limit",
         defaultLimit: 50,
-      }
+      },
     );
   }, [config]);
 
   const handleSave = async () => {
     const validQueryParams = queryParams
-      .filter(p => p.key && p.key.trim() !== "")
-      .map(p => ({ 
-        key: p.key.trim(), 
-        value: p.value?.trim() || "" 
+      .filter((p) => p.key && p.key.trim() !== "")
+      .map((p) => ({
+        key: p.key.trim(),
+        value: p.value?.trim() || "",
       }));
 
     const updatedConfig: ApiConfig = {
@@ -71,14 +98,18 @@ export function ConfigurationTab({
   };
 
   const handleAddQueryParam = () => {
-    setQueryParams([...queryParams, { key: '', value: '' }]);
+    setQueryParams([...queryParams, { key: "", value: "" }]);
   };
 
   const handleRemoveQueryParam = (index: number) => {
     setQueryParams(queryParams.filter((_, i) => i !== index));
   };
 
-  const handleQueryParamChange = (index: number, field: 'key' | 'value', value: string) => {
+  const handleQueryParamChange = (
+    index: number,
+    field: "key" | "value",
+    value: string,
+  ) => {
     const updated = [...queryParams];
     updated[index] = { ...updated[index], [field]: value };
     setQueryParams(updated);
@@ -111,11 +142,19 @@ export function ConfigurationTab({
     setHeaders({ ...headers, [key]: value });
   };
 
+  // Apre il dialog per aggiungere un campo
   const handleAddSelectedField = () => {
-    const newField = prompt("Enter field name (e.g., data.results.id):");
-    if (newField && newField.trim()) {
-      setSelectedFields([...selectedFields, newField.trim()]);
+    setNewFieldValue("");
+    setIsAddFieldDialogOpen(true);
+  };
+
+  // Conferma l'aggiunta del campo
+  const handleAddFieldConfirm = () => {
+    if (newFieldValue.trim()) {
+      setSelectedFields([...selectedFields, newFieldValue.trim()]);
     }
+    setIsAddFieldDialogOpen(false);
+    setNewFieldValue("");
   };
 
   const handleRemoveSelectedField = (index: number) => {
@@ -175,7 +214,8 @@ export function ConfigurationTab({
             className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
           />
           <p className="text-xs text-zinc-500">
-            Path to the array of items in the JSON response. Leave empty to extract from root.
+            Path to the array of items in the JSON response. Leave empty to
+            extract from root.
           </p>
         </div>
       </div>
@@ -203,13 +243,17 @@ export function ConfigurationTab({
             <div key={index} className="flex gap-2">
               <Input
                 value={param.key}
-                onChange={(e) => handleQueryParamChange(index, 'key', e.target.value)}
+                onChange={(e) =>
+                  handleQueryParamChange(index, "key", e.target.value)
+                }
                 placeholder="Parameter name"
                 className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
               />
               <Input
                 value={param.value}
-                onChange={(e) => handleQueryParamChange(index, 'value', e.target.value)}
+                onChange={(e) =>
+                  handleQueryParamChange(index, "value", e.target.value)
+                }
                 placeholder="Parameter value"
                 className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
               />
@@ -340,8 +384,8 @@ export function ConfigurationTab({
             </Label>
             <Select
               value={pagination.type}
-              onValueChange={(value: "page" | "offset") => 
-                setPagination({...pagination, type: value})
+              onValueChange={(value: "page" | "offset") =>
+                setPagination({ ...pagination, type: value })
               }
             >
               <SelectTrigger className="bg-zinc-900 border-zinc-800 text-white">
@@ -415,10 +459,10 @@ export function ConfigurationTab({
             <span className="text-zinc-300 font-mono">
               {baseUrl}
               {endpoint}
-              {queryParams.length > 0 
-                ? `?${queryParams.map(p => `${p.key}=${p.value}`).join('&')}`
-                : ''}
-              {queryParams.length > 0 ? '&' : '?'}
+              {queryParams.length > 0
+                ? `?${queryParams.map((p) => `${p.key}=${p.value}`).join("&")}`
+                : ""}
+              {queryParams.length > 0 ? "&" : "?"}
               {pagination.paramName}=1&
               {pagination.limitParam}={pagination.defaultLimit}
             </span>
@@ -435,7 +479,7 @@ export function ConfigurationTab({
           Save Changes
         </Button>
         <Button
-          onClick={() => onDelete(config)} // Passa l'intero config
+          onClick={() => onDelete(config)}
           variant="outline"
           className="bg-red-500/10 border-red-500/50 hover:bg-red-500/20 hover:border-red-500 text-red-400 gap-2"
         >
@@ -443,6 +487,46 @@ export function ConfigurationTab({
           Delete
         </Button>
       </div>
+
+      {/* Dialog per aggiungere un campo */}
+      <Dialog
+        open={isAddFieldDialogOpen}
+        onOpenChange={setIsAddFieldDialogOpen}
+      >
+        <DialogContent className="bg-zinc-950 border-zinc-800 text-white">
+          <DialogHeader>
+            <DialogTitle>Add New Field</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="field-name" className="text-sm text-zinc-300">
+              Field name (e.g., data.results.id)
+            </Label>
+            <Input
+              id="field-name"
+              value={newFieldValue}
+              onChange={(e) => setNewFieldValue(e.target.value)}
+              placeholder="Enter field path"
+              className="mt-2 bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsAddFieldDialogOpen(false)}
+              className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-white"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAddFieldConfirm}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              Add
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
