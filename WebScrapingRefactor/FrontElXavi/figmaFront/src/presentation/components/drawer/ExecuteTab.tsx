@@ -26,6 +26,7 @@ import type { RuntimeParams } from "../../../domain/entities/RuntimeParams";
 import { flattenJson } from "../../utils/flattenJson";
 import { ResultViewerModal } from "../ResultViewerModal";
 
+
 interface ExecuteTabProps {
   config: ApiConfig;
   onExecute: (configId: string, params?: RuntimeParams) => Promise<void>;
@@ -45,6 +46,7 @@ export function ExecuteTab({
 
   // --- Easy Mode state ---
   const [easyPage, setEasyPage] = useState("1");
+  const [isFieldsOpen, setIsFieldsOpen] = useState(false);
   const [easyLimit, setEasyLimit] = useState("100");
   const [customHeaders, setCustomHeaders] = useState(
     JSON.stringify(config.headers || {}, null, 2),
@@ -277,7 +279,7 @@ export function ExecuteTab({
       )}
 
       {/* Toggle per selectedFields */}
-      <Card className="bg-zinc-900 border-zinc-800 p-4">
+      <Card className="bg-zinc-900 border-zinc-800 p-4 min-w-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-indigo-400" />
@@ -326,14 +328,14 @@ export function ExecuteTab({
           </label>
         </div>
 
-        <div className="mt-3 pt-3 border-t border-zinc-800">
+        <div className="mt-3 pt-3 border-t border-zinc-800 min-w-0">
           <p className="text-xs text-zinc-500 mb-2">
             {useCustomSelectedFields
               ? "Campi personalizzati:"
               : "Campi predefiniti:"}
           </p>
-          <div className="flex flex-wrap gap-2 mb-2">
-            {(useCustomSelectedFields
+          {(() => {
+            const allFields: string[] = useCustomSelectedFields
               ? (() => {
                   try {
                     return JSON.parse(customSelectedFields);
@@ -341,17 +343,44 @@ export function ExecuteTab({
                     return [];
                   }
                 })()
-              : config.selectedFields || []
-            ).map((field: string, index: number) => (
-              <Badge
-                key={index}
-                variant="outline"
-                className="bg-zinc-800 text-zinc-300 font-mono text-xs"
-              >
-                {field}
-              </Badge>
-            ))}
-          </div>
+              : config.selectedFields || [];
+
+            if (!allFields || allFields.length === 0) {
+              return (
+                <p className="text-xs text-zinc-500 mb-2">
+                  Nessun campo selezionato.
+                </p>
+              );
+            }
+
+                const MAX_VISIBLE_BADGES = 3;
+                const visibleFields = allFields.slice(0, MAX_VISIBLE_BADGES);
+                const hiddenCount = allFields.length - visibleFields.length;
+
+           return (
+                <div className=" mb-2">
+                  {(isFieldsOpen ? allFields : visibleFields).map((field: string, index: number) => (
+                    <Badge
+                      key={index}
+                      variant="outline"
+                      className="bg-zinc-800 text-zinc-300 font-mono text-xs whitespace-normal mr-2  mb-2 "
+                    >
+                      {field}
+                    </Badge>
+                  ))}
+
+                  {hiddenCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setIsFieldsOpen(!isFieldsOpen)}
+                      className="px-2 py-1 rounded-full bg-zinc-800 text-zinc-300 text-xs border border-zinc-700 hover:bg-zinc-700 transition-colors"
+                    >
+                      {isFieldsOpen ? "mostra meno" : `+${hiddenCount} altri`}
+                    </button>
+                  )}
+                </div>
+              );
+          })()}
 
           {useCustomSelectedFields && (
             <div>
