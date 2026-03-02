@@ -2865,3 +2865,12 @@ html {
   background-color: var(--color-zinc-400);
 }
 
+::selection {
+  background-color: var(--color-indigo-400);
+  color: white;
+}
+
+::-moz-selection {
+  background-color: var(--color-indigo-400);
+  color: white;
+}
