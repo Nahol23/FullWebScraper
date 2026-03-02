@@ -1,0 +1,78 @@
+{
+  "name": "hub",
+  "baseUrl": "https://api.hubapi.com",
+  "endpoint": "/cms/v3/hubdb/tables/847927518/rows?portalId=140962492",
+  "method": "GET",
+  "id": "5ff0711f-e4d8-4571-ab41-551a3729057b",
+  "queryParams": [
+    {
+      "key": "sort",
+      "value": "name"
+    },
+    {
+      "key": "limit",
+      "value": "10"
+    },
+    {
+      "key": "categories__contains",
+      "value": "06"
+    },
+    {
+      "key": "offset",
+      "value": "20"
+    }
+  ],
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "pagination": {
+    "type": "offset",
+    "paramName": "offset",
+    "limitParam": "limit",
+    "defaultLimit": 50
+  },
+  "dataPath": "results",
+  "selectedFields": [
+    "id",
+    "createdAt",
+    "updatedAt",
+    "deletedAt",
+    "publishedAt",
+    "initialPublishedAt",
+    "renderOrder",
+    "isEdited",
+    "language",
+    "translatedFromId",
+    "groupId",
+    "accessRuleType",
+    "accessRuleIds",
+    "analyticsPageId",
+    "createdByUserId",
+    "updatedByUserId",
+    "internalUpdatedAt",
+    "internalUpdatedByUserId",
+    "publishStatus",
+    "path",
+    "name",
+    "translations",
+    "values",
+    "values.country",
+    "values.website",
+    "values.brands",
+    "values.address_1",
+    "values.address_2",
+    "values.hall",
+    "values.booth",
+    "values.highlight",
+    "values.crm_id",
+    "values.phone",
+    "values.pavilion",
+    "values.name",
+    "values.logo",
+    "values.categories",
+    "values.fax",
+    "values.email",
+    "childTableId",
+    "isSoftEditable"
+  ]
+}
