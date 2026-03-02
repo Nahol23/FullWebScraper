@@ -1,0 +1,16 @@
+{
+  "name": "dragonBall",
+  "baseUrl": "https://dragonball-api.com/",
+  "endpoint": "/api/characters/",
+  "method": "GET",
+  "id": "ec4d5805-6c90-466f-a4da-133137d0ff36",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "pagination": {
+    "type": "offset",
+    "paramName": "offset",
+    "limitParam": "limit",
+    "defaultLimit": 50
+  }
+}

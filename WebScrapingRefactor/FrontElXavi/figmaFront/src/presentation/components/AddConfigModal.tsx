@@ -1,14 +1,5 @@
 import { useState, useEffect } from "react";
-import {
-  Sparkles,
-  Loader2,
-  FileCode,
-  ChevronDown,
-  ChevronRight,
-  X,
-  Plus,
-  Download,
-} from "lucide-react";
+import { Sparkles, Loader2, FileCode, X, Plus, Download } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -21,11 +12,6 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "./ui/collapsible";
 import { Checkbox } from "./ui/checkbox";
 import type { ApiConfig, ApiParam } from "../../domain/entities/ApiConfig";
 import { useConfigController } from "../hooks/useConfigController";
@@ -73,7 +59,6 @@ export function AddConfigModal({
 
   const [bodyJson, setBodyJson] = useState("{\n  \n}");
 
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [dataPath, setDataPath] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -234,10 +219,6 @@ export function AddConfigModal({
       method: method,
       ...(analysisResult && { fullAnalysis: analysisResult }),
     };
-    selectedFields.forEach((field) => {
-      const escapedField = field.replace(/\|/g, "\\|");
-      content += `| \`${escapedField}\` |\n`;
-    });
 
     if (format === "json") {
       content = JSON.stringify(dataToExport, null, 2);
@@ -255,7 +236,9 @@ export function AddConfigModal({
         content += `| Field |\n`;
         content += `|-------|\n`;
         selectedFields.forEach((field) => {
-          content += `| \`${field}\` |\n`;
+          // Escape pipe characters in field names
+          const escapedField = field.replace(/\|/g, "\\|");
+          content += `| \`${escapedField}\` |\n`;
         });
       } else {
         content += `No fields selected.\n`;
@@ -407,7 +390,6 @@ export function AddConfigModal({
     setAvailableFields([]);
     setSelectedFields([]);
     setSelectAll(false);
-    setShowAdvanced(false);
     setDataPath("");
     setError(null);
     setAnalysisResult(null);
@@ -424,8 +406,8 @@ export function AddConfigModal({
               Add New API Configuration
             </DialogTitle>
             <DialogDescription className="sr-only">
-              Fill in the details to create a new API configuration. You can
-              also analyze the API to discover available fields.
+              Fill in the details to create a new API configuration. Use the
+              Analyze feature to discover available fields.
             </DialogDescription>
           </DialogHeader>
 
@@ -436,6 +418,7 @@ export function AddConfigModal({
               </div>
             )}
 
+            {/* Basic Configuration */}
             <div className="space-y-4">
               <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
                 Basic Configuration
@@ -503,6 +486,7 @@ export function AddConfigModal({
               </div>
             </div>
 
+            {/* Query Parameters */}
             <div className="space-y-4 pt-4 border-t border-zinc-800">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
@@ -563,6 +547,7 @@ export function AddConfigModal({
               </div>
             </div>
 
+            {/* HTTP Headers */}
             <div className="space-y-4 pt-4 border-t border-zinc-800">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
@@ -631,243 +616,238 @@ export function AddConfigModal({
               </div>
             )}
 
-            <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
-              <CollapsibleTrigger className="flex items-center gap-2 text-sm font-medium text-zinc-300 hover:text-white transition-colors">
-                {showAdvanced ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-                Advanced Settings & Analysis
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-4 pt-4">
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="dataPath" className="text-sm text-zinc-300">
-                      Data Path (Optional)
-                    </Label>
-                    <Input
-                      id="dataPath"
-                      value={dataPath}
-                      onChange={(e) => setDataPath(e.target.value)}
-                      placeholder="e.g. data.results"
-                      className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
-                    />
-                    <p className="text-xs text-zinc-500">
-                      Path to the array of items in the JSON response. Leave
-                      empty to use root.
-                    </p>
-                  </div>
-
-                  <div className="h-px bg-zinc-800 my-2" />
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-400">Smart Tools</span>
-
-                    <div className="flex gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handlePasteFromCurl}
-                        className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-white gap-2 h-8"
-                      >
-                        <FileCode className="h-3.5 w-3.5" />
-                        Paste cURL
-                      </Button>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleAnalyze}
-                        disabled={isAnalyzing || isBackendAnalyzing}
-                        className="bg-indigo-600 hover:bg-indigo-700 border-0 text-white gap-2 h-8"
-                      >
-                        {isAnalyzing || isBackendAnalyzing ? (
-                          <>
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            Analyzing...
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="h-3.5 w-3.5" />
-                            Analyze API
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {availableFields.length > 0 && (
-                    <div className="space-y-3 mt-4">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs text-zinc-400">
-                          Discovered Fields ({selectedFields.length}/
-                          {availableFields.length} selected):
-                        </Label>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleSelectAll}
-                            className="text-xs h-7 px-2 text-indigo-400 hover:text-indigo-300"
-                          >
-                            {selectAll ? "Deselect All" : "Select All"}
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="max-h-[200px] overflow-y-auto space-y-1 border border-zinc-800 rounded-lg p-2">
-                        {availableFields.map((field) => (
-                          <div
-                            key={field}
-                            className="flex items-center gap-2 p-1 hover:bg-zinc-800/50 rounded"
-                          >
-                            <Checkbox
-                              checked={selectedFields.includes(field)}
-                              onCheckedChange={(checked) => {
-                                // Radix passes boolean | "indeterminate"
-                                if (typeof checked === "boolean") {
-                                  if (checked) {
-                                    setSelectedFields((prev) =>
-                                      Array.from(new Set([...prev, field])),
-                                    );
-                                  } else {
-                                    setSelectedFields((prev) =>
-                                      prev.filter((f) => f !== field),
-                                    );
-                                  }
-                                  setSelectAll(false);
-                                }
-                              }}
-                              className="data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
-                            />
-                            <span
-                              className="text-xs font-mono text-zinc-300 flex-1 cursor-default"
-                              onClick={() => {
-                                // allow toggling by clicking label text without causing double-calls
-                                const isSelected =
-                                  selectedFields.includes(field);
-                                if (isSelected) {
-                                  setSelectedFields((prev) =>
-                                    prev.filter((f) => f !== field),
-                                  );
-                                } else {
-                                  setSelectedFields((prev) =>
-                                    Array.from(new Set([...prev, field])),
-                                  );
-                                }
-                                setSelectAll(false);
-                              }}
-                            >
-                              {field}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Download buttons for selected fields */}
-                      {selectedFields.length > 0 && (
-                        <div className="flex gap-2 mt-3">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDownloadFields("json")}
-                            className="flex-1 bg-zinc-900 border-zinc-800 text-xs h-8 gap-1"
-                          >
-                            <Download className="h-3 w-3" /> JSON
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDownloadFields("markdown")}
-                            className="flex-1 bg-zinc-900 border-zinc-800 text-xs h-8 gap-1"
-                          >
-                            <Download className="h-3 w-3" /> Markdown
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDownloadFields("html")}
-                            className="flex-1 bg-zinc-900 border-zinc-800 text-xs h-8 gap-1"
-                          >
-                            <Download className="h-3 w-3" /> HTML
-                          </Button>
-                        </div>
-                      )}
-
-                      <p className="text-xs text-zinc-500">
-                        Select the fields you want to extract from the API
-                        response.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-
-            {lastAnalysis && (
-              <div className="mt-4 space-y-2 border-t border-zinc-800 pt-4">
-                <h4 className="text-sm font-medium text-zinc-300">
-                  Analysis Summary
-                </h4>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <span className="text-zinc-500">URL:</span>
-                  <span className="text-zinc-300 font-mono truncate">
-                    {lastAnalysis.url}
-                  </span>
-                  <span className="text-zinc-500">Method:</span>
-                  <span className="text-zinc-300">{lastAnalysis.method}</span>
-                  <span className="text-zinc-500">Status:</span>
-                  <span
-                    className={cn(
-                      "font-medium",
-                      lastAnalysis.status === "completed"
-                        ? "text-emerald-400"
-                        : "text-red-400",
-                    )}
-                  >
-                    {lastAnalysis.status}
-                  </span>
-                  <span className="text-zinc-500">Analyzed at:</span>
-                  <span className="text-zinc-300">
-                    {new Date(lastAnalysis.createdAt).toLocaleString()}
-                  </span>
-                </div>
-                {lastAnalysis.discoveredSchema && (
-                  <div className="mt-2">
-                    <p className="text-xs text-zinc-500">
-                      <span className="font-medium">Data Path:</span>{" "}
-                      <span className="text-indigo-400 font-mono">
-                        {lastAnalysis.discoveredSchema.dataPath || "(root)"}
-                      </span>
-                    </p>
-                    <p className="text-xs text-zinc-500 mt-1">
-                      <span className="font-medium">Fields discovered:</span>{" "}
-                      <span className="text-white">
-                        {lastAnalysis.discoveredSchema.suggestedFields.length}
-                      </span>
-                    </p>
-                  </div>
-                )}
+            {/* API Analysis Section with Data Path BEFORE Analyze */}
+            <div className="space-y-4 pt-4 border-t border-zinc-800">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
+                  API Analysis
+                </h3>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setIsDetailsModalOpen(true)}
-                  className="mt-2 w-full bg-zinc-800 border-zinc-700 hover:bg-zinc-700"
+                  onClick={handlePasteFromCurl}
+                  className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-white gap-2 h-8"
                 >
-                  <FileCode className="h-3.5 w-3.5 mr-2" />
-                  View Full Analysis
+                  <FileCode className="h-3.5 w-3.5" />
+                  Paste cURL
                 </Button>
               </div>
-            )}
 
+              <p className="text-xs text-zinc-500">
+                Analizza l'endpoint per scoprire i campi disponibili. Puoi
+                specificare un data path per estrarre i dati da una
+                sotto-posizione.
+              </p>
+
+              {/* Data Path field - BEFORE analyze button */}
+              <div className="space-y-2">
+                <Label htmlFor="dataPath" className="text-sm text-zinc-300">
+                  Data Path (Optional)
+                </Label>
+                <Input
+                  id="dataPath"
+                  value={dataPath}
+                  onChange={(e) => setDataPath(e.target.value)}
+                  placeholder="e.g. data.results"
+                  className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
+                />
+                <p className="text-xs text-zinc-500">
+                  Path to the array of items in the JSON response. Leave empty
+                  to use root.
+                </p>
+              </div>
+
+              {/* Analyze button - positioned after Data Path */}
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAnalyze}
+                  disabled={isAnalyzing || isBackendAnalyzing}
+                  className="bg-indigo-600 hover:bg-indigo-700 border-0 text-white gap-2 h-8"
+                >
+                  {isAnalyzing || isBackendAnalyzing ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3.5 w-3.5" />
+                      Analyze API
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Discovered fields (if any) */}
+              {availableFields.length > 0 && (
+                <div className="space-y-3 mt-4 bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-zinc-400">
+                      Discovered Fields ({selectedFields.length}/
+                      {availableFields.length} selected):
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleSelectAll}
+                        className="text-xs h-7 px-2 text-indigo-400 hover:text-indigo-300"
+                      >
+                        {selectAll ? "Deselect All" : "Select All"}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="max-h-[200px] overflow-y-auto space-y-1 border border-zinc-800 rounded-lg p-2">
+                    {availableFields.map((field) => (
+                      <div
+                        key={field}
+                        className="flex items-center gap-2 p-1 hover:bg-zinc-800/50 rounded"
+                      >
+                        <Checkbox
+                          checked={selectedFields.includes(field)}
+                          onCheckedChange={(checked) => {
+                            if (typeof checked === "boolean") {
+                              if (checked) {
+                                setSelectedFields((prev) =>
+                                  Array.from(new Set([...prev, field])),
+                                );
+                              } else {
+                                setSelectedFields((prev) =>
+                                  prev.filter((f) => f !== field),
+                                );
+                              }
+                              setSelectAll(false);
+                            }
+                          }}
+                          className="data-[state=checked]:bg-indigo-600 data-[state=checked]:border-indigo-600"
+                        />
+                        <span
+                          className="text-xs font-mono text-zinc-300 flex-1 cursor-default"
+                          onClick={() => {
+                            const isSelected = selectedFields.includes(field);
+                            if (isSelected) {
+                              setSelectedFields((prev) =>
+                                prev.filter((f) => f !== field),
+                              );
+                            } else {
+                              setSelectedFields((prev) =>
+                                Array.from(new Set([...prev, field])),
+                              );
+                            }
+                            setSelectAll(false);
+                          }}
+                        >
+                          {field}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Download buttons for selected fields */}
+                  {selectedFields.length > 0 && (
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadFields("json")}
+                        className="flex-1 bg-zinc-900 border-zinc-800 text-xs h-8 gap-1"
+                      >
+                        <Download className="h-3 w-3" /> JSON
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadFields("markdown")}
+                        className="flex-1 bg-zinc-900 border-zinc-800 text-xs h-8 gap-1"
+                      >
+                        <Download className="h-3 w-3" /> Markdown
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadFields("html")}
+                        className="flex-1 bg-zinc-900 border-zinc-800 text-xs h-8 gap-1"
+                      >
+                        <Download className="h-3 w-3" /> HTML
+                      </Button>
+                    </div>
+                  )}
+
+                  <p className="text-xs text-zinc-500">
+                    Seleziona i campi da estrarre dalla risposta API.
+                  </p>
+                </div>
+              )}
+
+              {/* Analysis Summary (if available) */}
+              {lastAnalysis && (
+                <div className="mt-4 space-y-2 border-t border-zinc-800 pt-4">
+                  <h4 className="text-sm font-medium text-zinc-300">
+                    Analysis Summary
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <span className="text-zinc-500">URL:</span>
+                    <span className="text-zinc-300 font-mono truncate">
+                      {lastAnalysis.url}
+                    </span>
+                    <span className="text-zinc-500">Method:</span>
+                    <span className="text-zinc-300">{lastAnalysis.method}</span>
+                    <span className="text-zinc-500">Status:</span>
+                    <span
+                      className={cn(
+                        "font-medium",
+                        lastAnalysis.status === "completed"
+                          ? "text-emerald-400"
+                          : "text-red-400",
+                      )}
+                    >
+                      {lastAnalysis.status}
+                    </span>
+                    <span className="text-zinc-500">Analyzed at:</span>
+                    <span className="text-zinc-300">
+                      {new Date(lastAnalysis.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+                  {lastAnalysis.discoveredSchema && (
+                    <div className="mt-2">
+                      <p className="text-xs text-zinc-500">
+                        <span className="font-medium">Data Path:</span>{" "}
+                        <span className="text-indigo-400 font-mono">
+                          {lastAnalysis.discoveredSchema.dataPath || "(root)"}
+                        </span>
+                      </p>
+                      <p className="text-xs text-zinc-500 mt-1">
+                        <span className="font-medium">Fields discovered:</span>{" "}
+                        <span className="text-white">
+                          {lastAnalysis.discoveredSchema.suggestedFields.length}
+                        </span>
+                      </p>
+                    </div>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsDetailsModalOpen(true)}
+                    className="mt-2 w-full bg-zinc-800 border-zinc-700 hover:bg-zinc-700"
+                  >
+                    <FileCode className="h-3.5 w-3.5 mr-2" />
+                    View Full Analysis
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Pagination preview */}
             <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-3">
               <p className="text-xs text-zinc-400">
                 <span className="font-medium text-zinc-300">Pagination:</span>{" "}
