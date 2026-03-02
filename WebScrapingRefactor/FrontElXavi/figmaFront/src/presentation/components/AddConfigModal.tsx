@@ -420,9 +420,6 @@ export function AddConfigModal({
 
             {/* Basic Configuration */}
             <div className="space-y-4">
-              <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
-                Basic Configuration
-              </h3>
 
               <div className="space-y-2">
                 <Label htmlFor="name" className="text-sm text-zinc-300">

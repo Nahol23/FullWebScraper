@@ -12,5 +12,8 @@
     "paramName": "offset",
     "limitParam": "limit",
     "defaultLimit": 50
-  }
+  },
+  "selectedFields": [
+    "name"
+  ]
 }
