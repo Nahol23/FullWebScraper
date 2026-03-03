@@ -1,58 +1,59 @@
-import { IScrapingConfigRepository } from './../../../domain/ports/ScrapingConfig/IScrapingConfigRepository';
-import { ScrapingConfig } from './../../../domain/entities/ScrapingConfig';
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
+import { IScrapingConfigRepository } from "../../../domain/ports/ScrapingConfig/IScrapingConfigRepository";
+import { ScrapingConfig } from "../../../domain/entities/ScrapingConfig";
 
 export class ScrapingConfigRepository implements IScrapingConfigRepository {
-  private readonly filePath = path.join(process.cwd(), 'src', 'config', 'scraping-configs.json');
+  private readonly storageDir = path.join(
+    process.cwd(),
+    "src",
+    "config",
+    "scraping",
+    "configs",
+  );
 
   constructor() {
-    // Assicuriamoci che la directory esista
-    const dir = path.dirname(this.filePath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-    if (!fs.existsSync(this.filePath)) {
-      fs.writeFileSync(this.filePath, '[]');
+    if (!fs.existsSync(this.storageDir)) {
+      fs.mkdirSync(this.storageDir, { recursive: true });
     }
   }
 
-  private async readFile(): Promise<ScrapingConfig[]> {
-    const data = await fs.promises.readFile(this.filePath, 'utf-8');
-    return JSON.parse(data);
-  }
-
-  private async writeFile(configs: ScrapingConfig[]): Promise<void> {
-    await fs.promises.writeFile(this.filePath, JSON.stringify(configs, null, 2));
+  private getFilePath(id: string): string {
+    return path.join(this.storageDir, `${id}.json`);
   }
 
   async getAll(): Promise<ScrapingConfig[]> {
-    return this.readFile();
+    const files = fs
+      .readdirSync(this.storageDir)
+      .filter((f) => f.endsWith(".json"));
+    return files.map((file) => {
+      const data = fs.readFileSync(path.join(this.storageDir, file), "utf-8");
+      return JSON.parse(data);
+    });
   }
 
   async getById(id: string): Promise<ScrapingConfig | null> {
-    const configs = await this.readFile();
-    return configs.find(c => c.id === id) || null;
+    const filePath = this.getFilePath(id);
+    if (!fs.existsSync(filePath)) return null;
+    const data = fs.readFileSync(filePath, "utf-8");
+    return JSON.parse(data);
   }
 
   async save(config: ScrapingConfig): Promise<ScrapingConfig> {
-    const configs = await this.readFile();
-    configs.push(config);
-    await this.writeFile(configs);
+    const filePath = this.getFilePath(config.id);
+    fs.writeFileSync(filePath, JSON.stringify(config, null, 2), "utf-8");
     return config;
   }
 
   async update(id: string, updates: Partial<ScrapingConfig>): Promise<void> {
-    const configs = await this.readFile();
-    const index = configs.findIndex(c => c.id === id);
-    if (index === -1) throw new Error('Configurazione scraping non trovata');
-    configs[index] = { ...configs[index], ...updates, updatedAt: new Date() };
-    await this.writeFile(configs);
+    const existing = await this.getById(id);
+    if (!existing) throw new Error("Config not found");
+    const updated = { ...existing, ...updates };
+    await this.save(updated);
   }
 
   async delete(id: string): Promise<void> {
-    let configs = await this.readFile();
-    configs = configs.filter(c => c.id !== id);
-    await this.writeFile(configs);
+    const filePath = this.getFilePath(id);
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   }
 }

@@ -1,0 +1,86 @@
+{
+  "name": "homebase",
+  "url": " https://homebase.map-dynamics.com/components/marketplace/start.marketplace.php",
+  "method": "POST",
+  "headers": {
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "Cookie": "PHPSESSID=mi5jee0lo23pdkqonr4l35d2di",
+    "Origin": "https://homebase.map-dynamics.com",
+    "Referer": "https://homebase.map-dynamics.com/soc2026/floorplan",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+    "X-Requested-With": "XMLHttpRequest"
+  },
+  "body": {
+    "Show_ID": 8881,
+    "sort": "ASC"
+  },
+  "rules": [
+    {
+      "fieldName": "row",
+      "selector": ".row",
+      "attribute": "text",
+      "multiple": false
+    },
+    {
+      "fieldName": "switch",
+      "selector": ".switch",
+      "attribute": "text",
+      "multiple": false
+    },
+    {
+      "fieldName": "switchOuter",
+      "selector": ".switchOuter",
+      "attribute": "text",
+      "multiple": false
+    },
+    {
+      "fieldName": "switchButton",
+      "selector": ".switchButton",
+      "attribute": "text",
+      "multiple": false
+    },
+    {
+      "fieldName": "filterButton",
+      "selector": ".filterButton",
+      "attribute": "text",
+      "multiple": false
+    },
+    {
+      "fieldName": "filtersPanel",
+      "selector": ".filtersPanel",
+      "attribute": "text",
+      "multiple": false
+    },
+    {
+      "fieldName": "filtersPanelInner",
+      "selector": ".filtersPanelInner",
+      "attribute": "text",
+      "multiple": false
+    },
+    {
+      "fieldName": "row",
+      "selector": ".row",
+      "attribute": "text",
+      "multiple": false
+    },
+    {
+      "fieldName": "switch",
+      "selector": ".switch",
+      "attribute": "text",
+      "multiple": false
+    },
+    {
+      "fieldName": "switchOuter",
+      "selector": ".switchOuter",
+      "attribute": "text",
+      "multiple": false
+    }
+  ],
+  "pagination": {},
+  "waitForSelector": "",
+  "dataPath": "string",
+  "defaultRuntimeParams": {},
+  "id": "33a1b284-ebec-4e8b-a2c6-3320e8e87107",
+  "createdAt": "2026-03-03T15:41:35.073Z",
+  "updatedAt": "2026-03-03T15:41:35.073Z"
+}
