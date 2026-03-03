@@ -1,0 +1,58 @@
+[
+  {
+    "name": "homebase",
+    "url": " https://homebase.map-dynamics.com/components/marketplace/start.marketplace.php",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "Cookie": "PHPSESSID=mi5jee0lo23pdkqonr4l35d2di",
+      "Origin": "https://homebase.map-dynamics.com",
+      "Referer": "https://homebase.map-dynamics.com/soc2026/floorplan",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+      "X-Requested-With": "XMLHttpRequest"
+    },
+    "body": {
+      "Show_ID": 8881,
+      "sort": "ASC"
+    },
+    "rules": [
+      {
+        "fieldName": "name",
+        "selector": "h3",
+        "attribute": "text",
+        "multiple": true
+      },
+      {
+        "fieldName": "description",
+        "selector": ".profileDescription",
+        "attribute": "text",
+        "multiple": true
+      },
+      {
+        "fieldName": "booth",
+        "selector": ".profileDescription",
+        "attribute": "text",
+        "multiple": true
+      },
+      {
+        "fieldName": "searchable",
+        "selector": ".searchable",
+        "attribute": "text",
+        "multiple": true
+      },
+      {
+        "fieldName": "image_url",
+        "selector": ".profileImage",
+        "attribute": "style",
+        "multiple": true
+      }
+    ],
+    "pagination": {},
+    "waitForSelector": "",
+    "dataPath": "string",
+    "defaultRuntimeParams": {},
+    "id": "6ae2850f-898d-487a-975f-82d936aba4cc",
+    "createdAt": "2026-03-03T13:58:10.568Z",
+    "updatedAt": "2026-03-03T13:58:10.568Z"
+  }
+]
