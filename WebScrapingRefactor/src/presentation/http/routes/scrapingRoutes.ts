@@ -1,5 +1,21 @@
 import { FastifyInstance } from "fastify";
 import { ScrapingController } from "../controllers/ScrapingController";
+import { PuppeteerBrowser } from "../../../infrastructure/adapters/Scraping/PuppeteerBrowser";
+import { HttpFetcher } from "../../../infrastructure/adapters/Scraping/HttpFetcher";
+import { JsBrowserFetcher } from "../../../infrastructure/adapters/Scraping/JsBrowserFetcher";
+import { HtmlExtractor } from "../../../infrastructure/adapters/Scraping/HtmlExtractor";
+import { ScrapingAdapter } from "../../../infrastructure/adapters/Scraping/ScrapingAdapter";
+import { ScrapingAnalyzer } from "../../../infrastructure/utils/ScrapingAnalyzer";
+import { ScrapingConfigRepository } from "../../../infrastructure/repositories/Scraping/ScrapingConfigRepository";
+import { ScrapingExecutionRepository } from "../../../infrastructure/repositories/Scraping/ScrapingExecutionRepository";
+import { ScrapingAnalysisRepository } from "../../../infrastructure/repositories/Scraping/ScrapingAnalysisRepository";
+import { ExecuteScrapingUseCase } from "../../../application/usecases/Scraping/ExecuteScrapingUseCase";
+import { SaveScrapingConfigUseCase } from "../../../application/usecases/Scraping/SaveScrapingConfigUseCase";
+import { GetAllScrapingConfigsUseCase } from "../../../application/usecases/Scraping/GetAllScrapingConfigsUseCase";
+import { GetScrapingConfigByIdUseCase } from "../../../application/usecases/Scraping/GetScrapingConfigByIdUseCase";
+import { UpdateScrapingConfigUseCase } from "../../../application/usecases/Scraping/UpdateScrapingConfigUseCase";
+import { DeleteScrapingConfigUseCase } from "../../../application/usecases/Scraping/DeleteScrapingConfigUseCase";
+import { AnalyzeScrapingUseCase } from "../../../application/usecases/Scraping/AnalyzeScrapingUsecase";
 
 const errorResponseSchema = {
   type: "object",
@@ -57,10 +73,7 @@ const scrapingConfigBodySchema = {
     },
     waitForSelector: { type: "string" },
     dataPath: { type: "string" },
-    defaultRuntimeParams: {
-      type: "object",
-      additionalProperties: true,
-    },
+    defaultRuntimeParams: { type: "object", additionalProperties: true },
   },
 };
 
@@ -90,7 +103,35 @@ const updateBodySchema = {
 };
 
 export async function scrapingRoutes(fastify: FastifyInstance) {
-  const controller = new ScrapingController();
+  // ── Composition root ──────────────────────────────────────────────────────
+  const browser = new PuppeteerBrowser();
+  const httpFetcher = new HttpFetcher();
+  const jsBrowserFetcher = new JsBrowserFetcher(browser);
+
+  // Per scraping con regole
+  const scraper = new ScrapingAdapter(
+    httpFetcher,
+    jsBrowserFetcher,
+    new HtmlExtractor(),
+  );
+
+  // Per analisi DOM — istanza separata, responsabilità separata
+  const domAnalyzer = new ScrapingAnalyzer(httpFetcher, jsBrowserFetcher);
+
+  const repo = new ScrapingConfigRepository();
+  const executionRepo = new ScrapingExecutionRepository();
+  const analysisRepo = new ScrapingAnalysisRepository();
+
+  const controller = new ScrapingController({
+    executeScrapingUseCase: new ExecuteScrapingUseCase(repo, executionRepo, scraper),
+    saveConfigUseCase: new SaveScrapingConfigUseCase(repo),
+    getAllUseCase: new GetAllScrapingConfigsUseCase(repo),
+    getByIdUseCase: new GetScrapingConfigByIdUseCase(repo),
+    updateUseCase: new UpdateScrapingConfigUseCase(repo),
+    deleteUseCase: new DeleteScrapingConfigUseCase(repo),
+    analyzeUseCase: new AnalyzeScrapingUseCase(scraper, domAnalyzer, analysisRepo),
+  });
+  // ─────────────────────────────────────────────────────────────────────────
 
   // CRUD
   fastify.get("/scraping/configs", {
@@ -98,10 +139,7 @@ export async function scrapingRoutes(fastify: FastifyInstance) {
       summary: "List all scraping configurations",
       tags: ["Scraping"],
       response: {
-        200: {
-          type: "array",
-          items: scrapingConfigBodySchema,
-        },
+        200: { type: "array", items: scrapingConfigBodySchema },
         500: errorResponseSchema,
       },
     },
@@ -140,12 +178,7 @@ export async function scrapingRoutes(fastify: FastifyInstance) {
       params: idParamSchema,
       body: updateBodySchema,
       response: {
-        200: {
-          type: "object",
-          properties: {
-            message: { type: "string" },
-          },
-        },
+        200: { type: "object", properties: { message: { type: "string" } } },
         404: errorResponseSchema,
         500: errorResponseSchema,
       },
@@ -174,26 +207,17 @@ export async function scrapingRoutes(fastify: FastifyInstance) {
       body: {
         type: "object",
         additionalProperties: true,
-        examples: [
-          {
-            waitForSelector: ".content",
-            maxPages: 3,
-            headers: { "User-Agent": "Custom" },
-          },
-        ],
+        examples: [{ waitForSelector: ".content", maxPages: 3 }],
       },
       response: {
-        200: {
-          type: "object",
-          additionalProperties: true,
-        },
+        200: { type: "object", additionalProperties: true },
         404: errorResponseSchema,
         500: errorResponseSchema,
       },
     },
   }, controller.execute);
 
-  // Analisi generica (con URL e opzioni)
+  // Analisi generica
   fastify.post("/scraping/analyze", {
     schema: {
       summary: "Analyze a webpage and suggest extraction rules",
@@ -227,7 +251,7 @@ export async function scrapingRoutes(fastify: FastifyInstance) {
     },
   }, controller.analyze);
 
-  // Analisi basata su configurazione esistente
+  // Analisi da configurazione esistente
   fastify.post("/scraping/configs/:id/analyze", {
     schema: {
       summary: "Analyze a scraping configuration and suggest extraction rules",
