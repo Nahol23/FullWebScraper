@@ -8,17 +8,11 @@ export interface ScrapingAnalysisResult {
   url: string;
   title: string;
   suggestedRules: ExtractionRule[];
-  sampleData: Record<string, any>;
+  sampleData: any;
   detectedListSelectors: string[];
   rawPreview?: string;
 }
 
-export { AnalyzeOptions };
-
-/**
- * Non conosce Cheerio, fetch, Puppeteer o HTML grezzo.
- * Dipende solo da tre port del dominio.
- */
 export class AnalyzeScrapingUseCase {
   constructor(
     private readonly scraper: IScrapingPort,
@@ -28,29 +22,58 @@ export class AnalyzeScrapingUseCase {
 
   async execute(url: string, options?: AnalyzeOptions): Promise<ScrapingAnalysisResult> {
     try {
-      // 1. Fetch + analisi DOM — nessuna conoscenza di Cheerio o HTML grezzo
+      // 1) Analisi DOM generica
       const analysis = await this.domAnalyzer.fetchAndAnalyze(url, options);
-      const sampleRules = analysis.suggestedRules.slice(0, 5);
 
-      // 2. Estrazione campione con le regole suggerite
-      const sampleData = await this.scraper.scrape({
+      const containerSelector = analysis.listSelectors?.[0] ?? undefined;
+      const rules = analysis.suggestedRules;
+
+      // 2) Primo tentativo di estrazione
+      // the scraper may return a string, array, object, etc.; use a loose type
+      let sampleData: any = await this.scraper.scrape({
         url,
         method: options?.method,
         headers: options?.headers,
         body: options?.body,
         useJavaScript: options?.useJavaScript,
         waitForSelector: options?.waitForSelector,
-        rules: sampleRules,
+        rules,
+        containerSelector,
       });
+
+      // 3) Fallback se sampleData è vuoto
+      if (
+        (!sampleData || (Array.isArray(sampleData) && sampleData.length === 0)) &&
+        containerSelector
+      ) {
+        // Prova senza containerSelector
+        sampleData = await this.scraper.scrape({
+          url,
+          method: options?.method,
+          headers: options?.headers,
+          body: options?.body,
+          useJavaScript: options?.useJavaScript,
+          waitForSelector: options?.waitForSelector,
+          rules,
+        });
+      }
+
+      // 4) Raw preview per debugging
+      const rawPreview =
+        typeof sampleData === "string"
+          ? sampleData.slice(0, 2000)
+          : JSON.stringify(sampleData, null, 2).slice(0, 2000);
 
       const result: ScrapingAnalysisResult = {
         url,
         title: analysis.title,
-        suggestedRules: analysis.suggestedRules,
+        suggestedRules: rules,
         sampleData,
         detectedListSelectors: analysis.listSelectors,
+        rawPreview,
       };
 
+      // 5) Salvataggio analisi
       await this.analysisRepository.save({
         id: randomUUID(),
         url,
@@ -63,6 +86,7 @@ export class AnalyzeScrapingUseCase {
       return result;
     } catch (error) {
       const errorMessage = (error as Error).message;
+
       await this.analysisRepository.save({
         id: randomUUID(),
         url,
@@ -72,6 +96,7 @@ export class AnalyzeScrapingUseCase {
         status: "failed",
         errorMessage,
       });
+
       throw error;
     }
   }

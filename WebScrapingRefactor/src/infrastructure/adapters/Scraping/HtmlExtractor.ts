@@ -39,17 +39,19 @@ export class HtmlExtractor implements IHtmlExtractorPort {
 
     $(containerSelector).each((_, container) => {
       const item: Record<string, any> = {};
+
       for (const rule of rules) {
-        item[rule.fieldName] = rule.multiple
-          ? $(container)
-              .find(rule.selector)
-              .map((_, el) => this.extractValue($(el), rule.attribute))
-              .get()
-          : this.extractValue(
-              $(container).find(rule.selector).first(),
-              rule.attribute,
-            );
+        const nodes = $(container).find(rule.selector);
+
+        if (rule.multiple) {
+          item[rule.fieldName] = nodes
+            .map((_, el) => this.extractValue($(el), rule.attribute))
+            .get();
+        } else {
+          item[rule.fieldName] = this.extractValue(nodes.first(), rule.attribute);
+        }
       }
+
       items.push(item);
     });
 
@@ -63,10 +65,11 @@ export class HtmlExtractor implements IHtmlExtractorPort {
     const result: Record<string, any> = {};
 
     for (const rule of rules) {
-      const elements = $(rule.selector);
+      const nodes = $(rule.selector);
+
       result[rule.fieldName] = rule.multiple
-        ? elements.map((_, el) => this.extractValue($(el), rule.attribute)).get()
-        : this.extractValue(elements.first(), rule.attribute);
+        ? nodes.map((_, el) => this.extractValue($(el), rule.attribute)).get()
+        : this.extractValue(nodes.first(), rule.attribute);
     }
 
     return result;
@@ -76,12 +79,27 @@ export class HtmlExtractor implements IHtmlExtractorPort {
     $el: cheerio.Cheerio<AnyNode>,
     attribute?: string,
   ): string {
-    if (!attribute || attribute === "innerText") return $el.text().trim();
-    if (attribute === "html") return $el.html()?.trim() ?? "";
-    if (attribute === "style") {
-      return $el.attr("style")?.match(/url\(["']?(.*?)["']?\)/)?.[1] ?? "";
+    if (!$el || $el.length === 0) return "";
+
+    // TEXT / INNER TEXT
+    if (!attribute || attribute === "text" || attribute === "innerText") {
+      return $el.text().trim();
     }
-    // Gestisce href, src, data-*, e qualsiasi altro attributo HTML
+
+    // RAW HTML
+    if (attribute === "html") {
+      return $el.html()?.trim() ?? "";
+    }
+
+    // BACKGROUND-IMAGE
+    if (attribute === "style") {
+      const style = $el.attr("style") ?? "";
+      const match = style.match(/background-image:\s*url\(["']?(.*?)["']?\)/i);
+      if (match && match[1]) return match[1].trim();
+      return style.trim();
+    }
+
+    // GENERIC ATTRIBUTES (href, src, data-*, ecc.)
     return $el.attr(attribute)?.trim() ?? "";
   }
 }

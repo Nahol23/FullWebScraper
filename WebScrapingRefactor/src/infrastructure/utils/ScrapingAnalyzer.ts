@@ -1,26 +1,31 @@
 import * as cheerio from "cheerio";
-import type { IScrapingAnalyzerPort, AnalyzeOptions, DomAnalysisResult } from "../../domain/ports/IScrapingAnalyzerPort";
+import type {
+  IScrapingAnalyzerPort,
+  AnalyzeOptions,
+  DomAnalysisResult,
+} from "../../domain/ports/IScrapingAnalyzerPort";
 import type { ExtractionRule } from "../../domain/entities/ScrapingConfig";
 import type { HttpFetcher } from "../adapters/Scraping/HttpFetcher";
 import type { JsBrowserFetcher } from "../adapters/Scraping/JsBrowserFetcher";
 
-/**
- * Implementazione di IScrapingAnalyzerPort.
- * Responsabilità: fetch HTML grezzo + analisi DOM con Cheerio.
- * Cheerio e la logica di fetch vivono qui — nessun use case li conosce.
- */
 export class ScrapingAnalyzer implements IScrapingAnalyzerPort {
   constructor(
     private readonly httpFetcher: HttpFetcher,
     private readonly jsBrowserFetcher: JsBrowserFetcher,
   ) {}
 
-  async fetchAndAnalyze(url: string, options?: AnalyzeOptions): Promise<DomAnalysisResult> {
+  async fetchAndAnalyze(
+    url: string,
+    options?: AnalyzeOptions,
+  ): Promise<DomAnalysisResult> {
     const html = await this.fetchHtml(url, options);
     return this.analyzeDom(html);
   }
 
-  private async fetchHtml(url: string, options?: AnalyzeOptions): Promise<string> {
+  private async fetchHtml(
+    url: string,
+    options?: AnalyzeOptions,
+  ): Promise<string> {
     if (options?.useJavaScript || options?.waitForSelector) {
       return this.jsBrowserFetcher.fetch({
         url,
@@ -36,6 +41,65 @@ export class ScrapingAnalyzer implements IScrapingAnalyzerPort {
     });
   }
 
+  // ------------------------------------------------------------
+  // 1) ITEM SEMANTICO = almeno 2 segnali
+  // ------------------------------------------------------------
+  private isSemanticItem($: cheerio.CheerioAPI, el: any): boolean {
+    const node = $(el);
+
+    let score = 0;
+
+    if (node.find("h1, h2, h3").text().trim().length > 3) score++;
+    if (node.find("p").text().trim().length > 20) score++;
+    if (node.find("img[src]").length > 0) score++;
+    if (node.find("[style*='background-image']").length > 0) score++;
+    if (node.find("a[href]").length > 0) score++;
+    if (node.attr("record-id")) score++;
+    if (node.find("[record-id]").length > 0) score++;
+    if (node.find(".profileDescription").length > 0) score++;
+    if (node.find(".searchable").length > 0) score++;
+
+    return score >= 2;
+  }
+
+  // ------------------------------------------------------------
+  // 2) TROVA IL GENITORE COMUNE DEGLI ITEM VERI
+  // ------------------------------------------------------------
+  private findSemanticContainer($: cheerio.CheerioAPI): string | null {
+    const parentCounts = new Map<string, number>();
+
+    $("[class]").each((_, el) => {
+      if (!this.isSemanticItem($, el)) return;
+
+      const parent = $(el).parent();
+      if (!parent) return;
+
+      const className = parent.attr("class");
+      if (!className) return;
+
+      const classes = className.split(/\s+/);
+      classes.forEach(cls => {
+        if (!cls) return;
+        parentCounts.set(cls, (parentCounts.get(cls) || 0) + 1);
+      });
+    });
+
+    if (parentCounts.size === 0) return null;
+
+    // determine the most frequent parent class without using iterator spread
+    // (avoids the need for --downlevelIteration or ES2015 target)
+    let bestClass: string | null = null;
+    let bestCount = 0;
+    parentCounts.forEach((count, cls) => {
+      if (count > bestCount) {
+        bestCount = count;
+        bestClass = cls;
+      }
+    });
+
+    return bestClass ? `.${bestClass}` : null;
+  }
+
   private analyzeDom(html: string): DomAnalysisResult {
     const $ = cheerio.load(html);
     const title = $("title").text().trim();
@@ -43,60 +107,79 @@ export class ScrapingAnalyzer implements IScrapingAnalyzerPort {
     const suggestedRules: ExtractionRule[] = [];
     const listSelectors: string[] = [];
 
-    const possibleListContainers = [
-      "ul",
-      "ol",
-      "div[class*=\"list\"]",
-      "div[class*=\"items\"]",
-      "tbody",
-    ];
+    const bestContainer = this.findSemanticContainer($);
 
-    possibleListContainers.forEach((selector) => {
-      $(selector).each((_, el) => {
-        const children = $(el).children();
-        if (children.length > 1) {
-          const firstChild = children.first();
-          const childTag = firstChild.prop("tagName")?.toLowerCase();
-          if (childTag && children.length > 2) {
-            listSelectors.push(selector);
-            suggestedRules.push({
-              fieldName: "item_text",
-              selector: `${selector} > ${childTag}`,
-              attribute: "text",
-              multiple: true,
-            });
-            if (firstChild.find("a").length) {
-              suggestedRules.push({
-                fieldName: "item_link",
-                selector: `${selector} > ${childTag} a`,
-                attribute: "href",
-                multiple: true,
-              });
-            }
-            if (firstChild.find("img").length) {
-              suggestedRules.push({
-                fieldName: "item_image",
-                selector: `${selector} > ${childTag} img`,
-                attribute: "src",
-                multiple: true,
-              });
-            }
-          }
-        }
+    if (!bestContainer) {
+      return { title, suggestedRules: [], listSelectors: [] };
+    }
+
+    listSelectors.push(bestContainer);
+
+    const sample = $(bestContainer).first();
+
+    // TITLE
+    const titleEl = sample.find("h1, h2, h3, .title, .name").first();
+    if (titleEl.length) {
+      suggestedRules.push({
+        fieldName: "title",
+        selector: `${bestContainer} ${titleEl.prop("tagName")?.toLowerCase()}`,
+        attribute: "text",
+        multiple: true,
       });
-    });
+    }
 
-    if (suggestedRules.length === 0) {
-      $("[class]").each((_, el) => {
-        const classAttr = $(el).attr("class");
-        if (classAttr && classAttr.split(/\s+/).length === 1) {
-          suggestedRules.push({
-            fieldName: classAttr,
-            selector: `.${classAttr}`,
-            attribute: "text",
-            multiple: false,
-          });
-        }
+    // DESCRIPTION
+    const descEl = sample.find("p, .description, .profileDescription").first();
+    if (descEl.length) {
+      suggestedRules.push({
+        fieldName: "description",
+        selector: `${bestContainer} p, ${bestContainer} .description, ${bestContainer} .profileDescription`,
+        attribute: "text",
+        multiple: true,
+      });
+    }
+
+    // IMAGE <img>
+    const imgEl = sample.find("img[src]").first();
+    if (imgEl.length) {
+      suggestedRules.push({
+        fieldName: "image",
+        selector: `${bestContainer} img[src]`,
+        attribute: "src",
+        multiple: true,
+      });
+    }
+
+    // IMAGE background-image
+    const bgEl = sample.find("[style*='background-image']").first();
+    if (bgEl.length) {
+      suggestedRules.push({
+        fieldName: "image",
+        selector: `${bestContainer} [style*='background-image']`,
+        attribute: "style" as any,
+        multiple: true,
+      });
+    }
+
+    // LINK
+    const linkEl = sample.find("a[href]").first();
+    if (linkEl.length) {
+      suggestedRules.push({
+        fieldName: "link",
+        selector: `${bestContainer} a[href]`,
+        attribute: "href",
+        multiple: true,
+      });
+    }
+
+    // TEXT / SEARCHABLE
+    const textEl = sample.find(".searchable, span, p").first();
+    if (textEl.length) {
+      suggestedRules.push({
+        fieldName: "text",
+        selector: `${bestContainer} .searchable, ${bestContainer} span, ${bestContainer} p`,
+        attribute: "text",
+        multiple: true,
       });
     }
 
