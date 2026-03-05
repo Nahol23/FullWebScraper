@@ -16,64 +16,34 @@
   },
   "rules": [
     {
-      "fieldName": "row",
-      "selector": ".row",
+      "fieldName": "title",
+      "selector": ".row h3",
       "attribute": "text",
-      "multiple": false
+      "multiple": true
     },
     {
-      "fieldName": "switch",
-      "selector": ".switch",
+      "fieldName": "description",
+      "selector": ".row p, .row .description, .row .profileDescription",
       "attribute": "text",
-      "multiple": false
+      "multiple": true
     },
     {
-      "fieldName": "switchOuter",
-      "selector": ".switchOuter",
-      "attribute": "text",
-      "multiple": false
+      "fieldName": "image",
+      "selector": ".row [style*='background-image']",
+      "attribute": "style",
+      "multiple": true
     },
     {
-      "fieldName": "switchButton",
-      "selector": ".switchButton",
-      "attribute": "text",
-      "multiple": false
+      "fieldName": "link",
+      "selector": ".row a[href]",
+      "attribute": "href",
+      "multiple": true
     },
     {
-      "fieldName": "filterButton",
-      "selector": ".filterButton",
+      "fieldName": "text",
+      "selector": ".row .searchable, .row span, .row p",
       "attribute": "text",
-      "multiple": false
-    },
-    {
-      "fieldName": "filtersPanel",
-      "selector": ".filtersPanel",
-      "attribute": "text",
-      "multiple": false
-    },
-    {
-      "fieldName": "filtersPanelInner",
-      "selector": ".filtersPanelInner",
-      "attribute": "text",
-      "multiple": false
-    },
-    {
-      "fieldName": "row",
-      "selector": ".row",
-      "attribute": "text",
-      "multiple": false
-    },
-    {
-      "fieldName": "switch",
-      "selector": ".switch",
-      "attribute": "text",
-      "multiple": false
-    },
-    {
-      "fieldName": "switchOuter",
-      "selector": ".switchOuter",
-      "attribute": "text",
-      "multiple": false
+      "multiple": true
     }
   ],
   "pagination": {},
