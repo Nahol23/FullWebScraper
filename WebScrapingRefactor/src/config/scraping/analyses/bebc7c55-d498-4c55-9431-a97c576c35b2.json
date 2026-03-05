@@ -1,0 +1,30 @@
+{
+  "id": "bebc7c55-d498-4c55-9431-a97c576c35b2",
+  "url": "https://homebase.map-dynamics.com/components/marketplace/start.marketplace.php",
+  "timestamp": "2026-03-05T15:03:13.778Z",
+  "options": {
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "Cookie": "PHPSESSID=mi5jee0lo23pdkqonr4l35d2di",
+      "Origin": "https://homebase.map-dynamics.com",
+      "Referer": "https://homebase.map-dynamics.com/soc2026/floorplan",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+      "X-Requested-With": "XMLHttpRequest"
+    },
+    "body": {
+      "Show_ID": 8881,
+      "sort": "ASC"
+    },
+    "useJavaScript": false
+  },
+  "result": {
+    "url": "https://homebase.map-dynamics.com/components/marketplace/start.marketplace.php",
+    "title": "",
+    "suggestedRules": [],
+    "sampleData": {},
+    "detectedListSelectors": [],
+    "rawPreview": "{}"
+  },
+  "status": "completed"
+}

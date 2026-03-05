@@ -1,32 +1,24 @@
 /**
- * Application Use Case: UpdateConfigUseCase
- * Business logic for updating API configurations
+ * Application Use Case: SaveConfigUseCase
+ * Business logic for saving API configurations
  * Pure TypeScript - No React, No Axios dependencies
  */
 
-import type { ApiConfig } from "../../domain/entities/ApiConfig";
-import type { IConfigRepository } from "../../domain/ports/IConfigRepository";
-import { ConfigNotFoundError, ValidationError } from "../../domain/errors/AppError";
+import type { ApiConfig } from "../../../domain/entities/ApiConfig";
+import type { IConfigRepository } from "../../../domain/ports/IConfigRepository";
+import { ValidationError } from "../../../domain/errors/AppError";
 
-export class UpdateConfigUseCase {
+export class SaveConfigUseCase {
   constructor(private readonly configRepository: IConfigRepository) {}
 
-  async execute(config: ApiConfig): Promise<ApiConfig> {
-    // Check if config exists
-    const existing = await this.configRepository.getById(config.id);
-    if (!existing) {
-      throw new ConfigNotFoundError(config.id);
-    }
-
-    // Validate configuration
+  async execute(config: Omit<ApiConfig, "id">): Promise<ApiConfig> {
     this.validateConfig(config);
 
-    // Update configuration
-   await this.configRepository.update(config.id, config);
-    return config;
-
+    return await this.configRepository.save({
+      ...config,
+    } as ApiConfig);
   }
-  private validateConfig(config: ApiConfig): void {
+  private validateConfig(config: Omit<ApiConfig, "id">): void {
     if (!config.name || config.name.trim().length === 0) {
       throw new ValidationError("Configuration name is required", "name");
     }

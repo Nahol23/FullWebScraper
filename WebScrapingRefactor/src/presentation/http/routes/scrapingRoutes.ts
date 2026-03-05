@@ -13,6 +13,7 @@ import { ExecuteScrapingUseCase } from "../../../application/usecases/Scraping/E
 import { SaveScrapingConfigUseCase } from "../../../application/usecases/Scraping/SaveScrapingConfigUseCase";
 import { GetAllScrapingConfigsUseCase } from "../../../application/usecases/Scraping/GetAllScrapingConfigsUseCase";
 import { GetScrapingConfigByIdUseCase } from "../../../application/usecases/Scraping/GetScrapingConfigByIdUseCase";
+import { GetScrapingConfigByNameUseCase } from "../../../application/usecases/Scraping/GetScrapingConfigByNameUseCase";
 import { UpdateScrapingConfigUseCase } from "../../../application/usecases/Scraping/UpdateScrapingConfigUseCase";
 import { DeleteScrapingConfigUseCase } from "../../../application/usecases/Scraping/DeleteScrapingConfigUseCase";
 import { AnalyzeScrapingUseCase } from "../../../application/usecases/Scraping/AnalyzeScrapingUsecase";
@@ -29,6 +30,27 @@ const idParamSchema = {
   type: "object",
   required: ["id"],
   properties: { id: { type: "string" } },
+};
+
+const configIdParamSchema = {
+  type: "object",
+  required: ["configId"],
+  properties: { configId: { type: "string" } },
+};
+
+const executionParamsSchema = {
+  type: "object",
+  required: ["configId", "executionId"],
+  properties: {
+    configId: { type: "string" },
+    executionId: { type: "string" },
+  },
+};
+
+const configNameParamSchema = {
+  type: "object",
+  required: ["configName"],
+  properties: { configName: { type: "string" } },
 };
 
 const scrapingConfigBodySchema = {
@@ -102,6 +124,40 @@ const updateBodySchema = {
   },
 };
 
+const executionQuerySchema = {
+  type: "object",
+  properties: {
+    limit: { type: "number", default: 50 },
+    offset: { type: "number", default: 0 },
+  },
+};
+
+const downloadQuerySchema = {
+  type: "object",
+  properties: {
+    format: { type: "string", enum: ["json", "markdown"], default: "json" },
+  },
+};
+
+const executionResponseSchema = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: {
+      id: { type: "string" },
+      configId: { type: "string" },
+      timestamp: { type: "string", format: "date-time" },
+      url: { type: "string" },
+      rulesUsed: { type: "array" },
+      result: { type: "object" },
+      resultCount: { type: "number" },
+      status: { type: "string", enum: ["success", "error"] },
+      errorMessage: { type: "string" },
+      duration: { type: "number" },
+    },
+  },
+};
+
 export async function scrapingRoutes(fastify: FastifyInstance) {
   // ── Composition root ──────────────────────────────────────────────────────
   const browser = new PuppeteerBrowser();
@@ -127,13 +183,14 @@ export async function scrapingRoutes(fastify: FastifyInstance) {
     saveConfigUseCase: new SaveScrapingConfigUseCase(repo),
     getAllUseCase: new GetAllScrapingConfigsUseCase(repo),
     getByIdUseCase: new GetScrapingConfigByIdUseCase(repo),
+    getByNameUseCase: new GetScrapingConfigByNameUseCase(repo),
     updateUseCase: new UpdateScrapingConfigUseCase(repo),
     deleteUseCase: new DeleteScrapingConfigUseCase(repo),
     analyzeUseCase: new AnalyzeScrapingUseCase(scraper, domAnalyzer, analysisRepo),
+    executionRepo,
   });
-  // ─────────────────────────────────────────────────────────────────────────
 
-  // CRUD
+  // CRUD Configurazioni
   fastify.get("/scraping/configs", {
     schema: {
       summary: "List all scraping configurations",
@@ -281,4 +338,56 @@ export async function scrapingRoutes(fastify: FastifyInstance) {
       },
     },
   }, controller.analyzeById);
+
+  // ============================================
+  // NUOVI ENDPOINTS PER LE ESECUZIONI
+  // ============================================
+
+  // GET /scraping/executions/:configId - Recupera tutte le esecuzioni di una configurazione
+  fastify.get("/scraping/executions/:configId", {
+    schema: {
+      summary: "Get all executions for a scraping configuration",
+      tags: ["Scraping"],
+      params: configIdParamSchema,
+      querystring: executionQuerySchema,
+      response: {
+        200: executionResponseSchema,
+        404: errorResponseSchema,
+        500: errorResponseSchema,
+      },
+    },
+  }, controller.getExecutionsByConfigId);
+
+  // DELETE /scraping/executions/:configId/:executionId - Elimina una specifica esecuzione
+  fastify.delete("/scraping/executions/:configId/:executionId", {
+    schema: {
+      summary: "Delete a specific scraping execution",
+      tags: ["Scraping"],
+      params: executionParamsSchema,
+      response: {
+        204: { type: "null", description: "Execution deleted successfully" },
+        404: errorResponseSchema,
+        500: errorResponseSchema,
+      },
+    },
+  }, controller.deleteExecution);
+
+  // GET /scraping/download/:configName - Scarica i log in formato JSON/Markdown
+  fastify.get("/scraping/download/:configName", {
+    schema: {
+      summary: "Download all executions for a configuration as JSON or Markdown",
+      tags: ["Scraping"],
+      params: configNameParamSchema,
+      querystring: downloadQuerySchema,
+      response: {
+        200: {
+          description: "File scaricato con successo",
+          type: "string",
+          format: "binary",
+        },
+        404: errorResponseSchema,
+        500: errorResponseSchema,
+      },
+    },
+  }, controller.downloadExecutions);
 }

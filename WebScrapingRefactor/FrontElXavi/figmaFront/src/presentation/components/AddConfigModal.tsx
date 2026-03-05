@@ -30,6 +30,14 @@ export interface KeyValueRow {
   value: string;
 }
 
+// Tipo per i contenitori suggeriti (per comodità)
+interface ContainerSuggestion {
+  selector: string;
+  count: number;
+  sampleData?: Record<string, any>;
+  suggestedRules?: ExtractionRule[];
+}
+
 interface AddConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -87,15 +95,20 @@ export function AddConfigModal({
   const [containerSelector, setContainerSelector] = useState("");
   const [waitForSelector, setWaitForSelector] = useState("");
   const [pagination, setPagination] = useState<{
-    type: "urlParam" | "nextSelector";
-    paramName: string;
-    maxPages: number;
-  }>({
-    type: "urlParam",
-    paramName: "page",
-    maxPages: 1,
-  });
+  type: "urlParam" | "nextSelector";
+  selector?: string;
+  paramName?: string;
+  maxPages?: number;
+}>({
+  type: "urlParam",
+  paramName: "page",
+  maxPages: 1,
+});
   const [scrapingAnalysis, setScrapingAnalysis] = useState<any>(null);
+
+  // Nuovi stati per la selezione del contenitore
+  const [availableContainers, setAvailableContainers] = useState<ContainerSuggestion[]>([]);
+  const [selectedContainerIndex, setSelectedContainerIndex] = useState<number>(0);
 
   // Stato comune
   const [error, setError] = useState<string | null>(null);
@@ -214,11 +227,24 @@ export function AddConfigModal({
     }
   };
 
+  // Funzione per cambiare contenitore selezionato
+  const handleContainerChange = (index: number) => {
+    setSelectedContainerIndex(index);
+    const container = availableContainers[index];
+    if (container.suggestedRules) {
+      setRules(container.suggestedRules.map((rule) => ({ ...rule, selected: true })));
+    }
+    if (container.selector) {
+      setContainerSelector(container.selector);
+    }
+  };
+
   // Analisi Scraping
   const handleAnalyzeScraping = async () => {
     setError(null);
     setScrapingAnalysis(null);
     setRules([]);
+    setAvailableContainers([]);
 
     try {
       const headers: Record<string, string> = {};
@@ -245,11 +271,17 @@ export function AddConfigModal({
       });
 
       setScrapingAnalysis(result);
-      if (result.suggestedRules) {
-        setRules(result.suggestedRules.map((rule: any) => ({ ...rule, selected: true })));
-      }
-      if (result.suggestedContainer) {
-        setContainerSelector(result.suggestedContainer);
+
+      if (result.containers && result.containers.length > 0) {
+        setAvailableContainers(result.containers);
+        setSelectedContainerIndex(0);
+        const first = result.containers[0];
+        if (first.suggestedRules) {
+          setRules(first.suggestedRules.map((rule: any) => ({ ...rule, selected: true })));
+        }
+        if (first.selector) {
+          setContainerSelector(first.selector);
+        }
       }
     } catch (err) {
       console.error("[AddConfigModal] Scraping Analysis error:", err);
@@ -418,7 +450,7 @@ export function AddConfigModal({
           rules: selectedRules,
           ...(containerSelector.trim() && { containerSelector: containerSelector.trim() }),
           ...(waitForSelector.trim() && { waitForSelector: waitForSelector.trim() }),
-          pagination: pagination.maxPages > 1 ? pagination : undefined,
+          pagination: (pagination.maxPages && pagination.maxPages > 1) ? pagination : undefined,
         };
 
         const newConfig = await saveScrapingConfig(configPayload);
@@ -439,14 +471,12 @@ export function AddConfigModal({
   };
 
   const handleClose = () => {
-    // Reset API state
     setName("");
     setMethod("GET");
     setHeaderRows([{ id: "1", key: "Content-Type", value: "application/json" }]);
     setBodyJson("{\n  \n}");
     setError(null);
 
-    // Reset API specific
     setBaseUrl("https://");
     setEndpoint("/");
     setQueryRows([]);
@@ -456,13 +486,14 @@ export function AddConfigModal({
     setSelectAll(false);
     setApiAnalysisResult(null);
 
-    // Reset Scraping specific
     setUrl("https://");
     setRules([]);
     setContainerSelector("");
     setWaitForSelector("");
     setPagination({ type: "urlParam", paramName: "page", maxPages: 1 });
     setScrapingAnalysis(null);
+    setAvailableContainers([]);
+    setSelectedContainerIndex(0);
 
     setConfigType("api");
     onClose();
@@ -620,6 +651,32 @@ export function AddConfigModal({
 
               {/* Form specifico per Scraping */}
               <TabsContent value="scraping" className="mt-0 space-y-6">
+                {/* Selettore contenitore (dopo analisi) */}
+                {availableContainers.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-zinc-300">Select Container</Label>
+                    <select
+                      value={selectedContainerIndex}
+                      onChange={(e) => handleContainerChange(Number(e.target.value))}
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-white text-sm"
+                    >
+                      {availableContainers.map((container, idx) => (
+                        <option key={idx} value={idx}>
+                          {container.selector} ({container.count} items)
+                        </option>
+                      ))}
+                    </select>
+                    {availableContainers[selectedContainerIndex]?.sampleData && (
+                      <div className="mt-2 p-2 bg-zinc-800/50 rounded border border-zinc-700">
+                        <p className="text-xs text-zinc-400 mb-1">Sample data preview:</p>
+                        <pre className="text-xs font-mono text-zinc-300 whitespace-pre-wrap max-h-40 overflow-auto">
+                          {JSON.stringify(availableContainers[selectedContainerIndex].sampleData, null, 2)}
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <ScrapingConfigForm
                   url={url}
                   setUrl={setUrl}

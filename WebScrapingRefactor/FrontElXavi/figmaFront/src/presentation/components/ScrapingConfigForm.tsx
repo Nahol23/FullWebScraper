@@ -4,9 +4,15 @@ import { Label } from "./ui/label";
 import { X, Plus, Loader2, Sparkles } from "lucide-react";
 import type { ExtractionRule } from "../../domain/entities/ScrapingConfig";
 
-interface ScrapingConfigFormProps {
+export interface ScrapingConfigFormProps {
   url: string;
   setUrl: (val: string) => void;
+  method?: string;
+  setMethod?: (val: "GET" | "POST") => void;
+  headers?: Record<string, string>;
+  setHeaders?: (headers: Record<string, string>) => void;
+  body?: any;
+  setBody?: (body: any) => void;
   rules: ExtractionRule[];
   setRules: React.Dispatch<React.SetStateAction<ExtractionRule[]>>;
   containerSelector: string;
@@ -15,14 +21,16 @@ interface ScrapingConfigFormProps {
   setWaitForSelector: (val: string) => void;
   pagination: {
     type: "urlParam" | "nextSelector";
-    paramName: string;
-    maxPages: number;
+    selector?: string;
+    paramName?: string;
+    maxPages?: number;
   };
   setPagination: React.Dispatch<
     React.SetStateAction<{
       type: "urlParam" | "nextSelector";
-      paramName: string;
-      maxPages: number;
+      selector?: string;
+      paramName?: string;
+      maxPages?: number;
     }>
   >;
   onAnalyze: () => void;
@@ -33,6 +41,10 @@ interface ScrapingConfigFormProps {
 export function ScrapingConfigForm({
   url,
   setUrl,
+  method = "GET",
+  setMethod,
+  headers = {},
+  setHeaders,
   rules,
   setRules,
   containerSelector,
@@ -67,6 +79,30 @@ export function ScrapingConfigForm({
     setRules((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const addHeader = () => {
+    if (setHeaders) {
+      const newKey = `header-${Object.keys(headers).length + 1}`;
+      setHeaders({ ...headers, [newKey]: "" });
+    }
+  };
+
+  const updateHeader = (oldKey: string, newKey: string, value: string) => {
+    if (setHeaders) {
+      const newHeaders = { ...headers };
+      delete newHeaders[oldKey];
+      newHeaders[newKey] = value;
+      setHeaders(newHeaders);
+    }
+  };
+
+  const removeHeader = (key: string) => {
+    if (setHeaders) {
+      const newHeaders = { ...headers };
+      delete newHeaders[key];
+      setHeaders(newHeaders);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* URL */}
@@ -83,6 +119,74 @@ export function ScrapingConfigForm({
           required
         />
       </div>
+
+      {/* Method (if provided) */}
+      {setMethod && (
+        <div className="space-y-2">
+          <Label htmlFor="method" className="text-sm text-zinc-300">
+            HTTP Method
+          </Label>
+          <select
+            id="method"
+            value={method}
+            onChange={(e) => setMethod(e.target.value as "GET" | "POST")}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+          >
+            <option value="GET">GET</option>
+            <option value="POST">POST</option>
+          </select>
+        </div>
+      )}
+
+      {/* Headers (if provided) */}
+      {setHeaders && (
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm text-zinc-300">HTTP Headers</Label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addHeader}
+              className="bg-indigo-600 hover:bg-indigo-700 border-0 text-white gap-1 h-8"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add Header
+            </Button>
+          </div>
+          <div className="space-y-2">
+            {Object.entries(headers).map(([key, value], index) => (
+              <div key={index} className="flex gap-2">
+                <Input
+                  value={key}
+                  onChange={(e) => updateHeader(key, e.target.value, value)}
+                  placeholder="Header Key"
+                  className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
+                />
+                <Input
+                  value={value}
+                  onChange={(e) => updateHeader(key, key, e.target.value)}
+                  placeholder="Header Value"
+                  className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => removeHeader(key)}
+                  className="bg-zinc-900 border-zinc-800 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 flex-shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            {Object.keys(headers).length === 0 && (
+              <p className="text-sm text-zinc-500 text-center py-4 italic">
+                No headers.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Analyze Button */}
       <div className="flex justify-end">
@@ -103,7 +207,7 @@ export function ScrapingConfigForm({
         </Button>
       </div>
 
-      {/* Container Selector (suggerito o manuale) */}
+      {/* Container Selector */}
       <div className="space-y-2">
         <Label htmlFor="containerSelector" className="text-sm text-zinc-300">
           Container Selector (optional)
@@ -116,7 +220,7 @@ export function ScrapingConfigForm({
           className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
         />
         <p className="text-xs text-zinc-500">
-          Selettore CSS per l'elemento che contiene ogni elemento ripetuto.
+          CSS selector for the element that contains each repeated item.
         </p>
       </div>
 
@@ -165,8 +269,8 @@ export function ScrapingConfigForm({
               </div>
               <div className="flex items-center gap-4">
                 <select
-                  value={rule.attribute}
-                  onChange={(e) => updateRule(index, "attribute", e.target.value)}
+                  value={rule.attribute || "text"}
+                  onChange={(e) => updateRule(index, "attribute", e.target.value as any)}
                   className="bg-zinc-900 border border-zinc-800 rounded-md px-2 py-1 text-xs text-white"
                 >
                   <option value="text">Text</option>
@@ -178,7 +282,7 @@ export function ScrapingConfigForm({
                 <label className="flex items-center gap-1 text-xs text-zinc-300">
                   <input
                     type="checkbox"
-                    checked={rule.multiple}
+                    checked={rule.multiple || false}
                     onChange={(e) => updateRule(index, "multiple", e.target.checked)}
                     className="rounded border-zinc-600"
                   />
@@ -208,7 +312,7 @@ export function ScrapingConfigForm({
           className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
         />
         <p className="text-xs text-zinc-500">
-          Attende che questo selettore appaia prima di estrarre i dati (utile per pagine dinamiche).
+          Wait for this selector to appear before extracting data (useful for dynamic pages).
         </p>
       </div>
 
@@ -238,7 +342,7 @@ export function ScrapingConfigForm({
             <div className="space-y-2">
               <Label className="text-xs text-zinc-400">Parameter Name</Label>
               <Input
-                value={pagination.paramName}
+                value={pagination.paramName || "page"}
                 onChange={(e) =>
                   setPagination((prev) => ({ ...prev, paramName: e.target.value }))
                 }
@@ -250,9 +354,9 @@ export function ScrapingConfigForm({
             <div className="space-y-2">
               <Label className="text-xs text-zinc-400">Next Selector</Label>
               <Input
-                value={pagination.paramName}
+                value={pagination.selector || ""}
                 onChange={(e) =>
-                  setPagination((prev) => ({ ...prev, paramName: e.target.value }))
+                  setPagination((prev) => ({ ...prev, selector: e.target.value }))
                 }
                 placeholder="a.next"
                 className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
@@ -263,7 +367,7 @@ export function ScrapingConfigForm({
             <Label className="text-xs text-zinc-400">Max Pages</Label>
             <Input
               type="number"
-              value={pagination.maxPages}
+              value={pagination.maxPages || 1}
               onChange={(e) =>
                 setPagination((prev) => ({ ...prev, maxPages: parseInt(e.target.value) || 1 }))
               }

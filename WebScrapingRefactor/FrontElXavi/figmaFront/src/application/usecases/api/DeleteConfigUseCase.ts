@@ -4,8 +4,8 @@
  * Pure TypeScript - No React, No Axios dependencies
  */
 
-import type { IConfigRepository } from "../../domain/ports/IConfigRepository";
-import { ConfigNotFoundError } from "../../domain/errors/AppError";
+import type { IConfigRepository } from "../../../domain/ports/IConfigRepository";
+import { ConfigNotFoundError } from "../../../domain/errors/AppError";
 
 export class DeleteConfigUseCase {
   constructor(private readonly configRepository: IConfigRepository) {}
