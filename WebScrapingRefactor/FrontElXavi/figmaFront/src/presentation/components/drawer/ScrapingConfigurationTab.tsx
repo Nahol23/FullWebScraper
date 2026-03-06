@@ -1,8 +1,12 @@
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
-import { ScrapingConfigForm } from "../ScrapingConfigForm";
-import type { ScrapingConfig, ExtractionRule } from "../../../domain/entities/ScrapingConfig";
+import {
+  ScrapingConfigForm,
+  SelectableExtractionRule,
+} from "../ScrapingConfigForm";
+import { useScrapingExecutionController } from "../../hooks/useScrapingExecutionController";
+import type { ScrapingConfig } from "../../../domain/entities/ScrapingConfig";
 
 interface ScrapingConfigurationTabProps {
   config: ScrapingConfig;
@@ -19,11 +23,20 @@ export function ScrapingConfigurationTab({
   const [method, setMethod] = useState(config.method || "GET");
   const [headers, setHeaders] = useState(config.headers || {});
   const [body, setBody] = useState(config.body);
-  const [rules, setRules] = useState<ExtractionRule[]>(config.rules);
-  const [containerSelector, setContainerSelector] = useState(config.containerSelector || "");
-  const [waitForSelector, setWaitForSelector] = useState(config.waitForSelector || "");
-  
-  // Stato pagination con campi opzionali (per compatibilità con ScrapingConfigForm)
+  const [rules, setRules] = useState<SelectableExtractionRule[]>(
+    config.rules.map((rule) => ({ ...rule, selected: true })),
+  );
+  const [containerSelector, setContainerSelector] = useState(
+    config.containerSelector || "",
+  );
+  const [waitForSelector, setWaitForSelector] = useState(
+    config.waitForSelector || "",
+  );
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [selectAllRules, setSelectAllRules] = useState(true);
+
+  const { analyze, isAnalyzing, error } = useScrapingExecutionController();
+
   const [pagination, setPagination] = useState<{
     type: "urlParam" | "nextSelector";
     selector?: string;
@@ -34,19 +47,64 @@ export function ScrapingConfigurationTab({
       type: "urlParam",
       paramName: "page",
       maxPages: 1,
-    }
+    },
   );
 
+  const handleAnalyze = async () => {
+    try {
+      const headersObject: Record<string, string> = {};
+      Object.entries(headers).forEach(([key, value]) => {
+        if (key.trim()) headersObject[key.trim()] = value;
+      });
+
+      let parsedBody: any = undefined;
+      if (method === "POST" && body) {
+        parsedBody = body;
+      }
+
+      console.log("[ScrapingConfigurationTab] Analyzing with:", {
+        url,
+        method,
+        headers: headersObject,
+        body: parsedBody,
+        useJavaScript: !!waitForSelector,
+        waitForSelector: waitForSelector || undefined,
+      });
+
+      const result = await analyze(url, {
+        method,
+        headers:
+          Object.keys(headersObject).length > 0 ? headersObject : undefined,
+        body: parsedBody,
+        useJavaScript: !!waitForSelector,
+        waitForSelector: waitForSelector || undefined,
+      });
+
+      console.log("[ScrapingConfigurationTab] Analysis result:", result);
+      setAnalysisResult(result);
+    } catch (err) {
+      console.error("[ScrapingConfigurationTab] Analysis error:", err);
+    }
+  };
+
   const handleSave = async () => {
-    // Costruisci l'oggetto pagination solo se maxPages > 1
-    const paginationToSave = pagination.maxPages && pagination.maxPages > 1
-      ? {
-          type: pagination.type,
-          ...(pagination.type === "nextSelector" && pagination.selector ? { selector: pagination.selector } : {}),
-          ...(pagination.type === "urlParam" && pagination.paramName ? { paramName: pagination.paramName } : {}),
-          maxPages: pagination.maxPages,
-        }
-      : undefined;
+    const selectedRules = rules
+      .filter((rule) => rule.selected)
+      .map(({ selected, ...rule }) => rule);
+
+    const paginationToSave =
+      pagination.maxPages && pagination.maxPages > 1
+        ? {
+            type: pagination.type,
+            ...(pagination.type === "nextSelector" && pagination.selector
+              ? { selector: pagination.selector }
+              : {}),
+            ...(pagination.type === "urlParam" && pagination.paramName
+              ? { paramName: pagination.paramName }
+              : {}),
+            maxPages: pagination.maxPages,
+          }
+        : undefined;
 
     const updatedConfig: ScrapingConfig = {
       ...config,
@@ -54,11 +112,17 @@ export function ScrapingConfigurationTab({
       method,
       headers: Object.keys(headers).length > 0 ? headers : undefined,
       body,
-      rules,
+      rules: selectedRules,
       containerSelector: containerSelector || undefined,
       waitForSelector: waitForSelector || undefined,
       pagination: paginationToSave,
     };
+
+    console.log(
+      "[ScrapingConfigurationTab] Saving config with",
+      selectedRules.length,
+      "rules",
+    );
     await onUpdate(updatedConfig);
   };
 
@@ -81,17 +145,25 @@ export function ScrapingConfigurationTab({
         setWaitForSelector={setWaitForSelector}
         pagination={pagination}
         setPagination={setPagination}
-        onAnalyze={() => {}}
-        isAnalyzing={false}
-        analysisResult={null}
+        onAnalyze={handleAnalyze}
+        isAnalyzing={isAnalyzing}
+        analysisResult={analysisResult}
+        selectAllRules={selectAllRules}
+        setSelectAllRules={setSelectAllRules}
       />
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
 
       <div className="flex gap-3 pt-4 border-t border-zinc-800">
         <Button
           onClick={handleSave}
           className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white"
         >
-          Save Changes
+          Save Changes ({rules.filter((r) => r.selected).length} rules selected)
         </Button>
         <Button
           onClick={() => onDelete(config)}

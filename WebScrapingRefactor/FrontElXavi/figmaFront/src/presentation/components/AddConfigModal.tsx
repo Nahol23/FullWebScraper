@@ -1,3 +1,4 @@
+// src/presentation/components/AddConfigModal.tsx
 import { useState, useEffect } from "react";
 import { Loader2, X, Plus } from "lucide-react";
 import {
@@ -14,15 +15,19 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import type { ApiConfig, ApiParam } from "../../domain/entities/ApiConfig";
-import type { ScrapingConfig, ExtractionRule } from "../../domain/entities/ScrapingConfig";
-import { useConfigController } from "../hooks/useConfigController";
-import { useScrapingConfigController } from "../hooks/useScrapingConfigController";
+import type {
+  ScrapingConfig,
+  ExtractionRule,
+} from "../../domain/entities/ScrapingConfig";
 import { useAnalysisController } from "../hooks/useAnalysisController";
 import { useScrapingExecutionController } from "../hooks/useScrapingExecutionController";
 import { ValidationError } from "../../domain/errors/AppError";
 import { AnalysisDetailsModal } from "./AnalysisDetailsModal";
 import { ApiConfigForm } from "./ApiConfigForm";
-import { ScrapingConfigForm } from "./ScrapingConfigForm";
+import {
+  ScrapingConfigForm,
+  SelectableExtractionRule,
+} from "./ScrapingConfigForm";
 
 export interface KeyValueRow {
   id: string;
@@ -30,7 +35,6 @@ export interface KeyValueRow {
   value: string;
 }
 
-// Tipo per i contenitori suggeriti (per comodità)
 interface ContainerSuggestion {
   selector: string;
   count: number;
@@ -41,7 +45,10 @@ interface ContainerSuggestion {
 interface AddConfigModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (config: ApiConfig | ScrapingConfig) => void;
+  onAdd: (
+    config: Omit<ApiConfig, "id"> | Omit<ScrapingConfig, "id">,
+    type: "api" | "scraping",
+  ) => void;
 }
 
 export function AddConfigModal({
@@ -53,7 +60,6 @@ export function AddConfigModal({
   const [configType, setConfigType] = useState<"api" | "scraping">("api");
 
   // Hook per API
-  const { saveConfig } = useConfigController();
   const {
     analyzeApi,
     isAnalyzing: isApiAnalyzing,
@@ -63,7 +69,6 @@ export function AddConfigModal({
   } = useAnalysisController();
 
   // Hook per Scraping
-  const { saveConfig: saveScrapingConfig } = useScrapingConfigController();
   const {
     analyze: analyzeScraping,
     isAnalyzing: isScrapingAnalyzing,
@@ -91,24 +96,28 @@ export function AddConfigModal({
 
   // Campi specifici Scraping
   const [url, setUrl] = useState("https://");
-  const [rules, setRules] = useState<ExtractionRule[]>([]);
+  const [rules, setRules] = useState<SelectableExtractionRule[]>([]);
   const [containerSelector, setContainerSelector] = useState("");
   const [waitForSelector, setWaitForSelector] = useState("");
   const [pagination, setPagination] = useState<{
-  type: "urlParam" | "nextSelector";
-  selector?: string;
-  paramName?: string;
-  maxPages?: number;
-}>({
-  type: "urlParam",
-  paramName: "page",
-  maxPages: 1,
-});
+    type: "urlParam" | "nextSelector";
+    selector?: string;
+    paramName?: string;
+    maxPages?: number;
+  }>({
+    type: "urlParam",
+    paramName: "page",
+    maxPages: 1,
+  });
   const [scrapingAnalysis, setScrapingAnalysis] = useState<any>(null);
+  const [selectAllRules, setSelectAllRules] = useState(false);
 
   // Nuovi stati per la selezione del contenitore
-  const [availableContainers, setAvailableContainers] = useState<ContainerSuggestion[]>([]);
-  const [selectedContainerIndex, setSelectedContainerIndex] = useState<number>(0);
+  const [availableContainers, setAvailableContainers] = useState<
+    ContainerSuggestion[]
+  >([]);
+  const [selectedContainerIndex, setSelectedContainerIndex] =
+    useState<number>(0);
 
   // Stato comune
   const [error, setError] = useState<string | null>(null);
@@ -138,7 +147,9 @@ export function AddConfigModal({
   }, [scrapingAnalysisError, clearScrapingAnalysisError]);
 
   // Utility per righe key-value
-  const addRow = (setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>) => {
+  const addRow = (
+    setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>,
+  ) => {
     setter((prev) => [
       ...prev,
       { id: crypto.randomUUID(), key: "", value: "" },
@@ -147,7 +158,7 @@ export function AddConfigModal({
 
   const removeRow = (
     id: string,
-    setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>
+    setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>,
   ) => {
     setter((prev) => prev.filter((row) => row.id !== id));
   };
@@ -156,10 +167,10 @@ export function AddConfigModal({
     id: string,
     field: "key" | "value",
     newValue: string,
-    setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>
+    setter: React.Dispatch<React.SetStateAction<KeyValueRow[]>>,
   ) => {
     setter((prev) =>
-      prev.map((row) => (row.id === id ? { ...row, [field]: newValue } : row))
+      prev.map((row) => (row.id === id ? { ...row, [field]: newValue } : row)),
     );
   };
 
@@ -173,7 +184,9 @@ export function AddConfigModal({
 
     try {
       const cleanBaseUrl = baseUrl.replace(/\/$/, "");
-      const cleanEndpoint = endpoint.startsWith("/") ? endpoint : "/" + endpoint;
+      const cleanEndpoint = endpoint.startsWith("/")
+        ? endpoint
+        : "/" + endpoint;
       const fullUrl = cleanBaseUrl + cleanEndpoint;
 
       const headers: Record<string, string> = {};
@@ -232,7 +245,9 @@ export function AddConfigModal({
     setSelectedContainerIndex(index);
     const container = availableContainers[index];
     if (container.suggestedRules) {
-      setRules(container.suggestedRules.map((rule) => ({ ...rule, selected: true })));
+      setRules(
+        container.suggestedRules.map((rule) => ({ ...rule, selected: true })),
+      );
     }
     if (container.selector) {
       setContainerSelector(container.selector);
@@ -262,6 +277,15 @@ export function AddConfigModal({
         }
       }
 
+      console.log("[AddConfigModal] Calling analyzeScraping with:", {
+        url,
+        method,
+        headers,
+        body: parsedBody,
+        useJavaScript: !!waitForSelector,
+        waitForSelector: waitForSelector || undefined,
+      });
+
       const result = await analyzeScraping(url, {
         method,
         headers,
@@ -270,18 +294,32 @@ export function AddConfigModal({
         waitForSelector: waitForSelector || undefined,
       });
 
+      console.log("[AddConfigModal] Scraping analysis result:", result);
       setScrapingAnalysis(result);
 
-      if (result.containers && result.containers.length > 0) {
-        setAvailableContainers(result.containers);
-        setSelectedContainerIndex(0);
-        const first = result.containers[0];
-        if (first.suggestedRules) {
-          setRules(first.suggestedRules.map((rule: any) => ({ ...rule, selected: true })));
-        }
-        if (first.selector) {
-          setContainerSelector(first.selector);
-        }
+      if (result.suggestedRules && result.suggestedRules.length > 0) {
+        console.log(
+          "[AddConfigModal] Setting suggested rules:",
+          result.suggestedRules,
+        );
+        setRules(
+          result.suggestedRules.map((rule: any) => ({
+            ...rule,
+            selected: true,
+          })),
+        );
+        setSelectAllRules(true);
+      }
+
+      if (
+        result.detectedListSelectors &&
+        result.detectedListSelectors.length > 0
+      ) {
+        console.log(
+          "[AddConfigModal] Setting container selector:",
+          result.detectedListSelectors[0],
+        );
+        setContainerSelector(result.detectedListSelectors[0]);
       }
     } catch (err) {
       console.error("[AddConfigModal] Scraping Analysis error:", err);
@@ -382,11 +420,13 @@ export function AddConfigModal({
     setIsSaving(true);
 
     try {
+      // Prepara headers da headerRows
       const headersObject: Record<string, string> = {};
       headerRows.forEach((row) => {
         if (row.key.trim()) headersObject[row.key] = row.value;
       });
 
+      // Prepara body per POST
       let bodyPayload: any = undefined;
       if (method === "POST" && bodyJson.trim()) {
         try {
@@ -399,7 +439,6 @@ export function AddConfigModal({
       }
 
       if (configType === "api") {
-        // Validazione API
         if (!baseUrl.trim() || !endpoint.trim()) {
           setError("Base URL and Endpoint are required");
           setIsSaving(false);
@@ -418,7 +457,9 @@ export function AddConfigModal({
           baseUrl: baseUrl.trim(),
           endpoint: endpoint.trim(),
           method,
-          ...(Object.keys(headersObject).length > 0 && { headers: headersObject }),
+          ...(Object.keys(headersObject).length > 0 && {
+            headers: headersObject,
+          }),
           ...(validQueryParams.length > 0 && { queryParams: validQueryParams }),
           ...(method === "POST" && bodyPayload && { body: bodyPayload }),
           ...(dataPath.trim() && { dataPath: dataPath.trim() }),
@@ -427,43 +468,120 @@ export function AddConfigModal({
           executionHistory: [],
         };
 
-        const newConfig = await saveConfig(configPayload);
-        onAdd(newConfig);
+        console.log("[AddConfigModal] Saving API config:", configPayload);
+        onAdd(configPayload as ApiConfig, "api");
       } else {
-        // Validazione Scraping
         if (!url.trim()) {
           setError("URL is required");
           setIsSaving(false);
           return;
         }
 
+        // Definisci gli attributi validi (devono corrispondere allo schema del backend)
+        const validAttributes = ["text", "html", "href", "src", "innerText"];
+
+        // Filtra solo le regole selezionate e valida gli attributi
         const selectedRules = rules
-          .filter((r: any) => r.selected)
-          .map(({ selected, ...rule }: any) => rule);
+          .filter((r) => r.selected)
+          .map(({ selected, ...rule }) => {
+            // Crea una copia pulita della regola
+            const cleanRule: any = {
+              fieldName: rule.fieldName?.trim() || "",
+              selector: rule.selector?.trim() || "",
+            };
+
+            // Validazione fieldName e selector
+            if (!cleanRule.fieldName) {
+              throw new Error("All rules must have a field name");
+            }
+            if (!cleanRule.selector) {
+              throw new Error("All rules must have a selector");
+            }
+
+            // Gestione attribute - mappa sempre a un valore valido
+            if (rule.attribute && validAttributes.includes(rule.attribute)) {
+              cleanRule.attribute = rule.attribute;
+            } else {
+              // Default a "text" se non presente o non valido
+              cleanRule.attribute = "text";
+            }
+
+            // Aggiungi multiple solo se true (opzionale)
+            if (rule.multiple) {
+              cleanRule.multiple = true;
+            }
+
+            // Aggiungi transform solo se presente (opzionale)
+            if (rule.transform) {
+              cleanRule.transform = rule.transform;
+            }
+
+            return cleanRule;
+          });
+
+        // Verifica che ci siano regole selezionate
+        if (selectedRules.length === 0) {
+          setError("At least one extraction rule must be selected");
+          setIsSaving(false);
+          return;
+        }
+
+        // Log del payload per debug
+        console.log(
+          "[AddConfigModal] Selected rules payload:",
+          JSON.stringify(selectedRules, null, 2),
+        );
+
+        // Costruisci pagination solo se maxPages > 1
+        const paginationToSave =
+          pagination.maxPages && pagination.maxPages > 1
+            ? {
+                type: pagination.type,
+                ...(pagination.type === "nextSelector" && pagination.selector
+                  ? { selector: pagination.selector }
+                  : {}),
+                ...(pagination.type === "urlParam" && pagination.paramName
+                  ? { paramName: pagination.paramName }
+                  : {}),
+                maxPages: pagination.maxPages,
+              }
+            : undefined;
 
         const configPayload: Omit<ScrapingConfig, "id"> = {
           name: name.trim(),
           url: url.trim(),
           method,
-          ...(Object.keys(headersObject).length > 0 && { headers: headersObject }),
+          ...(Object.keys(headersObject).length > 0 && {
+            headers: headersObject,
+          }),
           ...(method === "POST" && bodyPayload && { body: bodyPayload }),
           rules: selectedRules,
-          ...(containerSelector.trim() && { containerSelector: containerSelector.trim() }),
-          ...(waitForSelector.trim() && { waitForSelector: waitForSelector.trim() }),
-          pagination: (pagination.maxPages && pagination.maxPages > 1) ? pagination : undefined,
+          ...(containerSelector.trim() && {
+            containerSelector: containerSelector.trim(),
+          }),
+          ...(waitForSelector.trim() && {
+            waitForSelector: waitForSelector.trim(),
+          }),
+          ...(paginationToSave && { pagination: paginationToSave }),
         };
 
-        const newConfig = await saveScrapingConfig(configPayload);
-        onAdd(newConfig);
+        console.log(
+          "[AddConfigModal] Saving scraping config:",
+          JSON.stringify(configPayload, null, 2),
+        );
+        onAdd(configPayload as ScrapingConfig, "scraping");
       }
 
+      // Chiudi il modal dopo il successo
       handleClose();
     } catch (err) {
       console.error("[AddConfigModal] Save error:", err);
       if (err instanceof ValidationError) {
         setError(err.message);
       } else {
-        setError(err instanceof Error ? err.message : "Failed to save configuration");
+        setError(
+          err instanceof Error ? err.message : "Failed to save configuration",
+        );
       }
     } finally {
       setIsSaving(false);
@@ -473,10 +591,13 @@ export function AddConfigModal({
   const handleClose = () => {
     setName("");
     setMethod("GET");
-    setHeaderRows([{ id: "1", key: "Content-Type", value: "application/json" }]);
+    setHeaderRows([
+      { id: "1", key: "Content-Type", value: "application/json" },
+    ]);
     setBodyJson("{\n  \n}");
     setError(null);
 
+    // Reset API
     setBaseUrl("https://");
     setEndpoint("/");
     setQueryRows([]);
@@ -486,6 +607,7 @@ export function AddConfigModal({
     setSelectAll(false);
     setApiAnalysisResult(null);
 
+    // Reset Scraping
     setUrl("https://");
     setRules([]);
     setContainerSelector("");
@@ -494,6 +616,7 @@ export function AddConfigModal({
     setScrapingAnalysis(null);
     setAvailableContainers([]);
     setSelectedContainerIndex(0);
+    setSelectAllRules(false);
 
     setConfigType("api");
     onClose();
@@ -512,7 +635,10 @@ export function AddConfigModal({
             </DialogDescription>
           </DialogHeader>
 
-          <Tabs value={configType} onValueChange={(v) => setConfigType(v as "api" | "scraping")}>
+          <Tabs
+            value={configType}
+            onValueChange={(v) => setConfigType(v as "api" | "scraping")}
+          >
             <TabsList className="grid w-full grid-cols-2 bg-zinc-900 border border-zinc-800 mb-4">
               <TabsTrigger
                 value="api"
@@ -558,7 +684,9 @@ export function AddConfigModal({
                   <select
                     id="method"
                     value={method}
-                    onChange={(e) => setMethod(e.target.value as "GET" | "POST")}
+                    onChange={(e) =>
+                      setMethod(e.target.value as "GET" | "POST")
+                    }
                     className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
                   >
                     <option value="GET">GET</option>
@@ -568,7 +696,9 @@ export function AddConfigModal({
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-sm text-zinc-300">HTTP Headers</Label>
+                    <Label className="text-sm text-zinc-300">
+                      HTTP Headers
+                    </Label>
                     <Button
                       type="button"
                       variant="outline"
@@ -584,13 +714,27 @@ export function AddConfigModal({
                       <div key={row.id} className="flex gap-2">
                         <Input
                           value={row.key}
-                          onChange={(e) => updateRow(row.id, "key", e.target.value, setHeaderRows)}
+                          onChange={(e) =>
+                            updateRow(
+                              row.id,
+                              "key",
+                              e.target.value,
+                              setHeaderRows,
+                            )
+                          }
                           placeholder="Header Key"
                           className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
                         />
                         <Input
                           value={row.value}
-                          onChange={(e) => updateRow(row.id, "value", e.target.value, setHeaderRows)}
+                          onChange={(e) =>
+                            updateRow(
+                              row.id,
+                              "value",
+                              e.target.value,
+                              setHeaderRows,
+                            )
+                          }
                           placeholder="Header Value"
                           className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
                         />
@@ -654,10 +798,14 @@ export function AddConfigModal({
                 {/* Selettore contenitore (dopo analisi) */}
                 {availableContainers.length > 0 && (
                   <div className="space-y-2">
-                    <Label className="text-sm text-zinc-300">Select Container</Label>
+                    <Label className="text-sm text-zinc-300">
+                      Select Container
+                    </Label>
                     <select
                       value={selectedContainerIndex}
-                      onChange={(e) => handleContainerChange(Number(e.target.value))}
+                      onChange={(e) =>
+                        handleContainerChange(Number(e.target.value))
+                      }
                       className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-white text-sm"
                     >
                       {availableContainers.map((container, idx) => (
@@ -666,11 +814,19 @@ export function AddConfigModal({
                         </option>
                       ))}
                     </select>
-                    {availableContainers[selectedContainerIndex]?.sampleData && (
+                    {availableContainers[selectedContainerIndex]
+                      ?.sampleData && (
                       <div className="mt-2 p-2 bg-zinc-800/50 rounded border border-zinc-700">
-                        <p className="text-xs text-zinc-400 mb-1">Sample data preview:</p>
+                        <p className="text-xs text-zinc-400 mb-1">
+                          Sample data preview:
+                        </p>
                         <pre className="text-xs font-mono text-zinc-300 whitespace-pre-wrap max-h-40 overflow-auto">
-                          {JSON.stringify(availableContainers[selectedContainerIndex].sampleData, null, 2)}
+                          {JSON.stringify(
+                            availableContainers[selectedContainerIndex]
+                              .sampleData,
+                            null,
+                            2,
+                          )}
                         </pre>
                       </div>
                     )}
@@ -680,6 +836,41 @@ export function AddConfigModal({
                 <ScrapingConfigForm
                   url={url}
                   setUrl={setUrl}
+                  method={method}
+                  setMethod={setMethod}
+                  headers={headerRows.reduce(
+                    (acc, row) => {
+                      if (row.key.trim()) acc[row.key.trim()] = row.value;
+                      return acc;
+                    },
+                    {} as Record<string, string>,
+                  )}
+                  setHeaders={(newHeaders) => {
+                    const newRows = Object.entries(newHeaders).map(
+                      ([key, value]) => ({
+                        id: crypto.randomUUID(),
+                        key,
+                        value,
+                      }),
+                    );
+                    setHeaderRows(newRows);
+                  }}
+                  // Qui non puoi usare bodyPayload perché non è in scope
+                  // Usa bodyJson direttamente o un altro stato
+                  body={
+                    method === "POST" && bodyJson.trim()
+                      ? (() => {
+                          try {
+                            return JSON.parse(bodyJson);
+                          } catch {
+                            return undefined;
+                          }
+                        })()
+                      : undefined
+                  }
+                  setBody={(newBody) =>
+                    setBodyJson(JSON.stringify(newBody, null, 2))
+                  }
                   rules={rules}
                   setRules={setRules}
                   containerSelector={containerSelector}
@@ -691,6 +882,8 @@ export function AddConfigModal({
                   onAnalyze={handleAnalyzeScraping}
                   isAnalyzing={isScrapingAnalyzing}
                   analysisResult={scrapingAnalysis}
+                  selectAllRules={selectAllRules}
+                  setSelectAllRules={setSelectAllRules}
                 />
               </TabsContent>
 

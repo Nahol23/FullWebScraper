@@ -16,7 +16,6 @@ import {
   DialogFooter,
 } from "../components/ui/dialog";
 import { Button } from "../components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "../components/ui/tabs";
 
 // Controller Hooks
 import { useConfigController } from "../hooks/useConfigController";
@@ -68,7 +67,7 @@ export default function App() {
     isLoading: isScrapingLoading,
     error: scrapingError,
     fetchConfigs: fetchScrapingConfigs,
-    saveConfig: saveScrapingConfig,
+    saveScrapingConfig: saveScrapingConfig,
     updateConfig: updateScrapingConfig,
     deleteConfig: deleteScrapingConfig,
   } = useScrapingConfigController();
@@ -88,14 +87,20 @@ export default function App() {
   } = useScrapingExecutionController();
 
   // --- STATO API DRAWER ---
-  const [selectedApiConfig, setSelectedApiConfig] = useState<ApiConfig | null>(null);
+  const [selectedApiConfig, setSelectedApiConfig] = useState<ApiConfig | null>(
+    null,
+  );
   const [isApiDrawerOpen, setIsApiDrawerOpen] = useState(false);
-  const [apiConfigToDelete, setApiConfigToDelete] = useState<ApiConfig | null>(null);
+  const [apiConfigToDelete, setApiConfigToDelete] = useState<ApiConfig | null>(
+    null,
+  );
 
   // --- STATO SCRAPING DRAWER ---
-  const [selectedScrapingConfig, setSelectedScrapingConfig] = useState<ScrapingConfig | null>(null);
+  const [selectedScrapingConfig, setSelectedScrapingConfig] =
+    useState<ScrapingConfig | null>(null);
   const [isScrapingDrawerOpen, setIsScrapingDrawerOpen] = useState(false);
-  const [scrapingConfigToDelete, setScrapingConfigToDelete] = useState<ScrapingConfig | null>(null);
+  const [scrapingConfigToDelete, setScrapingConfigToDelete] =
+    useState<ScrapingConfig | null>(null);
 
   // --- EFFETTI ---
   // Caricamento iniziale
@@ -104,8 +109,15 @@ export default function App() {
   }, [fetchApiConfigs]);
 
   useEffect(() => {
+    console.log("[App] configType changed to:", configType);
     if (configType === "scraping") {
-      fetchScrapingConfigs();
+      console.log("[App] Calling fetchScrapingConfigs...");
+      fetchScrapingConfigs().then(() => {
+        console.log(
+          "[App] fetchScrapingConfigs done, scrapingConfigs:",
+          scrapingConfigs,
+        );
+      });
     }
   }, [configType, fetchScrapingConfigs]);
 
@@ -128,8 +140,16 @@ export default function App() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [autoRefreshEnabled, configType, fetchApiConfigs, fetchScrapingConfigs, 
-      selectedApiConfig, selectedScrapingConfig, refreshApiLogs, fetchScrapingLogs]);
+  }, [
+    autoRefreshEnabled,
+    configType,
+    fetchApiConfigs,
+    fetchScrapingConfigs,
+    selectedApiConfig,
+    selectedScrapingConfig,
+    refreshApiLogs,
+    fetchScrapingLogs,
+  ]);
 
   // Gestione errori
   useEffect(() => {
@@ -155,8 +175,8 @@ export default function App() {
         config.endpoint.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (config.selectedFields &&
           config.selectedFields.some((field) =>
-            field.toLowerCase().includes(searchQuery.toLowerCase())
-          ))
+            field.toLowerCase().includes(searchQuery.toLowerCase()),
+          )),
     );
   }, [apiConfigs, searchQuery]);
 
@@ -164,40 +184,51 @@ export default function App() {
     return scrapingConfigs.filter(
       (config) =>
         config.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        config.url.toLowerCase().includes(searchQuery.toLowerCase())
+        config.url.toLowerCase().includes(searchQuery.toLowerCase()),
     );
   }, [scrapingConfigs, searchQuery]);
 
   const paginatedApiConfigs = useMemo(() => {
     return filteredApiConfigs.slice(
       page * rowsPerPage,
-      page * rowsPerPage + rowsPerPage
+      page * rowsPerPage + rowsPerPage,
     );
   }, [filteredApiConfigs, page, rowsPerPage]);
 
   const paginatedScrapingConfigs = useMemo(() => {
     return filteredScrapingConfigs.slice(
       page * rowsPerPage,
-      page * rowsPerPage + rowsPerPage
+      page * rowsPerPage + rowsPerPage,
     );
   }, [filteredScrapingConfigs, page, rowsPerPage]);
 
   const totalApiPages = Math.ceil(filteredApiConfigs.length / rowsPerPage);
-  const totalScrapingPages = Math.ceil(filteredScrapingConfigs.length / rowsPerPage);
-  const currentTotalPages = configType === "api" ? totalApiPages : totalScrapingPages;
-  const currentPaginatedConfigs = configType === "api" ? paginatedApiConfigs : paginatedScrapingConfigs;
+  const totalScrapingPages = Math.ceil(
+    filteredScrapingConfigs.length / rowsPerPage,
+  );
+  const currentTotalPages =
+    configType === "api" ? totalApiPages : totalScrapingPages;
+  const currentPaginatedConfigs =
+    configType === "api" ? paginatedApiConfigs : paginatedScrapingConfigs;
   const isLoading = configType === "api" ? isApiLoading : isScrapingLoading;
   const error = configType === "api" ? apiError : scrapingError;
 
   // --- HANDLERS API ---
   const handleAddConfig = useCallback(
-    async (newConfig: ApiConfig | ScrapingConfig) => {
+    async (
+      newConfig: Omit<ApiConfig, "id"> | Omit<ScrapingConfig, "id">,
+      type: "api" | "scraping",
+    ) => {
       try {
-        if (configType === "api") {
+        if (type === "api") {
           await saveApiConfig(newConfig as ApiConfig);
+          await fetchApiConfigs();
+          setConfigType("api");
           toast.success("Configurazione API salvata con successo!");
         } else {
-          await saveScrapingConfig(newConfig as ScrapingConfig);
+          await saveScrapingConfig(newConfig as Omit<ScrapingConfig, "id">);
+          await fetchScrapingConfigs();
+          setConfigType("scraping");
           toast.success("Configurazione scraping salvata con successo!");
         }
         setIsAddModalOpen(false);
@@ -206,7 +237,7 @@ export default function App() {
         toast.error("Errore durante il salvataggio della configurazione");
       }
     },
-    [configType, saveApiConfig, saveScrapingConfig]
+    [saveApiConfig, saveScrapingConfig, fetchApiConfigs, fetchScrapingConfigs],
   );
 
   const handleApiConfigClick = useCallback(
@@ -215,7 +246,7 @@ export default function App() {
       setIsApiDrawerOpen(true);
       refreshApiLogs(config.id);
     },
-    [refreshApiLogs]
+    [refreshApiLogs],
   );
 
   const handleScrapingConfigClick = useCallback(
@@ -224,7 +255,7 @@ export default function App() {
       setIsScrapingDrawerOpen(true);
       fetchScrapingLogs(config.id);
     },
-    [fetchScrapingLogs]
+    [fetchScrapingLogs],
   );
 
   const handleUpdateApiConfig = useCallback(
@@ -238,7 +269,7 @@ export default function App() {
         toast.error("Errore durante l'aggiornamento");
       }
     },
-    [updateApiConfig]
+    [updateApiConfig],
   );
 
   const handleUpdateScrapingConfig = useCallback(
@@ -252,7 +283,7 @@ export default function App() {
         toast.error("Errore durante l'aggiornamento");
       }
     },
-    [updateScrapingConfig]
+    [updateScrapingConfig],
   );
 
   // --- HANDLERS ELIMINAZIONE ---
@@ -308,7 +339,7 @@ export default function App() {
         console.error("Errore durante l'esecuzione:", error);
       }
     },
-    [runApiExecution]
+    [runApiExecution],
   );
 
   const handleScrapingExecuteWithFeedback = useCallback(
@@ -320,7 +351,7 @@ export default function App() {
         console.error("Errore durante l'esecuzione:", error);
       }
     },
-    [executeScraping]
+    [executeScraping],
   );
 
   // --- HANDLER REFRESH ---
@@ -337,12 +368,19 @@ export default function App() {
       }
     }
     toast.info("Dati aggiornati");
-  }, [configType, fetchApiConfigs, fetchScrapingConfigs, 
-      selectedApiConfig, selectedScrapingConfig, refreshApiLogs, fetchScrapingLogs]);
+  }, [
+    configType,
+    fetchApiConfigs,
+    fetchScrapingConfigs,
+    selectedApiConfig,
+    selectedScrapingConfig,
+    refreshApiLogs,
+    fetchScrapingLogs,
+  ]);
 
   // --- RENDER LOADING STATO INIZIALE ---
-  if (isLoading && ((configType === "api" && apiConfigs.length === 0) || 
-                    (configType === "scraping" && scrapingConfigs.length === 0))) {
+  // Solo al primissimo caricamento API (non blocca il tab switch)
+  if (isApiLoading && apiConfigs.length === 0 && scrapingConfigs.length === 0) {
     return (
       <div className="dark min-h-screen bg-zinc-950 flex flex-col items-center justify-center">
         <div className="relative">
@@ -381,16 +419,31 @@ export default function App() {
 
         {/* Tab Switcher */}
         <div className="px-6 pt-4">
-          <Tabs value={configType} onValueChange={(v) => setConfigType(v as typeof configType)}>
-            <TabsList className="bg-zinc-900 border border-zinc-800">
-              <TabsTrigger value="api" className="data-[state=active]:bg-indigo-600">
-                API Configurations
-              </TabsTrigger>
-              <TabsTrigger value="scraping" className="data-[state=active]:bg-indigo-600">
-                Scraping Configurations
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+          <div className="inline-flex bg-zinc-900 border border-zinc-800 rounded-lg p-1 gap-1">
+            <button
+              onClick={() => setConfigType("api")}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                configType === "api"
+                  ? "bg-indigo-600 text-white"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              API Configurations
+            </button>
+            <button
+              onClick={() => {
+                console.log("BUTTON CLICKED - scraping");
+                setConfigType("scraping");
+              }}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                configType === "scraping"
+                  ? "bg-indigo-600 text-white"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              Scraping Configurations
+            </button>
+          </div>
         </div>
 
         <main className="px-6 pb-12">
@@ -399,12 +452,16 @@ export default function App() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-4xl font-extrabold text-white tracking-tight mb-2">
-                  {configType === "api" ? "API Dashboard" : "Scraping Dashboard"}
+                  {configType === "api"
+                    ? "API Dashboard"
+                    : "Scraping Dashboard"}
                 </h1>
                 <div className="flex items-center gap-3">
                   <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
                   <p className="text-zinc-400 font-medium">
-                    {(configType === "api" ? filteredApiConfigs.length : filteredScrapingConfigs.length)}{" "}
+                    {configType === "api"
+                      ? filteredApiConfigs.length
+                      : filteredScrapingConfigs.length}{" "}
                     configurazioni attive
                   </p>
                 </div>
@@ -436,7 +493,9 @@ export default function App() {
                     <input
                       type="checkbox"
                       checked={autoRefreshEnabled}
-                      onChange={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                      onChange={() =>
+                        setAutoRefreshEnabled(!autoRefreshEnabled)
+                      }
                       className="sr-only"
                     />
                     <div
@@ -471,7 +530,11 @@ export default function App() {
                 </svg>
                 {error}
                 <button
-                  onClick={configType === "api" ? fetchApiConfigs : fetchScrapingConfigs}
+                  onClick={
+                    configType === "api"
+                      ? fetchApiConfigs
+                      : fetchScrapingConfigs
+                  }
                   className="ml-auto text-sm bg-red-500/20 hover:bg-red-500/30 px-3 py-1 rounded"
                 >
                   Riprova
@@ -559,9 +622,16 @@ export default function App() {
                 <div className="flex items-center gap-6">
                   <span className="text-sm font-medium text-zinc-400">
                     {page * rowsPerPage + 1} -{" "}
-                    {Math.min((page + 1) * rowsPerPage, 
-                      configType === "api" ? filteredApiConfigs.length : filteredScrapingConfigs.length)}{" "}
-                    di {configType === "api" ? filteredApiConfigs.length : filteredScrapingConfigs.length}
+                    {Math.min(
+                      (page + 1) * rowsPerPage,
+                      configType === "api"
+                        ? filteredApiConfigs.length
+                        : filteredScrapingConfigs.length,
+                    )}{" "}
+                    di{" "}
+                    {configType === "api"
+                      ? filteredApiConfigs.length
+                      : filteredScrapingConfigs.length}
                   </span>
                   <div className="flex items-center gap-2">
                     <button
@@ -581,7 +651,9 @@ export default function App() {
                       </svg>
                     </button>
                     <button
-                      onClick={() => setPage((p) => Math.min(currentTotalPages - 1, p + 1))}
+                      onClick={() =>
+                        setPage((p) => Math.min(currentTotalPages - 1, p + 1))
+                      }
                       disabled={page >= currentTotalPages - 1}
                       className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 disabled:opacity-20 transition-all"
                     >
@@ -656,7 +728,8 @@ export default function App() {
         logs={scrapingLogs}
         isLoadingLogs={isScrapingLogsLoading}
         onRefreshLogs={() => {
-          if (selectedScrapingConfig) fetchScrapingLogs(selectedScrapingConfig.id);
+          if (selectedScrapingConfig)
+            fetchScrapingLogs(selectedScrapingConfig.id);
         }}
         onDeleteLog={async (logId: string) => {
           if (selectedScrapingConfig) {
@@ -678,14 +751,20 @@ export default function App() {
       />
 
       {/* Dialog conferma eliminazione API */}
-      <Dialog open={!!apiConfigToDelete} onOpenChange={(open) => !open && setApiConfigToDelete(null)}>
+      <Dialog
+        open={!!apiConfigToDelete}
+        onOpenChange={(open) => !open && setApiConfigToDelete(null)}
+      >
         <DialogContent className="bg-zinc-950 border-zinc-800 text-white">
           <DialogHeader>
             <DialogTitle>Elimina configurazione API</DialogTitle>
             <DialogDescription className="text-zinc-400">
               Sei sicuro di voler eliminare la configurazione{" "}
-              <span className="font-semibold text-white">"{apiConfigToDelete?.name}"</span>?
-              Questa azione è irreversibile e tutti i log associati verranno persi.
+              <span className="font-semibold text-white">
+                "{apiConfigToDelete?.name}"
+              </span>
+              ? Questa azione è irreversibile e tutti i log associati verranno
+              persi.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -707,14 +786,20 @@ export default function App() {
       </Dialog>
 
       {/* Dialog conferma eliminazione Scraping */}
-      <Dialog open={!!scrapingConfigToDelete} onOpenChange={(open) => !open && setScrapingConfigToDelete(null)}>
+      <Dialog
+        open={!!scrapingConfigToDelete}
+        onOpenChange={(open) => !open && setScrapingConfigToDelete(null)}
+      >
         <DialogContent className="bg-zinc-950 border-zinc-800 text-white">
           <DialogHeader>
             <DialogTitle>Elimina configurazione scraping</DialogTitle>
             <DialogDescription className="text-zinc-400">
               Sei sicuro di voler eliminare la configurazione{" "}
-              <span className="font-semibold text-white">"{scrapingConfigToDelete?.name}"</span>?
-              Questa azione è irreversibile e tutti i log associati verranno persi.
+              <span className="font-semibold text-white">
+                "{scrapingConfigToDelete?.name}"
+              </span>
+              ? Questa azione è irreversibile e tutti i log associati verranno
+              persi.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

@@ -41,9 +41,6 @@ export class ScrapingAnalyzer implements IScrapingAnalyzerPort {
     });
   }
 
-  // ------------------------------------------------------------
-  // 1) ITEM SEMANTICO = almeno 2 segnali
-  // ------------------------------------------------------------
   private isSemanticItem($: cheerio.CheerioAPI, el: any): boolean {
     const node = $(el);
 
@@ -62,9 +59,6 @@ export class ScrapingAnalyzer implements IScrapingAnalyzerPort {
     return score >= 2;
   }
 
-  // ------------------------------------------------------------
-  // 2) TROVA IL GENITORE COMUNE DEGLI ITEM VERI
-  // ------------------------------------------------------------
   private findSemanticContainer($: cheerio.CheerioAPI): string | null {
     const parentCounts = new Map<string, number>();
 
@@ -87,7 +81,6 @@ export class ScrapingAnalyzer implements IScrapingAnalyzerPort {
     if (parentCounts.size === 0) return null;
 
     // determine the most frequent parent class without using iterator spread
-    // (avoids the need for --downlevelIteration or ES2015 target)
     let bestClass: string | null = null;
     let bestCount = 0;
     parentCounts.forEach((count, cls) => {

@@ -5,8 +5,13 @@ export const scrapingApi = {
     httpClient.get("/scraping/configs").then((res) => res.data),
   getConfigById: (id: string) =>
     httpClient.get(`/scraping/configs/${id}`).then((res) => res.data),
-  createConfig: (config: any) =>
-    httpClient.post("/scraping/configs", config).then((res) => res.data),
+  createConfig: (config: any) => {
+    console.log("[scrapingApi.createConfig] CALLED with:", config);
+    return httpClient.post("/scraping/configs", config).then((res) => {
+      console.log("[scrapingApi.createConfig] RESPONSE:", res.data);
+      return res.data;
+    });
+  },
   updateConfig: (id: string, updates: any) =>
     httpClient.put(`/scraping/configs/${id}`, updates),
   deleteConfig: (id: string) => httpClient.delete(`/scraping/configs/${id}`),
@@ -14,10 +19,16 @@ export const scrapingApi = {
     httpClient
       .post(`/scraping/configs/${id}/execute`, runtimeParams)
       .then((res) => res.data),
-  analyze: (url: string, options?: any) =>
-    httpClient
+
+  analyze: (url: string, options?: any) => {
+    console.log("[scrapingApi.analyze] Calling with:", { url, ...options });
+    return httpClient
       .post("/scraping/analyze", { url, ...options })
-      .then((res) => res.data),
+      .then((res) => {
+        console.log("[scrapingApi.analyze] Response:", res.data);
+        return res.data;
+      });
+  },
   analyzeById: (id: string, options?: any) =>
     httpClient
       .post(`/scraping/configs/${id}/analyze`, options)

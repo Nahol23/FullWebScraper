@@ -1,7 +1,7 @@
 {
-  "id": "4c107779-79ab-486f-be5c-2f08a31319a9",
+  "id": "dbdbb3f1-c911-4b1a-822a-e52781e13e9e",
   "url": "https://homebase.map-dynamics.com/components/marketplace/start.marketplace.php",
-  "timestamp": "2026-03-05T15:06:03.986Z",
+  "timestamp": "2026-03-06T11:51:12.430Z",
   "options": {
     "method": "POST",
     "headers": {
@@ -9,14 +9,13 @@
       "Cookie": "PHPSESSID=mi5jee0lo23pdkqonr4l35d2di",
       "Origin": "https://homebase.map-dynamics.com",
       "Referer": "https://homebase.map-dynamics.com/soc2026/floorplan",
-      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
       "X-Requested-With": "XMLHttpRequest"
     },
     "body": {
       "Show_ID": 8881,
       "sort": "ASC"
-    },
-    "useJavaScript": false
+    }
   },
   "result": {
     "url": "https://homebase.map-dynamics.com/components/marketplace/start.marketplace.php",

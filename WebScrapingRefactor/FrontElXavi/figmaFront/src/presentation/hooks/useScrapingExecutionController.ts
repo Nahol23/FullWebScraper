@@ -13,7 +13,9 @@ export interface ContainerSuggestion {
 export interface ScrapingAnalysisResponse {
   url: string;
   title: string;
-  containers: ContainerSuggestion[];
+  suggestedRules: any[];  
+  sampleData: any;         
+  detectedListSelectors: string[]; 
   rawPreview?: string;
 }
 
@@ -44,23 +46,44 @@ export function useScrapingExecutionController() {
     }
   }, []);
 
-  const analyze = useCallback(async (url: string, options?: any) => {
-    setIsAnalyzing(true);
-    setError(null);
-    try {
-      const result = (await scrapingApi.analyze(
-        url,
-        options,
-      )) as ScrapingAnalysisResponse;
-      setAnalysisResult(result);
-      return result;
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setIsAnalyzing(false);
-    }
-  }, []);
+ // src/presentation/hooks/useScrapingExecutionController.ts
+
+const analyze = useCallback(async (url: string, options?: any) => {
+  setIsAnalyzing(true);
+  setError(null);
+  try {
+    console.log("[useScrapingExecutionController.analyze] Calling with:", { url, options });
+    
+    const result = await scrapingApi.analyze(url, options);
+    
+    console.log("[useScrapingExecutionController.analyze] Raw API response:", result);
+    console.log("[useScrapingExecutionController.analyze] Response keys:", Object.keys(result || {}));
+    
+    // Mappa la risposta
+    const mappedResult: ScrapingAnalysisResponse = {
+      url: result.url,
+      title: result.title,
+      suggestedRules: result.suggestedRules || [],
+      sampleData: result.sampleData,
+      detectedListSelectors: result.detectedListSelectors || [],
+      rawPreview: result.rawPreview,
+    };
+    
+    console.log("[useScrapingExecutionController.analyze] Mapped result:", mappedResult);
+    console.log("[useScrapingExecutionController.analyze] Suggested rules:", mappedResult.suggestedRules);
+    console.log("[useScrapingExecutionController.analyze] Sample data:", mappedResult.sampleData);
+    
+    setAnalysisResult(mappedResult);
+    return mappedResult;
+  } catch (err: any) {
+    console.error("[useScrapingExecutionController.analyze] Error:", err);
+    setError(err.message);
+    throw err;
+  } finally {
+    setIsAnalyzing(false);
+  }
+}, []);
+
 
   const analyzeById = useCallback(async (configId: string, options?: any) => {
     setIsAnalyzing(true);
@@ -118,6 +141,7 @@ export function useScrapingExecutionController() {
   }, []);
 
   const clearError = useCallback(() => setError(null), []);
+  
 
   return {
     isExecuting,

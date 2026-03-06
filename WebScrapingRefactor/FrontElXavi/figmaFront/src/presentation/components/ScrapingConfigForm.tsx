@@ -1,8 +1,13 @@
+// src/presentation/components/ScrapingConfigForm.tsx
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { X, Plus, Loader2, Sparkles } from "lucide-react";
 import type { ExtractionRule } from "../../domain/entities/ScrapingConfig";
+
+export interface SelectableExtractionRule extends ExtractionRule {
+  selected?: boolean;
+}
 
 export interface ScrapingConfigFormProps {
   url: string;
@@ -13,8 +18,8 @@ export interface ScrapingConfigFormProps {
   setHeaders?: (headers: Record<string, string>) => void;
   body?: any;
   setBody?: (body: any) => void;
-  rules: ExtractionRule[];
-  setRules: React.Dispatch<React.SetStateAction<ExtractionRule[]>>;
+  rules: SelectableExtractionRule[];
+  setRules: React.Dispatch<React.SetStateAction<SelectableExtractionRule[]>>;
   containerSelector: string;
   setContainerSelector: (val: string) => void;
   waitForSelector: string;
@@ -36,6 +41,8 @@ export interface ScrapingConfigFormProps {
   onAnalyze: () => void;
   isAnalyzing: boolean;
   analysisResult: any;
+  selectAllRules?: boolean;
+  setSelectAllRules?: (val: boolean) => void;
 }
 
 export function ScrapingConfigForm({
@@ -45,6 +52,8 @@ export function ScrapingConfigForm({
   setMethod,
   headers = {},
   setHeaders,
+  body,
+  setBody,
   rules,
   setRules,
   containerSelector,
@@ -56,6 +65,8 @@ export function ScrapingConfigForm({
   onAnalyze,
   isAnalyzing,
   analysisResult,
+  selectAllRules = false,
+  setSelectAllRules,
 }: ScrapingConfigFormProps) {
   const addRule = () => {
     setRules((prev) => [
@@ -65,6 +76,7 @@ export function ScrapingConfigForm({
         selector: "",
         attribute: "text",
         multiple: false,
+        selected: true,
       },
     ]);
   };
@@ -100,6 +112,37 @@ export function ScrapingConfigForm({
       const newHeaders = { ...headers };
       delete newHeaders[key];
       setHeaders(newHeaders);
+    }
+  };
+
+  const updateBody = (value: string) => {
+    if (setBody) {
+      try {
+        setBody(JSON.parse(value));
+      } catch {
+        setBody(value);
+      }
+    }
+  };
+
+  const handleSelectAllRules = () => {
+    if (setSelectAllRules) {
+      const newSelectAll = !selectAllRules;
+      setSelectAllRules(newSelectAll);
+      setRules((prev) =>
+        prev.map((rule) => ({ ...rule, selected: newSelectAll }))
+      );
+    }
+  };
+
+  const handleRuleSelect = (index: number, selected: boolean) => {
+    setRules((prev) => {
+      const newRules = [...prev];
+      newRules[index] = { ...newRules[index], selected };
+      return newRules;
+    });
+    if (setSelectAllRules) {
+      setSelectAllRules(false);
     }
   };
 
@@ -188,6 +231,23 @@ export function ScrapingConfigForm({
         </div>
       )}
 
+      {/* Body (if POST and setBody provided) */}
+      {setBody && method === "POST" && (
+        <div className="space-y-2">
+          <Label htmlFor="body" className="text-sm text-zinc-300">
+            Body (JSON)
+          </Label>
+          <textarea
+            id="body"
+            value={typeof body === "object" ? JSON.stringify(body, null, 2) : body || ""}
+            onChange={(e) => updateBody(e.target.value)}
+            placeholder='{\n  "key": "value"\n}'
+            rows={5}
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-indigo-500"
+          />
+        </div>
+      )}
+
       {/* Analyze Button */}
       <div className="flex justify-end">
         <Button
@@ -230,21 +290,40 @@ export function ScrapingConfigForm({
           <h3 className="text-sm font-medium text-zinc-300 uppercase tracking-wide">
             Extraction Rules
           </h3>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={addRule}
-            className="bg-indigo-600 hover:bg-indigo-700 border-0 text-white gap-1 h-8"
-          >
-            <Plus className="h-3.5 w-3.5" /> Add Rule
-          </Button>
+          <div className="flex gap-2">
+            {setSelectAllRules && rules.length > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleSelectAllRules}
+                className="bg-zinc-800 hover:bg-zinc-700 border-0 text-white text-xs h-8"
+              >
+                {selectAllRules ? "Deselect All" : "Select All"}
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={addRule}
+              className="bg-indigo-600 hover:bg-indigo-700 border-0 text-white gap-1 h-8"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add Rule
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-3">
           {rules.map((rule, index) => (
             <div key={index} className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 space-y-2">
               <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={rule.selected || false}
+                  onChange={(e) => handleRuleSelect(index, e.target.checked)}
+                  className="w-4 h-4 rounded border-zinc-600 bg-zinc-900 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-zinc-900"
+                />
                 <Input
                   value={rule.fieldName}
                   onChange={(e) => updateRule(index, "fieldName", e.target.value)}
@@ -267,7 +346,7 @@ export function ScrapingConfigForm({
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 ml-6">
                 <select
                   value={rule.attribute || "text"}
                   onChange={(e) => updateRule(index, "attribute", e.target.value as any)}
@@ -381,10 +460,103 @@ export function ScrapingConfigForm({
       {/* Sample Data Preview */}
       {analysisResult && (
         <div className="space-y-2 border-t border-zinc-800 pt-4">
-          <h4 className="text-sm font-medium text-zinc-300">Sample Data</h4>
-          <pre className="text-xs bg-zinc-900 p-3 rounded-lg overflow-auto max-h-60 text-zinc-300">
-            {JSON.stringify(analysisResult.sampleData || analysisResult, null, 2)}
-          </pre>
+          <h4 className="text-sm font-medium text-zinc-300">Analysis Result</h4>
+          
+          {/* Suggested Rules con selezione */}
+          {analysisResult.suggestedRules && analysisResult.suggestedRules.length > 0 && (
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <h5 className="text-xs font-medium text-zinc-400">Suggested Rules:</h5>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const newRules = analysisResult.suggestedRules.map((rule: any) => ({
+                      ...rule,
+                      selected: true
+                    }));
+                    setRules(prev => [...prev, ...newRules]);
+                    if (setSelectAllRules) setSelectAllRules(true);
+                  }}
+                  className="text-xs h-6 px-2 text-indigo-400 hover:text-indigo-300"
+                >
+                  Add All
+                </Button>
+              </div>
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                {analysisResult.suggestedRules.map((rule: any, idx: number) => (
+                  <div
+                    key={idx}
+                    className="flex items-start gap-2 p-2 bg-zinc-900/50 rounded border border-zinc-800 hover:border-zinc-700"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-indigo-400 font-medium text-sm">{rule.fieldName}</span>
+                        <span className="text-zinc-600 text-xs">→</span>
+                        <span className="text-zinc-300 font-mono text-xs">{rule.selector}</span>
+                      </div>
+                      <div className="flex gap-2 mt-1">
+                        {rule.attribute && rule.attribute !== "text" && (
+                          <span className="text-[10px] bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-400">
+                            {rule.attribute}
+                          </span>
+                        )}
+                        {rule.multiple && (
+                          <span className="text-[10px] bg-emerald-900/30 text-emerald-400 px-1.5 py-0.5 rounded">
+                            multiple
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      className="text-indigo-500 hover:text-indigo-400 text-xs px-2 py-1 rounded hover:bg-indigo-500/10"
+                      onClick={() => {
+                        setRules(prev => [...prev, { ...rule, selected: true }]);
+                      }}
+                    >
+                      Add
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Sample Data */}
+          {analysisResult.sampleData && (
+            <div className="mb-3">
+              <h5 className="text-xs font-medium text-zinc-400 mb-1">Sample Data:</h5>
+              <pre className="text-xs bg-zinc-900 p-3 rounded-lg overflow-auto max-h-60 text-zinc-300">
+                {JSON.stringify(analysisResult.sampleData, null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {/* Detected List Selectors */}
+          {analysisResult.detectedListSelectors && analysisResult.detectedListSelectors.length > 0 && (
+            <div className="mb-3">
+              <h5 className="text-xs font-medium text-zinc-400 mb-1">Detected List Selectors:</h5>
+              <div className="flex flex-wrap gap-2">
+                {analysisResult.detectedListSelectors.map((selector: string, idx: number) => (
+                  <span
+                    key={idx}
+                    className="text-xs bg-zinc-900 px-2 py-1 rounded border border-zinc-700 text-zinc-300 font-mono cursor-pointer hover:border-indigo-500"
+                    onClick={() => setContainerSelector(selector)}
+                  >
+                    {selector}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Title */}
+          {analysisResult.title && (
+            <div className="text-xs text-zinc-400">
+              <span className="font-medium">Page Title:</span> {analysisResult.title}
+            </div>
+          )}
         </div>
       )}
     </div>

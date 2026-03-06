@@ -20,19 +20,30 @@ export function useScrapingConfigController() {
     }
   }, []);
 
-  const saveConfig = useCallback(async (config: Omit<ScrapingConfig, "id">) => {
-    setIsLoading(true);
-    try {
-      const saved = await scrapingApi.createConfig(config);
-      setConfigs((prev) => [...prev, saved]);
-      return saved;
-    } catch (err: any) {
-      setError(err.message);
-      throw err;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const saveScrapingConfig = useCallback(
+    async (config: Omit<ScrapingConfig, "id">) => {
+      console.log(
+        "[useScrapingConfigController] ===== SAVE CONFIG CALLED =====",
+      );
+      console.log("[useScrapingConfigController] Config:", config);
+      console.log(
+        "[useScrapingConfigController] Stack trace:",
+        new Error().stack,
+      );
+      setIsLoading(true);
+      try {
+        const saved = await scrapingApi.createConfig(config);
+        setConfigs((prev) => [...prev, saved]);
+        return saved;
+      } catch (err: any) {
+        setError(err.message);
+        throw err;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [],
+  );
 
   const updateConfig = useCallback(
     async (id: string, updates: Partial<ScrapingConfig>) => {
@@ -70,7 +81,7 @@ export function useScrapingConfigController() {
     isLoading,
     error,
     fetchConfigs,
-    saveConfig,
+    saveScrapingConfig,
     updateConfig,
     deleteConfig,
   };

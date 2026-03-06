@@ -1,5 +1,8 @@
 import type { IScrapingPort } from "../../../domain/ports/IScrapingPort";
-import type { IScrapingAnalyzerPort, AnalyzeOptions } from "../../../domain/ports/IScrapingAnalyzerPort";
+import type {
+  IScrapingAnalyzerPort,
+  AnalyzeOptions,
+} from "../../../domain/ports/IScrapingAnalyzerPort";
 import type { IScrapingAnalysisRepository } from "../../../domain/ports/ScrapingConfig/IScrapingAnalysisRepository";
 import type { ExtractionRule } from "../../../domain/entities/ScrapingConfig";
 import { randomUUID } from "crypto";
@@ -20,7 +23,10 @@ export class AnalyzeScrapingUseCase {
     private readonly analysisRepository: IScrapingAnalysisRepository,
   ) {}
 
-  async execute(url: string, options?: AnalyzeOptions): Promise<ScrapingAnalysisResult> {
+  async execute(
+    url: string,
+    options?: AnalyzeOptions,
+  ): Promise<ScrapingAnalysisResult> {
     try {
       // 1) Analisi DOM generica
       const analysis = await this.domAnalyzer.fetchAndAnalyze(url, options);
@@ -43,7 +49,8 @@ export class AnalyzeScrapingUseCase {
 
       // 3) Fallback se sampleData è vuoto
       if (
-        (!sampleData || (Array.isArray(sampleData) && sampleData.length === 0)) &&
+        (!sampleData ||
+          (Array.isArray(sampleData) && sampleData.length === 0)) &&
         containerSelector
       ) {
         // Prova senza containerSelector
