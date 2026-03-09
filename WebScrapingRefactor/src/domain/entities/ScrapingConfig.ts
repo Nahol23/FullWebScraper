@@ -1,4 +1,3 @@
-
 export interface RuntimeParams {
   page?: number;
   limit?: number;
@@ -14,7 +13,7 @@ export interface RuntimeParams {
 export interface ExtractionRule {
   fieldName: string;
   selector: string;
-  attribute?: "text" | "html" | "href" | "src" | "innerText";
+  attribute?: "text" | "html" | "href" | "src" | "innerText" | "style";
   multiple?: boolean;
   transform?: string; // eventuale funzione di trasformazione (regex, trim, etc.)
 }
@@ -37,13 +36,12 @@ export interface ScrapingConfig {
   dataPath?: string;
   createdAt?: Date;
   updatedAt?: Date;
-   containerSelector?: string;
+  containerSelector?: string;
 
-  
   defaultRuntimeParams?: Partial<RuntimeParams> & {
     waitForSelector?: string;
     maxPages?: number;
     rules?: ExtractionRule[];
-     containerSelector?: string;
+    containerSelector?: string;
   };
 }

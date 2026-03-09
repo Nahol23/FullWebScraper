@@ -1,19 +1,23 @@
-import type { IScrapingConfigRepository } from '../../domain/ports/scraping/IScrapingConfigRepository';
-import type { ScrapingConfig } from '../../domain/entities/ScrapingConfig';
-import { HttpClient } from '../http/httpClient';
-import { ApiExecutionError } from '@/domain/errors/AppError';
+import type { IScrapingConfigRepository } from "../../domain/ports/scraping/IScrapingConfigRepository";
+import type { ScrapingConfig } from "../../domain/entities/ScrapingConfig";
+import { HttpClient } from "../http/httpClient";
+import { ApiExecutionError } from "@/domain/errors/AppError";
 
 export class ScrapingConfigRepository implements IScrapingConfigRepository {
   constructor(private readonly httpClient: HttpClient) {}
 
   async getAll(): Promise<ScrapingConfig[]> {
-    const { data } = await this.httpClient.get<ScrapingConfig[]>('/scraping/configs');
+    const { data } =
+      await this.httpClient.get<ScrapingConfig[]>("/scraping/configs");
+    console.log("Primo oggetto grezzo:", JSON.stringify(data[0], null, 2));
     return data;
   }
 
   async getById(id: string): Promise<ScrapingConfig | null> {
     try {
-      const { data } = await this.httpClient.get<ScrapingConfig>(`/scraping/configs/${id}`);
+      const { data } = await this.httpClient.get<ScrapingConfig>(
+        `/scraping/configs/${id}`,
+      );
       return data;
     } catch (error) {
       return null;
@@ -22,20 +26,26 @@ export class ScrapingConfigRepository implements IScrapingConfigRepository {
 
   async getByName(name: string): Promise<ScrapingConfig | null> {
     const all = await this.getAll();
-    return all.find(c => c.name === name) || null;
+    return all.find((c) => c.name === name) || null;
   }
 
- async save(config: Omit<ScrapingConfig, "id">): Promise<ScrapingConfig> {
-  try {
-    const response = await this.httpClient.post<ScrapingConfig>("/scraping/configs", config);
-    return response.data;
-  } catch (error: any) {
-    throw new ApiExecutionError(
-      error.response?.data?.message || "Errore nel salvataggio della configurazione",
-      error.response?.status
-    );
+  async save(config: Omit<ScrapingConfig, "id">): Promise<ScrapingConfig> {
+    try {
+      console.log("[ScrapingConfigRepository] sending config:", config);
+      const response = await this.httpClient.post<ScrapingConfig>(
+        "/scraping/configs",
+        config,
+      );
+      console.log("[ScrapingConfigRepository] response data:", response.data);
+      return response.data;
+    } catch (error: any) {
+      throw new ApiExecutionError(
+        error.response?.data?.message ||
+          "Errore nel salvataggio della configurazione",
+        error.response?.status,
+      );
+    }
   }
-}
 
   async update(id: string, updates: Partial<ScrapingConfig>): Promise<void> {
     await this.httpClient.put(`/scraping/configs/${id}`, updates);

@@ -51,12 +51,13 @@ export function ScrapingConfigDrawer({
   const [activeTab, setActiveTab] = useState<TabType>("execute");
   const [editedConfig, setEditedConfig] = useState<ScrapingConfig | null>(null);
 
-  useEffect(() => {
-    if (config) {
-      setEditedConfig(JSON.parse(JSON.stringify(config)));
-      setActiveTab("execute");
-    }
-  }, [config]);
+ useEffect(() => {
+  if (config) {
+    console.log("[ScrapingConfigDrawer] config COMPLETA:", JSON.stringify(config, null, 2));
+    setEditedConfig({ ...config });
+    setActiveTab("execute");
+  }
+}, [config]);
 
   if (!editedConfig) return null;
 

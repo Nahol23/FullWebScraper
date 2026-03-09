@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { AnyNode } from "domhandler";
 import type {
   IScrapingAnalyzerPort,
   AnalyzeOptions,
@@ -41,7 +42,7 @@ export class ScrapingAnalyzer implements IScrapingAnalyzerPort {
     });
   }
 
-  private isSemanticItem($: cheerio.CheerioAPI, el: any): boolean {
+  private isSemanticItem($: cheerio.CheerioAPI, el: AnyNode): boolean {
     const node = $(el);
 
     let score = 0;
@@ -62,7 +63,7 @@ export class ScrapingAnalyzer implements IScrapingAnalyzerPort {
   private findSemanticContainer($: cheerio.CheerioAPI): string | null {
     const parentCounts = new Map<string, number>();
 
-    $("[class]").each((_, el) => {
+    $("[class]").each((_, el: AnyNode) => {
       if (!this.isSemanticItem($, el)) return;
 
       const parent = $(el).parent();
@@ -72,7 +73,7 @@ export class ScrapingAnalyzer implements IScrapingAnalyzerPort {
       if (!className) return;
 
       const classes = className.split(/\s+/);
-      classes.forEach(cls => {
+      classes.forEach((cls: string) => {
         if (!cls) return;
         parentCounts.set(cls, (parentCounts.get(cls) || 0) + 1);
       });
@@ -80,7 +81,6 @@ export class ScrapingAnalyzer implements IScrapingAnalyzerPort {
 
     if (parentCounts.size === 0) return null;
 
-    // determine the most frequent parent class without using iterator spread
     let bestClass: string | null = null;
     let bestCount = 0;
     parentCounts.forEach((count, cls) => {
@@ -101,7 +101,6 @@ export class ScrapingAnalyzer implements IScrapingAnalyzerPort {
     const listSelectors: string[] = [];
 
     const bestContainer = this.findSemanticContainer($);
-
     if (!bestContainer) {
       return { title, suggestedRules: [], listSelectors: [] };
     }
@@ -110,70 +109,75 @@ export class ScrapingAnalyzer implements IScrapingAnalyzerPort {
 
     const sample = $(bestContainer).first();
 
+    // Genera un selettore relativo all'interno del contenitore
+    const generateSelector = (el: cheerio.Cheerio<AnyNode>): string => {
+      if (!el || el.length === 0) return "";
+
+      const id = el.attr("id");
+      if (id) return `#${id}`;
+
+      const classAttr = el.attr("class");
+      if (classAttr) {
+        const classes = classAttr.split(/\s+/).filter((c: string) => c.length > 0);
+        if (classes.length > 0) {
+          return classes.map((c: string) => `.${c}`).join("");
+        }
+      }
+
+      const tagName = el.prop("tagName")?.toLowerCase();
+      return tagName || "*";
+    };
+
+    const addRule = (
+      fieldName: string,
+      selector: string,
+      attribute?: ExtractionRule["attribute"],
+      multiple?: boolean,
+    ) => {
+      if (selector) {
+        suggestedRules.push({
+          fieldName,
+          selector,
+          attribute: attribute || "text",
+          multiple: multiple !== undefined ? multiple : true,
+        });
+      }
+    };
+
     // TITLE
     const titleEl = sample.find("h1, h2, h3, .title, .name").first();
     if (titleEl.length) {
-      suggestedRules.push({
-        fieldName: "title",
-        selector: `${bestContainer} ${titleEl.prop("tagName")?.toLowerCase()}`,
-        attribute: "text",
-        multiple: true,
-      });
+      addRule("title", generateSelector(titleEl), "text");
     }
 
     // DESCRIPTION
     const descEl = sample.find("p, .description, .profileDescription").first();
     if (descEl.length) {
-      suggestedRules.push({
-        fieldName: "description",
-        selector: `${bestContainer} p, ${bestContainer} .description, ${bestContainer} .profileDescription`,
-        attribute: "text",
-        multiple: true,
-      });
+      addRule("description", generateSelector(descEl), "text");
     }
 
-    // IMAGE <img>
+    // IMAGE da <img>
     const imgEl = sample.find("img[src]").first();
     if (imgEl.length) {
-      suggestedRules.push({
-        fieldName: "image",
-        selector: `${bestContainer} img[src]`,
-        attribute: "src",
-        multiple: true,
-      });
+      addRule("image", generateSelector(imgEl), "src");
     }
 
-    // IMAGE background-image
+    // IMAGE da background-image
     const bgEl = sample.find("[style*='background-image']").first();
     if (bgEl.length) {
-      suggestedRules.push({
-        fieldName: "image",
-        selector: `${bestContainer} [style*='background-image']`,
-        attribute: "style" as any,
-        multiple: true,
-      });
+      addRule("image", generateSelector(bgEl), "style");
     }
 
     // LINK
     const linkEl = sample.find("a[href]").first();
     if (linkEl.length) {
-      suggestedRules.push({
-        fieldName: "link",
-        selector: `${bestContainer} a[href]`,
-        attribute: "href",
-        multiple: true,
-      });
+      addRule("link", generateSelector(linkEl), "href");
     }
 
-    // TEXT / SEARCHABLE
+    // TEXT generico
     const textEl = sample.find(".searchable, span, p").first();
     if (textEl.length) {
-      suggestedRules.push({
-        fieldName: "text",
-        selector: `${bestContainer} .searchable, ${bestContainer} span, ${bestContainer} p`,
-        attribute: "text",
-        multiple: true,
-      });
+      addRule("text", generateSelector(textEl), "text");
     }
 
     return {

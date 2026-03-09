@@ -1,3 +1,4 @@
+// src/presentation/pages/App.tsx
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast, Toaster } from "sonner";
 import { TopBar } from "../components/TopBar";
@@ -21,17 +22,20 @@ import { useConfigController } from "../hooks/useConfigController";
 import { useExecutionController } from "../hooks/useExecutionController";
 import { useScrapingConfigController } from "../hooks/useScrapingConfigController";
 import { useScrapingExecutionController } from "../hooks/useScrapingExecutionController";
+
 // Tipi
 import type { ApiConfig } from "../../domain/entities/ApiConfig";
 import type { ScrapingConfig } from "../../domain/entities/ScrapingConfig";
 
 export default function App() {
+  // --- STATO UI ---
   const [configType, setConfigType] = useState<"api" | "scraping">("api");
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(6);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
+
   // --- CONTROLLER API ---
   const {
     configs: apiConfigs,
@@ -98,7 +102,6 @@ export default function App() {
   const [scrapingConfigToDelete, setScrapingConfigToDelete] =
     useState<ScrapingConfig | null>(null);
 
-  // --- EFFETTI ---
   // Caricamento iniziale
   useEffect(() => {
     fetchApiConfigs();
@@ -129,8 +132,8 @@ export default function App() {
         }
       } else {
         fetchScrapingConfigs();
-        if (selectedScrapingConfig?.id) {
-          fetchScrapingLogs(selectedScrapingConfig.id);
+        if (selectedScrapingConfig?.name) {
+          fetchScrapingLogs(selectedScrapingConfig.name);
         }
       }
     }, 30000);
@@ -247,16 +250,14 @@ export default function App() {
     [refreshApiLogs],
   );
 
-  const handleScrapingConfigClick = useCallback(
-    (config: ScrapingConfig) => {
-      setSelectedScrapingConfig(config);
-      setIsScrapingDrawerOpen(true);
-      if (config?.id) {
-        fetchScrapingLogs(config.id);
-      }
-    },
-    [fetchScrapingLogs],
-  );
+  const handleScrapingConfigClick = (config: ScrapingConfig) => {
+    console.log("[App] handleScrapingConfigClick config:", config);
+    setSelectedScrapingConfig(config);
+    setIsScrapingDrawerOpen(true);
+    if (config?.name) {
+      fetchScrapingLogs(config.name);
+    }
+  };
 
   const handleUpdateApiConfig = useCallback(
     async (updatedConfig: ApiConfig) => {
@@ -332,6 +333,10 @@ export default function App() {
   // --- HANDLERS ESECUZIONE ---
   const handleApiExecuteWithFeedback = useCallback(
     async (configId: string, params?: any) => {
+      if (!configId) {
+        toast.error("ID configurazione API mancante");
+        return;
+      }
       try {
         await runApiExecution(configId, params);
         toast.success("Esecuzione API completata con successo!");
@@ -344,6 +349,10 @@ export default function App() {
 
   const handleScrapingExecuteWithFeedback = useCallback(
     async (configId: string, params?: any) => {
+      if (!configId) {
+        toast.error("ID configurazione scraping mancante");
+        return;
+      }
       try {
         await executeScraping(configId, params);
         toast.success("Esecuzione scraping completata con successo!");
@@ -727,13 +736,13 @@ export default function App() {
         logs={scrapingLogs}
         isLoadingLogs={isScrapingLogsLoading}
         onRefreshLogs={() => {
-          if (selectedScrapingConfig?.id)
-            fetchScrapingLogs(selectedScrapingConfig.id);
+          if (selectedScrapingConfig?.name)
+            fetchScrapingLogs(selectedScrapingConfig.name);
         }}
         onDeleteLog={async (logId: string) => {
           if (selectedScrapingConfig) {
             try {
-              await deleteScrapingLog(selectedScrapingConfig.id, logId);
+              await deleteScrapingLog(selectedScrapingConfig.name, logId);
               toast.success("Log eliminato con successo!");
             } catch (error) {
               toast.error("Errore durante l'eliminazione del log");

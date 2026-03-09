@@ -103,6 +103,23 @@ export class ScrapingController {
     }
   };
 
+  executeByName = async (
+    req: FastifyRequest<{ Params: { configName: string }; Body: RuntimeParams }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const config = await this.deps.getByNameUseCase.execute(req.params.configName);
+      if (!config) {
+        return reply.status(404).send({ error: "Configurazione non trovata" });
+      }
+      const result = await this.deps.executeScrapingUseCase.execute(config.id, req.body);
+      return reply.send(result);
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: (error as Error).message });
+    }
+  };
+
   analyze = async (
     req: FastifyRequest<{
       Body: {
@@ -168,6 +185,31 @@ export class ScrapingController {
       }
 
       const executions = await this.deps.executionRepo.findByConfigId(configId, limit, offset);
+      return reply.send(executions);
+    } catch (error) {
+      request.log.error(error);
+      return reply.status(500).send({ error: "Errore nel recupero delle esecuzioni" });
+    }
+  };
+
+  // GET /scraping/executions/by-name/:configName
+  getExecutionsByConfigName = async (
+    request: FastifyRequest<{
+      Params: { configName: string };
+      Querystring: { limit?: number; offset?: number };
+    }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const { configName } = request.params;
+      const { limit = 50, offset = 0 } = request.query;
+
+      const config = await this.deps.getByNameUseCase.execute(configName);
+      if (!config) {
+        return reply.status(404).send({ error: "Configurazione non trovata" });
+      }
+
+      const executions = await this.deps.executionRepo.findByConfigId(config.id, limit, offset);
       return reply.send(executions);
     } catch (error) {
       request.log.error(error);

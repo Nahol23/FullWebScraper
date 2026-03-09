@@ -1,5 +1,8 @@
 import { ScrapingAdapter } from "../../../infrastructure/adapters/Scraping/ScrapingAdapter";
-import type { ScrapingConfig, ExtractionRule } from "../../../domain/entities/ScrapingConfig";
+import type {
+  ScrapingConfig,
+  ExtractionRule,
+} from "../../../domain/entities/ScrapingConfig";
 import { ConfigNotFoundError } from "../../../domain/errors/AppError";
 import { randomUUID } from "crypto";
 import { IScrapingExecutionRepository } from "../../../domain/ports/ScrapingConfig/IScrapingExecutionRepository";
@@ -22,7 +25,10 @@ export class ExecuteScrapingUseCase {
     private readonly scrapingAdapter: ScrapingAdapter,
   ) {}
 
-  async execute(configId: string, runtimeParams?: any): Promise<ExecuteScrapingResult> {
+  async execute(
+    configId: string,
+    runtimeParams?: any,
+  ): Promise<ExecuteScrapingResult> {
     const config = await this.scrapingConfigRepository.getById(configId);
     if (!config) {
       throw new ConfigNotFoundError(configId, "Scraping configuration");
@@ -45,12 +51,43 @@ export class ExecuteScrapingUseCase {
           body: mergedConfig.body,
           waitForSelector: mergedConfig.waitForSelector,
           rules: mergedConfig.rules,
-          useJavaScript: !!(mergedConfig.waitForSelector || mergedConfig.pagination?.type === 'nextSelector'),
+          useJavaScript: !!(
+            mergedConfig.waitForSelector ||
+            mergedConfig.pagination?.type === "nextSelector"
+          ),
           containerSelector: mergedConfig.containerSelector, // passiamo il containerSelector all'adapter
         };
-
+        console.log(
+          "[ExecuteScrapingUseCase] options:",
+          JSON.stringify(
+            {
+              url: options.url,
+              method: options.method,
+              useJavaScript: options.useJavaScript,
+              waitForSelector: options.waitForSelector,
+              containerSelector: options.containerSelector,
+              rulesCount: options.rules?.length,
+            },
+            null,
+            2,
+          ),
+        );
         const pageData = await this.scrapingAdapter.scrape(options);
-        const items = this.normalizeData(pageData, mergedConfig.rules, mergedConfig.containerSelector);
+        console.log(
+          "[ExecuteScrapingUseCase] pageData:",
+          JSON.stringify(pageData, null, 2),
+        );
+
+        const items = this.normalizeData(
+          pageData,
+          mergedConfig.rules,
+          mergedConfig.containerSelector,
+        );
+        console.log(
+          "[ExecuteScrapingUseCase] items after normalize:",
+          JSON.stringify(items, null, 2),
+        );
+
         allData = allData.concat(items);
 
         nextUrl = await this.getNextUrl(mergedConfig, options.url, pageData);
@@ -76,7 +113,7 @@ export class ExecuteScrapingUseCase {
         rulesUsed: mergedConfig.rules,
         result,
         resultCount: allData.length,
-        status: 'success' as const,
+        status: "success" as const,
         duration: Date.now() - startTime,
       };
       await this.scrapingExecutionRepository.save(executionEntity);
@@ -92,7 +129,7 @@ export class ExecuteScrapingUseCase {
         rulesUsed: mergedConfig.rules,
         result: { error: (error as Error).message },
         resultCount: 0,
-        status: 'error' as const,
+        status: "error" as const,
         errorMessage: (error as Error).message,
         duration: Date.now() - startTime,
       };
@@ -104,7 +141,10 @@ export class ExecuteScrapingUseCase {
   /**
    * Unisce i parametri runtime con la configurazione base, tenendo conto anche dei defaultRuntimeParams.
    */
-  private mergeRuntimeParams(config: ScrapingConfig, runtimeParams?: any): ScrapingConfig {
+  private mergeRuntimeParams(
+    config: ScrapingConfig,
+    runtimeParams?: any,
+  ): ScrapingConfig {
     if (!runtimeParams) return config;
 
     const merged: ScrapingConfig = {
@@ -115,21 +155,35 @@ export class ExecuteScrapingUseCase {
       body: runtimeParams.body ?? config.body,
       waitForSelector: runtimeParams.waitForSelector ?? config.waitForSelector,
       rules: runtimeParams.rules ?? config.rules,
-      pagination: runtimeParams.pagination ? { ...config.pagination, ...runtimeParams.pagination } : config.pagination,
-      containerSelector: runtimeParams.containerSelector ?? config.containerSelector,
+      pagination: runtimeParams.pagination
+        ? { ...config.pagination, ...runtimeParams.pagination }
+        : config.pagination,
+      containerSelector:
+        runtimeParams.containerSelector ?? config.containerSelector,
     };
 
     // Sovrascrittura con defaultRuntimeParams se presenti (ma solo se non già sovrascritti da runtimeParams)
     if (config.defaultRuntimeParams) {
-      merged.url = runtimeParams?.url ?? config.defaultRuntimeParams.url ?? config.url;
-      merged.waitForSelector = runtimeParams?.waitForSelector ?? config.defaultRuntimeParams.waitForSelector ?? config.waitForSelector;
-      merged.rules = runtimeParams?.rules ?? config.defaultRuntimeParams.rules ?? config.rules;
-      merged.containerSelector = runtimeParams?.containerSelector ?? config.defaultRuntimeParams.containerSelector ?? config.containerSelector;
+      merged.url =
+        runtimeParams?.url ?? config.defaultRuntimeParams.url ?? config.url;
+      merged.waitForSelector =
+        runtimeParams?.waitForSelector ??
+        config.defaultRuntimeParams.waitForSelector ??
+        config.waitForSelector;
+      merged.rules =
+        runtimeParams?.rules ??
+        config.defaultRuntimeParams.rules ??
+        config.rules;
+      merged.containerSelector =
+        runtimeParams?.containerSelector ??
+        config.defaultRuntimeParams.containerSelector ??
+        config.containerSelector;
 
-      const maxPages = runtimeParams?.maxPages ?? config.defaultRuntimeParams.maxPages;
+      const maxPages =
+        runtimeParams?.maxPages ?? config.defaultRuntimeParams.maxPages;
       if (maxPages !== undefined) {
         merged.pagination = {
-          ...(merged.pagination || { type: 'urlParam' }),
+          ...(merged.pagination || { type: "urlParam" }),
           maxPages,
         };
       }
@@ -146,7 +200,7 @@ export class ExecuteScrapingUseCase {
   private normalizeData(
     pageData: any,
     rules: ExtractionRule[],
-    containerSelector?: string
+    containerSelector?: string,
   ): Record<string, any>[] {
     if (!pageData) return [];
 
@@ -158,9 +212,9 @@ export class ExecuteScrapingUseCase {
     // Altrimenti, gestiamo il caso di regole multiple (array paralleli)
     if (rules.length === 0) return [];
 
-    const hasMultiple = rules.some(r => r.multiple);
+    const hasMultiple = rules.some((r) => r.multiple);
     if (hasMultiple) {
-      const firstMultipleField = rules.find(r => r.multiple)?.fieldName;
+      const firstMultipleField = rules.find((r) => r.multiple)?.fieldName;
       if (firstMultipleField && Array.isArray(pageData[firstMultipleField])) {
         const length = pageData[firstMultipleField].length;
         const items: Record<string, any>[] = [];
@@ -187,22 +241,29 @@ export class ExecuteScrapingUseCase {
   /**
    * Calcola la prossima URL per la paginazione, se configurata.
    */
-  private async getNextUrl(config: ScrapingConfig, currentUrl: string, pageData: any): Promise<string | null> {
+  private async getNextUrl(
+    config: ScrapingConfig,
+    currentUrl: string,
+    pageData: any,
+  ): Promise<string | null> {
     if (!config.pagination) return null;
 
     const { type, selector, paramName } = config.pagination;
 
     // Paginazione tramite selettore del link "successivo" (non implementata)
-    if (type === 'nextSelector' && selector) {
+    if (type === "nextSelector" && selector) {
       // Per ora non implementata; in futuro potremmo estrarre l'URL dalla pagina
       return null;
     }
 
     // Paginazione tramite parametro URL (es. ?page=2)
-    if (type === 'urlParam' && paramName) {
+    if (type === "urlParam" && paramName) {
       try {
         const url = new URL(currentUrl);
-        const currentPage = parseInt(url.searchParams.get(paramName) || '1', 10);
+        const currentPage = parseInt(
+          url.searchParams.get(paramName) || "1",
+          10,
+        );
         url.searchParams.set(paramName, (currentPage + 1).toString());
         return url.toString();
       } catch {

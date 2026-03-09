@@ -255,6 +255,21 @@ export async function scrapingRoutes(fastify: FastifyInstance) {
     },
   }, controller.delete);
 
+  // POST /scraping/configs/by-name/:configName/execute - Esegui per nome
+  fastify.post("/scraping/configs/by-name/:configName/execute", {
+    schema: {
+      summary: "Execute scraping by configuration name",
+      tags: ["Scraping"],
+      params: configNameParamSchema,
+      body: { type: "object", additionalProperties: true },
+      response: {
+        200: { type: "object", additionalProperties: true },
+        404: errorResponseSchema,
+        500: errorResponseSchema,
+      },
+    },
+  }, controller.executeByName);
+
   // Esecuzione
   fastify.post("/scraping/configs/:id/execute", {
     schema: {
@@ -343,6 +358,21 @@ export async function scrapingRoutes(fastify: FastifyInstance) {
   // NUOVI ENDPOINTS PER LE ESECUZIONI
   // ============================================
 
+  // GET /scraping/executions/by-name/:configName - Recupera esecuzioni per nome config
+  fastify.get("/scraping/executions/by-name/:configName", {
+    schema: {
+      summary: "Get all executions for a scraping configuration by name",
+      tags: ["Scraping"],
+      params: configNameParamSchema,
+      querystring: executionQuerySchema,
+      response: {
+        200: executionResponseSchema,
+        404: errorResponseSchema,
+        500: errorResponseSchema,
+      },
+    },
+  }, controller.getExecutionsByConfigName);
+
   // GET /scraping/executions/:configId - Recupera tutte le esecuzioni di una configurazione
   fastify.get("/scraping/executions/:configId", {
     schema: {
@@ -358,7 +388,6 @@ export async function scrapingRoutes(fastify: FastifyInstance) {
     },
   }, controller.getExecutionsByConfigId);
 
-  // DELETE /scraping/executions/:configId/:executionId - Elimina una specifica esecuzione
   fastify.delete("/scraping/executions/:configId/:executionId", {
     schema: {
       summary: "Delete a specific scraping execution",
@@ -372,7 +401,6 @@ export async function scrapingRoutes(fastify: FastifyInstance) {
     },
   }, controller.deleteExecution);
 
-  // GET /scraping/download/:configName - Scarica i log in formato JSON/Markdown
   fastify.get("/scraping/download/:configName", {
     schema: {
       summary: "Download all executions for a configuration as JSON or Markdown",

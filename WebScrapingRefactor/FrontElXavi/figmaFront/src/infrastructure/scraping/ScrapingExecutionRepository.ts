@@ -6,13 +6,13 @@ import { ApiExecutionError } from "../../domain/errors/AppError";
 export class ScrapingExecutionRepository implements IScrapingExecutionRepository {
   constructor(private readonly httpClient: HttpClient) {}
 
-  async execute(configId: string, runtimeParams?: any): Promise<any> {
-    if (!configId) {
-      throw new Error("configId is required");
+  async execute(configName: string, runtimeParams?: any): Promise<any> {
+    if (!configName) {
+      throw new Error("configName is required");
     }
     try {
       const response = await this.httpClient.post<any>(
-        `/scraping/configs/${configId}/execute`,
+        `/scraping/configs/by-name/${configName}/execute`,
         runtimeParams || {},
       );
       return response.data;
@@ -27,12 +27,12 @@ export class ScrapingExecutionRepository implements IScrapingExecutionRepository
   }
 
   async getLogsByConfig(
-    configId: string,
+    configName: string,
     limit: number = 50,
   ): Promise<ScrapingExecution[]> {
     try {
       const response = await this.httpClient.get<ScrapingExecution[]>(
-        `/scraping/executions/${configId}`,
+        `/scraping/executions/by-name/${configName}`,
         { params: { limit } },
       );
       return response.data;
@@ -44,10 +44,10 @@ export class ScrapingExecutionRepository implements IScrapingExecutionRepository
     }
   }
 
-  async deleteLog(configId: string, executionId: string): Promise<void> {
+  async deleteLog(configName: string, executionId: string): Promise<void> {
     try {
       await this.httpClient.delete(
-        `/scraping/executions/${configId}/${executionId}`,
+        `/scraping/executions/${configName}/${executionId}`,
       );
     } catch (error: any) {
       throw new ApiExecutionError(
