@@ -1,3 +1,4 @@
+// src/presentation/components/drawer/ScrapingExecuteTab.tsx
 import { useState } from "react";
 import { Play, Loader2, Eye } from "lucide-react";
 import { Button } from "../../components/ui/button";
@@ -6,6 +7,7 @@ import { Label } from "../../components/ui/label";
 import { Card } from "../../components/ui/card";
 import { ResultViewerModal } from "../ResultViewerModal";
 import type { ScrapingConfig } from "../../../domain/entities/ScrapingConfig";
+import { toast } from "sonner";
 
 interface ScrapingExecuteTabProps {
   config: ScrapingConfig;
@@ -29,6 +31,10 @@ export function ScrapingExecuteTab({
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
 
   const handleExecute = async () => {
+    if (!config.id) {
+      toast.error("ID configurazione mancante");
+      return;
+    }
     const params: any = {};
     if (waitForSelector.trim()) params.waitForSelector = waitForSelector;
     if (maxPages && parseInt(maxPages) > 1)
@@ -69,7 +75,7 @@ export function ScrapingExecuteTab({
 
       <Button
         onClick={handleExecute}
-        disabled={isExecuting}
+        disabled={isExecuting || !config.id}
         className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-12 gap-2"
       >
         {isExecuting ? (

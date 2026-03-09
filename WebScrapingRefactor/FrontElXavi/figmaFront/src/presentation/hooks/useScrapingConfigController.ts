@@ -22,18 +22,11 @@ export function useScrapingConfigController() {
 
   const saveScrapingConfig = useCallback(
     async (config: Omit<ScrapingConfig, "id">) => {
-      console.log(
-        "[useScrapingConfigController] ===== SAVE CONFIG CALLED =====",
-      );
-      console.log("[useScrapingConfigController] Config:", config);
-      console.log(
-        "[useScrapingConfigController] Stack trace:",
-        new Error().stack,
-      );
+      console.log("[useScrapingConfigController] ===== SAVE CONFIG CALLED =====");
       setIsLoading(true);
       try {
         const saved = await scrapingApi.createConfig(config);
-        setConfigs((prev) => [...prev, saved]);
+        setConfigs((prev) => [...prev, saved]); // Aggiunge subito la config con ID
         return saved;
       } catch (err: any) {
         setError(err.message);

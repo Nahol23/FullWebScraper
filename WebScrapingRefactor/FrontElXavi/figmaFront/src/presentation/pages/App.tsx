@@ -1,4 +1,3 @@
-// src/presentation/pages/App.tsx
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { toast, Toaster } from "sonner";
 import { TopBar } from "../components/TopBar";
@@ -22,20 +21,17 @@ import { useConfigController } from "../hooks/useConfigController";
 import { useExecutionController } from "../hooks/useExecutionController";
 import { useScrapingConfigController } from "../hooks/useScrapingConfigController";
 import { useScrapingExecutionController } from "../hooks/useScrapingExecutionController";
-
 // Tipi
 import type { ApiConfig } from "../../domain/entities/ApiConfig";
 import type { ScrapingConfig } from "../../domain/entities/ScrapingConfig";
 
 export default function App() {
-  // --- STATO UI ---
   const [configType, setConfigType] = useState<"api" | "scraping">("api");
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(6);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
-
   // --- CONTROLLER API ---
   const {
     configs: apiConfigs,
@@ -128,12 +124,12 @@ export default function App() {
     const interval = setInterval(() => {
       if (configType === "api") {
         fetchApiConfigs();
-        if (selectedApiConfig) {
+        if (selectedApiConfig?.id) {
           refreshApiLogs(selectedApiConfig.id);
         }
       } else {
         fetchScrapingConfigs();
-        if (selectedScrapingConfig) {
+        if (selectedScrapingConfig?.id) {
           fetchScrapingLogs(selectedScrapingConfig.id);
         }
       }
@@ -244,7 +240,9 @@ export default function App() {
     (config: ApiConfig) => {
       setSelectedApiConfig(config);
       setIsApiDrawerOpen(true);
-      refreshApiLogs(config.id);
+      if (config?.id) {
+        refreshApiLogs(config.id);
+      }
     },
     [refreshApiLogs],
   );
@@ -253,7 +251,9 @@ export default function App() {
     (config: ScrapingConfig) => {
       setSelectedScrapingConfig(config);
       setIsScrapingDrawerOpen(true);
-      fetchScrapingLogs(config.id);
+      if (config?.id) {
+        fetchScrapingLogs(config.id);
+      }
     },
     [fetchScrapingLogs],
   );
@@ -358,12 +358,12 @@ export default function App() {
   const handleRefreshAll = useCallback(() => {
     if (configType === "api") {
       fetchApiConfigs();
-      if (selectedApiConfig) {
+      if (selectedApiConfig?.id) {
         refreshApiLogs(selectedApiConfig.id);
       }
     } else {
       fetchScrapingConfigs();
-      if (selectedScrapingConfig) {
+      if (selectedScrapingConfig?.id) {
         fetchScrapingLogs(selectedScrapingConfig.id);
       }
     }
@@ -379,7 +379,6 @@ export default function App() {
   ]);
 
   // --- RENDER LOADING STATO INIZIALE ---
-  // Solo al primissimo caricamento API (non blocca il tab switch)
   if (isApiLoading && apiConfigs.length === 0 && scrapingConfigs.length === 0) {
     return (
       <div className="dark min-h-screen bg-zinc-950 flex flex-col items-center justify-center">
@@ -695,7 +694,7 @@ export default function App() {
         logs={apiLogs}
         isLoadingLogs={isApiLogsLoading}
         onRefreshLogs={() => {
-          if (selectedApiConfig) refreshApiLogs(selectedApiConfig.id);
+          if (selectedApiConfig?.id) refreshApiLogs(selectedApiConfig.id);
         }}
         onDeleteLog={async (logId: string) => {
           if (selectedApiConfig) {
@@ -728,7 +727,7 @@ export default function App() {
         logs={scrapingLogs}
         isLoadingLogs={isScrapingLogsLoading}
         onRefreshLogs={() => {
-          if (selectedScrapingConfig)
+          if (selectedScrapingConfig?.id)
             fetchScrapingLogs(selectedScrapingConfig.id);
         }}
         onDeleteLog={async (logId: string) => {

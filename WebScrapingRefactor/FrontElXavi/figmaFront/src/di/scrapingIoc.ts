@@ -1,52 +1,42 @@
 import { httpClient } from "./ioc";
+import { ScrapingConfigRepository } from "../infrastructure/scraping/ScrapingConfigRepository";
+import { ScrapingExecutionRepository } from "../infrastructure/scraping/ScrapingExecutionRepository";
+import { ScrapingAnalysisRepository } from "../infrastructure/scraping/ScrapingAnalysisRepository";
 
-export const scrapingApi = {
-  getAllConfigs: () =>
-    httpClient.get("/scraping/configs").then((res) => res.data),
-  getConfigById: (id: string) =>
-    httpClient.get(`/scraping/configs/${id}`).then((res) => res.data),
-  createConfig: (config: any) => {
-    console.log("[scrapingApi.createConfig] CALLED with:", config);
-    return httpClient.post("/scraping/configs", config).then((res) => {
-      console.log("[scrapingApi.createConfig] RESPONSE:", res.data);
-      return res.data;
-    });
-  },
-  updateConfig: (id: string, updates: any) =>
-    httpClient.put(`/scraping/configs/${id}`, updates),
-  deleteConfig: (id: string) => httpClient.delete(`/scraping/configs/${id}`),
-  execute: (id: string, runtimeParams?: any) =>
-    httpClient
-      .post(`/scraping/configs/${id}/execute`, runtimeParams)
-      .then((res) => res.data),
+// Use Cases Config
+import { GetScrapingConfigsUseCase } from "../application/usecases/scraping/GetScrapingConfigsUseCase";
+import { GetScrapingConfigByIdUseCase } from "../application/usecases/scraping/GetScrapingConfigByIdUseCase";
+import { SaveScrapingConfigUseCase } from "../application/usecases/scraping/SaveScrapingConfigUseCase";
+import { UpdateScrapingConfigUseCase } from "../application/usecases/scraping/UpdateScrapingConfigUseCase";
+import { DeleteScrapingConfigUseCase } from "../application/usecases/scraping/DeleteScrapingConfigUseCase";
 
-  analyze: (url: string, options?: any) => {
-    console.log("[scrapingApi.analyze] Calling with:", { url, ...options });
-    return httpClient
-      .post("/scraping/analyze", { url, ...options })
-      .then((res) => {
-        console.log("[scrapingApi.analyze] Response:", res.data);
-        return res.data;
-      });
-  },
-  analyzeById: (id: string, options?: any) =>
-    httpClient
-      .post(`/scraping/configs/${id}/analyze`, options)
-      .then((res) => res.data),
-  getExecutionsByConfigId: (configId: string) =>
-    httpClient.get(`/scraping/executions/${configId}`).then((res) => res.data),
+// Use Cases Execution
+import { ExecuteScrapingUseCase } from "../application/usecases/scraping/ExecuteScrapingUseCase";
+import { FetchScrapingLogsUseCase } from "../application/usecases/scraping/FetchScrapingLogsUseCase";
+import { DeleteScrapingExecutionUseCase } from "../application/usecases/scraping/DeleteScrapingExecutionUseCase";
+import { DownloadScrapingLogsUseCase } from "../application/usecases/scraping/DownloadScrapingLogsUseCase";
 
-  deleteExecution: (configId: string, executionId: string) =>
-    httpClient.delete(`/scraping/executions/${configId}/${executionId}`),
+// Use Cases Analysis
+import { AnalyzeScrapingUseCase } from "../application/usecases/scraping/AnalyzeScrapingUseCase";
+import { AnalyzeScrapingByIdUseCase } from "../application/usecases/scraping/AnalyzeScrapingByIdUseCase";
 
-  downloadExecutionLogs: (
-    configName: string,
-    format: "json" | "markdown" = "json",
-  ) =>
-    httpClient
-      .get(`/scraping/download/${configName}`, {
-        params: { format },
-        responseType: "blob",
-      })
-      .then((res) => res.data),
-};
+// Repository instances
+const scrapingConfigRepository = new ScrapingConfigRepository(httpClient);
+const scrapingExecutionRepository = new ScrapingExecutionRepository(httpClient);
+const scrapingAnalysisRepository = new ScrapingAnalysisRepository(httpClient);
+
+// Export use cases
+export const getScrapingConfigsUseCase = new GetScrapingConfigsUseCase(scrapingConfigRepository);
+export const getScrapingConfigByIdUseCase = new GetScrapingConfigByIdUseCase(scrapingConfigRepository);
+export const saveScrapingConfigUseCase = new SaveScrapingConfigUseCase(scrapingConfigRepository);
+export const updateScrapingConfigUseCase = new UpdateScrapingConfigUseCase(scrapingConfigRepository);
+export const deleteScrapingConfigUseCase = new DeleteScrapingConfigUseCase(scrapingConfigRepository);
+
+export const executeScrapingUseCase = new ExecuteScrapingUseCase(scrapingExecutionRepository);
+export const fetchScrapingLogsUseCase = new FetchScrapingLogsUseCase(scrapingExecutionRepository);
+export const deleteScrapingExecutionUseCase = new DeleteScrapingExecutionUseCase(scrapingExecutionRepository);
+export const downloadScrapingLogsUseCase = new DownloadScrapingLogsUseCase(scrapingExecutionRepository);
+
+export const analyzeScrapingUseCase = new AnalyzeScrapingUseCase(scrapingAnalysisRepository);
+export const analyzeScrapingByIdUseCase = new AnalyzeScrapingByIdUseCase(scrapingAnalysisRepository);
+
