@@ -21,7 +21,11 @@ interface ScrapingConfigDrawerProps {
   onClose: () => void;
   onUpdate: (config: ScrapingConfig) => Promise<void>;
   onDelete: (config: ScrapingConfig) => void;
-  onExecute: (configId: string, params?: any) => Promise<void>;
+  /**
+   * Called with (configName, runtimeParams?) — App.tsx is the single place
+   * that knows both the name and the execution use case.
+   */
+  onExecute: (configName: string, params?: any) => Promise<void>;
   isExecuting: boolean;
   logs: ScrapingExecution[];
   isLoadingLogs: boolean;
@@ -51,19 +55,28 @@ export function ScrapingConfigDrawer({
   const [activeTab, setActiveTab] = useState<TabType>("execute");
   const [editedConfig, setEditedConfig] = useState<ScrapingConfig | null>(null);
 
- useEffect(() => {
-  if (config) {
-    console.log("[ScrapingConfigDrawer] config COMPLETA:", JSON.stringify(config, null, 2));
-    setEditedConfig({ ...config });
-    setActiveTab("execute");
-  }
-}, [config]);
+  useEffect(() => {
+    if (config) {
+      setEditedConfig({ ...config });
+      setActiveTab("execute");
+    }
+  }, [config]);
 
   if (!editedConfig) return null;
 
   const handleUpdate = async (updated: ScrapingConfig) => {
     setEditedConfig(updated);
     await onUpdate(updated);
+  };
+
+  /**
+   * Bridge: ScrapingExecuteTab only passes runtimeParams (it doesn't know
+   * the configName). We close over editedConfig.name here so the correct
+   * name is always forwarded to App.tsx → executeScrapingByNameUseCase.
+   */
+  const handleExecute = async (params?: any) => {
+    if (!editedConfig.name) return;
+    await onExecute(editedConfig.name, params);
   };
 
   return (
@@ -151,7 +164,7 @@ export function ScrapingConfigDrawer({
                 <div className="p-6 w-full min-w-0">
                   <ScrapingExecuteTab
                     config={editedConfig}
-                    onExecute={onExecute}
+                    onExecute={handleExecute}
                     isExecuting={isExecuting}
                     lastResult={lastResult}
                   />

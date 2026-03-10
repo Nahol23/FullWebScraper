@@ -11,7 +11,7 @@ import { UpdateScrapingConfigUseCase } from "../application/usecases/scraping/Up
 import { DeleteScrapingConfigUseCase } from "../application/usecases/scraping/DeleteScrapingConfigUseCase";
 
 // Use Cases Execution
-import { ExecuteScrapingUseCase } from "../application/usecases/scraping/ExecuteScrapingUseCase";
+import { ExecuteScrapingByNameUseCase } from "../application/usecases/scraping/ExecuteScrapingByNameUseCase";
 import { FetchScrapingLogsUseCase } from "../application/usecases/scraping/FetchScrapingLogsUseCase";
 import { DeleteScrapingExecutionUseCase } from "../application/usecases/scraping/DeleteScrapingExecutionUseCase";
 import { DownloadScrapingLogsUseCase } from "../application/usecases/scraping/DownloadScrapingLogsUseCase";
@@ -32,11 +32,10 @@ export const saveScrapingConfigUseCase = new SaveScrapingConfigUseCase(scrapingC
 export const updateScrapingConfigUseCase = new UpdateScrapingConfigUseCase(scrapingConfigRepository);
 export const deleteScrapingConfigUseCase = new DeleteScrapingConfigUseCase(scrapingConfigRepository);
 
-export const executeScrapingUseCase = new ExecuteScrapingUseCase(scrapingExecutionRepository);
+export const executeScrapingByNameUseCase = new ExecuteScrapingByNameUseCase(scrapingExecutionRepository);
 export const fetchScrapingLogsUseCase = new FetchScrapingLogsUseCase(scrapingExecutionRepository);
 export const deleteScrapingExecutionUseCase = new DeleteScrapingExecutionUseCase(scrapingExecutionRepository);
 export const downloadScrapingLogsUseCase = new DownloadScrapingLogsUseCase(scrapingExecutionRepository);
 
 export const analyzeScrapingUseCase = new AnalyzeScrapingUseCase(scrapingAnalysisRepository);
 export const analyzeScrapingByIdUseCase = new AnalyzeScrapingByIdUseCase(scrapingAnalysisRepository);
-

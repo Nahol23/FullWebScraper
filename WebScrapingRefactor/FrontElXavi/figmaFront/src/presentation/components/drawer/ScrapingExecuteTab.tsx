@@ -10,7 +10,8 @@ import { toast } from "sonner";
 
 interface ScrapingExecuteTabProps {
   config: ScrapingConfig;
-  onExecute: (configName: string, params?: any) => Promise<void>;
+  // onExecute receives only runtimeParams — the configName is read from config internally
+  onExecute: (params?: any) => Promise<void>;
   isExecuting: boolean;
   lastResult?: any;
 }
@@ -34,12 +35,14 @@ export function ScrapingExecuteTab({
       toast.error("Nome configurazione mancante");
       return;
     }
-    console.log("[ScrapingExecuteTab] handleExecute con config.name:", config.name);
+
     const params: any = {};
-    if (waitForSelector.trim()) params.waitForSelector = waitForSelector;
-    if (maxPages && parseInt(maxPages) > 1)
-      params.maxPages = parseInt(maxPages);
-    await onExecute(config.name, params);
+    if (waitForSelector.trim()) params.waitForSelector = waitForSelector.trim();
+    if (maxPages && parseInt(maxPages) > 1) params.maxPages = parseInt(maxPages);
+
+    // Pass only the runtime params — caller (ScrapingConfigDrawer) already
+    // knows the configName and forwards it to the execution use case.
+    await onExecute(Object.keys(params).length > 0 ? params : undefined);
   };
 
   return (

@@ -18,6 +18,7 @@ import { UpdateScrapingConfigUseCase } from "../../../application/usecases/Scrap
 import { DeleteScrapingConfigUseCase } from "../../../application/usecases/Scraping/DeleteScrapingConfigUseCase";
 import { AnalyzeScrapingUseCase } from "../../../application/usecases/Scraping/AnalyzeScrapingUsecase";
 
+
 const errorResponseSchema = {
   type: "object",
   properties: {
@@ -38,19 +39,25 @@ const configIdParamSchema = {
   properties: { configId: { type: "string" } },
 };
 
-const executionParamsSchema = {
-  type: "object",
-  required: ["configId", "executionId"],
-  properties: {
-    configId: { type: "string" },
-    executionId: { type: "string" },
-  },
-};
-
 const configNameParamSchema = {
   type: "object",
   required: ["configName"],
   properties: { configName: { type: "string" } },
+};
+
+const executionQuerySchema = {
+  type: "object",
+  properties: {
+    limit: { type: "number", default: 50 },
+    offset: { type: "number", default: 0 },
+  },
+};
+
+const downloadQuerySchema = {
+  type: "object",
+  properties: {
+    format: { type: "string", enum: ["json", "markdown"], default: "json" },
+  },
 };
 
 const scrapingConfigBodySchema = {
@@ -63,7 +70,6 @@ const scrapingConfigBodySchema = {
     headers: {
       type: "object",
       additionalProperties: { type: "string" },
-      examples: [{ "User-Agent": "Mozilla/5.0" }],
     },
     body: { type: "object", additionalProperties: true },
     rules: {
@@ -124,54 +130,72 @@ const updateBodySchema = {
   },
 };
 
-const executionQuerySchema = {
+const executionItemSchema = {
   type: "object",
   properties: {
-    limit: { type: "number", default: 50 },
-    offset: { type: "number", default: 0 },
+    id: { type: "string" },
+    configId: { type: "string" },
+    timestamp: { type: "string", format: "date-time" },
+    url: { type: "string" },
+    rulesUsed: { type: "array" },
+    result: { type: "object", additionalProperties: true },
+    resultCount: { type: "number" },
+    status: { type: "string", enum: ["success", "error"] },
+    errorMessage: { type: "string" },
+    duration: { type: "number" },
   },
 };
 
-const downloadQuerySchema = {
+const executionListSchema = { type: "array", items: executionItemSchema };
+
+const analysisItemSchema = {
   type: "object",
   properties: {
-    format: { type: "string", enum: ["json", "markdown"], default: "json" },
+    id: { type: "string" },
+    url: { type: "string" },
+    timestamp: { type: "string", format: "date-time" },
+    options: { type: "object", additionalProperties: true },
+    result: { type: "object", additionalProperties: true },
+    status: { type: "string", enum: ["completed", "failed"] },
+    errorMessage: { type: "string" },
   },
 };
 
-const executionResponseSchema = {
-  type: "array",
-  items: {
-    type: "object",
-    properties: {
-      id: { type: "string" },
-      configId: { type: "string" },
-      timestamp: { type: "string", format: "date-time" },
-      url: { type: "string" },
-      rulesUsed: { type: "array" },
-      result: { type: "object" },
-      resultCount: { type: "number" },
-      status: { type: "string", enum: ["success", "error"] },
-      errorMessage: { type: "string" },
-      duration: { type: "number" },
-    },
+const analysisListSchema = { type: "array", items: analysisItemSchema };
+
+const analyzeBodySchema = {
+  type: "object",
+  required: ["url"],
+  properties: {
+    url: { type: "string" },
+    method: { type: "string", enum: ["GET", "POST"] },
+    headers: { type: "object", additionalProperties: { type: "string" } },
+    body: { type: "object", additionalProperties: true },
+    useJavaScript: { type: "boolean" },
+    waitForSelector: { type: "string" },
   },
 };
+
+const analysisResultSchema = {
+  type: "object",
+  properties: {
+    url: { type: "string" },
+    title: { type: "string" },
+    suggestedRules: { type: "array" },
+    sampleData: { type: "object", additionalProperties: true },
+    detectedListSelectors: { type: "array", items: { type: "string" } },
+    rawPreview: { type: "string" },
+  },
+};
+
 
 export async function scrapingRoutes(fastify: FastifyInstance) {
-  // ── Composition root ──────────────────────────────────────────────────────
+  // Composition root
   const browser = new PuppeteerBrowser();
   const httpFetcher = new HttpFetcher();
   const jsBrowserFetcher = new JsBrowserFetcher(browser);
 
-  // Per scraping con regole
-  const scraper = new ScrapingAdapter(
-    httpFetcher,
-    jsBrowserFetcher,
-    new HtmlExtractor(),
-  );
-
-  // Per analisi DOM — istanza separata, responsabilità separata
+  const scraper = new ScrapingAdapter(httpFetcher, jsBrowserFetcher, new HtmlExtractor());
   const domAnalyzer = new ScrapingAnalyzer(httpFetcher, jsBrowserFetcher);
 
   const repo = new ScrapingConfigRepository();
@@ -188,50 +212,41 @@ export async function scrapingRoutes(fastify: FastifyInstance) {
     deleteUseCase: new DeleteScrapingConfigUseCase(repo),
     analyzeUseCase: new AnalyzeScrapingUseCase(scraper, domAnalyzer, analysisRepo),
     executionRepo,
+    analysisRepo, 
   });
 
-  // CRUD Configurazioni
+  //  CONFIGS 
+
   fastify.get("/scraping/configs", {
     schema: {
       summary: "List all scraping configurations",
-      tags: ["Scraping"],
-      response: {
-        200: { type: "array", items: scrapingConfigBodySchema },
-        500: errorResponseSchema,
-      },
+      tags: ["Scraping - Configs"],
+      response: { 200: { type: "array", items: scrapingConfigBodySchema }, 500: errorResponseSchema },
     },
   }, controller.getAll);
 
   fastify.get("/scraping/configs/:id", {
     schema: {
       summary: "Get scraping configuration by ID",
-      tags: ["Scraping"],
+      tags: ["Scraping - Configs"],
       params: idParamSchema,
-      response: {
-        200: scrapingConfigBodySchema,
-        404: errorResponseSchema,
-        500: errorResponseSchema,
-      },
+      response: { 200: scrapingConfigBodySchema, 404: errorResponseSchema, 500: errorResponseSchema },
     },
   }, controller.getById);
 
   fastify.post("/scraping/configs", {
     schema: {
       summary: "Create new scraping configuration",
-      tags: ["Scraping"],
+      tags: ["Scraping - Configs"],
       body: scrapingConfigBodySchema,
-      response: {
-        201: scrapingConfigBodySchema,
-        400: errorResponseSchema,
-        500: errorResponseSchema,
-      },
+      response: { 201: scrapingConfigBodySchema, 400: errorResponseSchema, 500: errorResponseSchema },
     },
   }, controller.create);
 
   fastify.put("/scraping/configs/:id", {
     schema: {
       summary: "Update scraping configuration",
-      tags: ["Scraping"],
+      tags: ["Scraping - Configs"],
       params: idParamSchema,
       body: updateBodySchema,
       response: {
@@ -245,174 +260,167 @@ export async function scrapingRoutes(fastify: FastifyInstance) {
   fastify.delete("/scraping/configs/:id", {
     schema: {
       summary: "Delete scraping configuration",
-      tags: ["Scraping"],
+      tags: ["Scraping - Configs"],
       params: idParamSchema,
-      response: {
-        204: { type: "null" },
-        404: errorResponseSchema,
-        500: errorResponseSchema,
-      },
+      response: { 204: { type: "null" }, 404: errorResponseSchema, 500: errorResponseSchema },
     },
   }, controller.delete);
 
-  // POST /scraping/configs/by-name/:configName/execute - Esegui per nome
-  fastify.post("/scraping/configs/by-name/:configName/execute", {
-    schema: {
-      summary: "Execute scraping by configuration name",
-      tags: ["Scraping"],
-      params: configNameParamSchema,
-      body: { type: "object", additionalProperties: true },
-      response: {
-        200: { type: "object", additionalProperties: true },
-        404: errorResponseSchema,
-        500: errorResponseSchema,
-      },
-    },
-  }, controller.executeByName);
-
-  // Esecuzione
+  // Backwards-compat execute shortcuts on /configs
   fastify.post("/scraping/configs/:id/execute", {
     schema: {
-      summary: "Execute scraping with given configuration and runtime parameters",
-      tags: ["Scraping"],
+      summary: "Execute scraping by config ID (shortcut)",
+      tags: ["Scraping - Configs"],
       params: idParamSchema,
-      body: {
-        type: "object",
-        additionalProperties: true,
-        examples: [{ waitForSelector: ".content", maxPages: 3 }],
-      },
-      response: {
-        200: { type: "object", additionalProperties: true },
-        404: errorResponseSchema,
-        500: errorResponseSchema,
-      },
+      body: { type: "object", additionalProperties: true },
+      response: { 200: { type: "object", additionalProperties: true }, 404: errorResponseSchema, 500: errorResponseSchema },
     },
   }, controller.execute);
 
-  // Analisi generica
-  fastify.post("/scraping/analyze", {
+  fastify.post("/scraping/configs/by-name/:configName/execute", {
     schema: {
-      summary: "Analyze a webpage and suggest extraction rules",
-      tags: ["Scraping"],
-      body: {
-        type: "object",
-        required: ["url"],
-        properties: {
-          url: { type: "string" },
-          method: { type: "string", enum: ["GET", "POST"] },
-          headers: { type: "object", additionalProperties: { type: "string" } },
-          body: { type: "object", additionalProperties: true },
-          useJavaScript: { type: "boolean" },
-          waitForSelector: { type: "string" },
-        },
-      },
-      response: {
-        200: {
-          type: "object",
-          properties: {
-            url: { type: "string" },
-            title: { type: "string" },
-            suggestedRules: { type: "array" },
-            sampleData: { type: "object" },
-            detectedListSelectors: { type: "array", items: { type: "string" } },
-            rawPreview: { type: "string" },
-          },
-        },
-        500: errorResponseSchema,
-      },
+      summary: "Execute scraping by config name (shortcut)",
+      tags: ["Scraping - Configs"],
+      params: configNameParamSchema,
+      body: { type: "object", additionalProperties: true },
+      response: { 200: { type: "object", additionalProperties: true }, 404: errorResponseSchema, 500: errorResponseSchema },
     },
-  }, controller.analyze);
+  }, controller.executeByName);
 
-  // Analisi da configurazione esistente
+  // Backwards-compat analyze shortcut on /configs
   fastify.post("/scraping/configs/:id/analyze", {
     schema: {
-      summary: "Analyze a scraping configuration and suggest extraction rules",
-      tags: ["Scraping"],
+      summary: "Analyze a config's URL (shortcut)",
+      tags: ["Scraping - Configs"],
       params: idParamSchema,
       body: {
         type: "object",
-        properties: {
-          useJavaScript: { type: "boolean" },
-          waitForSelector: { type: "string" },
-        },
+        properties: { useJavaScript: { type: "boolean" }, waitForSelector: { type: "string" } },
       },
-      response: {
-        200: {
-          type: "object",
-          properties: {
-            url: { type: "string" },
-            title: { type: "string" },
-            suggestedRules: { type: "array" },
-            sampleData: { type: "object" },
-            detectedListSelectors: { type: "array", items: { type: "string" } },
-            rawPreview: { type: "string" },
-          },
-        },
-        404: errorResponseSchema,
-        500: errorResponseSchema,
-      },
+      response: { 200: analysisResultSchema, 404: errorResponseSchema, 500: errorResponseSchema },
     },
   }, controller.analyzeById);
 
-  // ============================================
-  // NUOVI ENDPOINTS PER LE ESECUZIONI
-  // ============================================
+  // EXECUTIONS 
 
-  // GET /scraping/executions/by-name/:configName - Recupera esecuzioni per nome config
-  fastify.get("/scraping/executions/by-name/:configName", {
+
+  fastify.get("/scraping/executions", {
     schema: {
-      summary: "Get all executions for a scraping configuration by name",
-      tags: ["Scraping"],
-      params: configNameParamSchema,
-      querystring: executionQuerySchema,
+      summary: "List all executions across all configurations",
+      tags: ["Scraping - Executions"],
+      response: { 200: executionListSchema, 500: errorResponseSchema },
+    },
+  }, controller.getAllExecutions);
+
+  fastify.post("/scraping/executions", {
+    schema: {
+      summary: "Trigger a new scraping execution",
+      tags: ["Scraping - Executions"],
+      body: {
+        type: "object",
+        required: ["configId"],
+        properties: {
+          configId: { type: "string", description: "ID of the config to run" },
+        },
+        additionalProperties: true, // allows runtimeParams
+      },
       response: {
-        200: executionResponseSchema,
+        201: { type: "object", additionalProperties: true },
+        400: errorResponseSchema,
         404: errorResponseSchema,
         500: errorResponseSchema,
       },
+    },
+  }, controller.createExecution);
+
+  fastify.get("/scraping/executions/by-name/:configName", {
+    schema: {
+      summary: "List executions by configuration name",
+      tags: ["Scraping - Executions"],
+      params: configNameParamSchema,
+      querystring: executionQuerySchema,
+      response: { 200: executionListSchema, 404: errorResponseSchema, 500: errorResponseSchema },
     },
   }, controller.getExecutionsByConfigName);
 
-  // GET /scraping/executions/:configId - Recupera tutte le esecuzioni di una configurazione
-  fastify.get("/scraping/executions/:configId", {
+  fastify.get("/scraping/executions/by-config/:configId", {
     schema: {
-      summary: "Get all executions for a scraping configuration",
-      tags: ["Scraping"],
+      summary: "List executions by configuration ID",
+      tags: ["Scraping - Executions"],
       params: configIdParamSchema,
       querystring: executionQuerySchema,
-      response: {
-        200: executionResponseSchema,
-        404: errorResponseSchema,
-        500: errorResponseSchema,
-      },
+      response: { 200: executionListSchema, 404: errorResponseSchema, 500: errorResponseSchema },
     },
   }, controller.getExecutionsByConfigId);
 
-  fastify.delete("/scraping/executions/:configId/:executionId", {
+  // NOTE: parameterised routes after static sub-paths to avoid Fastify conflicts
+  fastify.get("/scraping/executions/:id", {
     schema: {
-      summary: "Delete a specific scraping execution",
-      tags: ["Scraping"],
-      params: executionParamsSchema,
-      response: {
-        204: { type: "null", description: "Execution deleted successfully" },
-        404: errorResponseSchema,
-        500: errorResponseSchema,
-      },
+      summary: "Get a single execution by its ID",
+      tags: ["Scraping - Executions"],
+      params: idParamSchema,
+      response: { 200: executionItemSchema, 404: errorResponseSchema, 500: errorResponseSchema },
+    },
+  }, controller.getExecutionById);
+
+  fastify.delete("/scraping/executions/:id", {
+    schema: {
+      summary: "Delete a single execution by its ID",
+      tags: ["Scraping - Executions"],
+      params: idParamSchema,
+      response: { 204: { type: "null" }, 404: errorResponseSchema, 500: errorResponseSchema },
     },
   }, controller.deleteExecution);
 
+ // Analyze
+
+  fastify.get("/scraping/analyses", {
+    schema: {
+      summary: "List all stored DOM analyses",
+      tags: ["Scraping - Analyses"],
+      response: { 200: analysisListSchema, 500: errorResponseSchema },
+    },
+  }, controller.getAllAnalyses);
+
+  fastify.post("/scraping/analyses", {
+    schema: {
+      summary: "Run a new DOM analysis and store the result",
+      tags: ["Scraping - Analyses"],
+      body: analyzeBodySchema,
+      response: {
+        201: analysisResultSchema,
+        500: errorResponseSchema,
+      },
+    },
+  }, controller.createAnalysis);
+
+  fastify.get("/scraping/analyses/:id", {
+    schema: {
+      summary: "Get a single stored analysis by ID",
+      tags: ["Scraping - Analyses"],
+      params: idParamSchema,
+      response: { 200: analysisItemSchema, 404: errorResponseSchema, 500: errorResponseSchema },
+    },
+  }, controller.getAnalysisById);
+
+  fastify.delete("/scraping/analyses/:id", {
+    schema: {
+      summary: "Delete a stored analysis by ID",
+      tags: ["Scraping - Analyses"],
+      params: idParamSchema,
+      response: { 204: { type: "null" }, 404: errorResponseSchema, 500: errorResponseSchema },
+    },
+  }, controller.deleteAnalysis);
+
+
   fastify.get("/scraping/download/:configName", {
     schema: {
-      summary: "Download all executions for a configuration as JSON or Markdown",
-      tags: ["Scraping"],
+      summary: "Download all executions for a config as JSON or Markdown",
+      tags: ["Scraping - Executions"],
       params: configNameParamSchema,
       querystring: downloadQuerySchema,
       response: {
-        200: {
-          description: "File scaricato con successo",
-          type: "string",
-          format: "binary",
-        },
+        200: { description: "File download", type: "string", format: "binary" },
         404: errorResponseSchema,
         500: errorResponseSchema,
       },

@@ -81,7 +81,11 @@ export function ScrapingConfigForm({
     ]);
   };
 
-  const updateRule = (index: number, field: keyof ExtractionRule, value: any) => {
+  const updateRule = (
+    index: number,
+    field: keyof ExtractionRule,
+    value: any,
+  ) => {
     const newRules = [...rules];
     newRules[index] = { ...newRules[index], [field]: value };
     setRules(newRules);
@@ -130,7 +134,7 @@ export function ScrapingConfigForm({
       const newSelectAll = !selectAllRules;
       setSelectAllRules(newSelectAll);
       setRules((prev) =>
-        prev.map((rule) => ({ ...rule, selected: newSelectAll }))
+        prev.map((rule) => ({ ...rule, selected: newSelectAll })),
       );
     }
   };
@@ -239,7 +243,11 @@ export function ScrapingConfigForm({
           </Label>
           <textarea
             id="body"
-            value={typeof body === "object" ? JSON.stringify(body, null, 2) : body || ""}
+            value={
+              typeof body === "object"
+                ? JSON.stringify(body, null, 2)
+                : body || ""
+            }
             onChange={(e) => updateBody(e.target.value)}
             placeholder='{\n  "key": "value"\n}'
             rows={5}
@@ -316,7 +324,10 @@ export function ScrapingConfigForm({
 
         <div className="space-y-3">
           {rules.map((rule, index) => (
-            <div key={index} className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 space-y-2">
+            <div
+              key={index}
+              className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 space-y-2"
+            >
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
@@ -326,13 +337,17 @@ export function ScrapingConfigForm({
                 />
                 <Input
                   value={rule.fieldName}
-                  onChange={(e) => updateRule(index, "fieldName", e.target.value)}
+                  onChange={(e) =>
+                    updateRule(index, "fieldName", e.target.value)
+                  }
                   placeholder="Field name"
                   className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
                 />
                 <Input
                   value={rule.selector}
-                  onChange={(e) => updateRule(index, "selector", e.target.value)}
+                  onChange={(e) =>
+                    updateRule(index, "selector", e.target.value)
+                  }
                   placeholder="CSS selector"
                   className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
                 />
@@ -349,7 +364,9 @@ export function ScrapingConfigForm({
               <div className="flex items-center gap-4 ml-6">
                 <select
                   value={rule.attribute || "text"}
-                  onChange={(e) => updateRule(index, "attribute", e.target.value as any)}
+                  onChange={(e) =>
+                    updateRule(index, "attribute", e.target.value as any)
+                  }
                   className="bg-zinc-900 border border-zinc-800 rounded-md px-2 py-1 text-xs text-white"
                 >
                   <option value="text">Text</option>
@@ -357,12 +374,15 @@ export function ScrapingConfigForm({
                   <option value="href">Href</option>
                   <option value="src">Src</option>
                   <option value="innerText">Inner Text</option>
+                  <option value="style">Style (background-image)</option>{" "}
                 </select>
                 <label className="flex items-center gap-1 text-xs text-zinc-300">
                   <input
                     type="checkbox"
                     checked={rule.multiple || false}
-                    onChange={(e) => updateRule(index, "multiple", e.target.checked)}
+                    onChange={(e) =>
+                      updateRule(index, "multiple", e.target.checked)
+                    }
                     className="rounded border-zinc-600"
                   />
                   Multiple
@@ -391,7 +411,8 @@ export function ScrapingConfigForm({
           className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
         />
         <p className="text-xs text-zinc-500">
-          Wait for this selector to appear before extracting data (useful for dynamic pages).
+          Wait for this selector to appear before extracting data (useful for
+          dynamic pages).
         </p>
       </div>
 
@@ -423,7 +444,10 @@ export function ScrapingConfigForm({
               <Input
                 value={pagination.paramName || "page"}
                 onChange={(e) =>
-                  setPagination((prev) => ({ ...prev, paramName: e.target.value }))
+                  setPagination((prev) => ({
+                    ...prev,
+                    paramName: e.target.value,
+                  }))
                 }
                 placeholder="page"
                 className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
@@ -435,7 +459,10 @@ export function ScrapingConfigForm({
               <Input
                 value={pagination.selector || ""}
                 onChange={(e) =>
-                  setPagination((prev) => ({ ...prev, selector: e.target.value }))
+                  setPagination((prev) => ({
+                    ...prev,
+                    selector: e.target.value,
+                  }))
                 }
                 placeholder="a.next"
                 className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
@@ -448,7 +475,10 @@ export function ScrapingConfigForm({
               type="number"
               value={pagination.maxPages || 1}
               onChange={(e) =>
-                setPagination((prev) => ({ ...prev, maxPages: parseInt(e.target.value) || 1 }))
+                setPagination((prev) => ({
+                  ...prev,
+                  maxPages: parseInt(e.target.value) || 1,
+                }))
               }
               min="1"
               className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm"
@@ -461,72 +491,88 @@ export function ScrapingConfigForm({
       {analysisResult && (
         <div className="space-y-2 border-t border-zinc-800 pt-4">
           <h4 className="text-sm font-medium text-zinc-300">Analysis Result</h4>
-          
+
           {/* Suggested Rules con selezione */}
-          {analysisResult.suggestedRules && analysisResult.suggestedRules.length > 0 && (
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <h5 className="text-xs font-medium text-zinc-400">Suggested Rules:</h5>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    const newRules = analysisResult.suggestedRules.map((rule: any) => ({
-                      ...rule,
-                      selected: true
-                    }));
-                    setRules(prev => [...prev, ...newRules]);
-                    if (setSelectAllRules) setSelectAllRules(true);
-                  }}
-                  className="text-xs h-6 px-2 text-indigo-400 hover:text-indigo-300"
-                >
-                  Add All
-                </Button>
-              </div>
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                {analysisResult.suggestedRules.map((rule: any, idx: number) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-2 p-2 bg-zinc-900/50 rounded border border-zinc-800 hover:border-zinc-700"
+          {analysisResult.suggestedRules &&
+            analysisResult.suggestedRules.length > 0 && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h5 className="text-xs font-medium text-zinc-400">
+                    Suggested Rules:
+                  </h5>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      const newRules = analysisResult.suggestedRules.map(
+                        (rule: any) => ({
+                          ...rule,
+                          selected: true,
+                        }),
+                      );
+                      setRules((prev) => [...prev, ...newRules]);
+                      if (setSelectAllRules) setSelectAllRules(true);
+                    }}
+                    className="text-xs h-6 px-2 text-indigo-400 hover:text-indigo-300"
                   >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-indigo-400 font-medium text-sm">{rule.fieldName}</span>
-                        <span className="text-zinc-600 text-xs">→</span>
-                        <span className="text-zinc-300 font-mono text-xs">{rule.selector}</span>
+                    Add All
+                  </Button>
+                </div>
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {analysisResult.suggestedRules.map(
+                    (rule: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="flex items-start gap-2 p-2 bg-zinc-900/50 rounded border border-zinc-800 hover:border-zinc-700"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-indigo-400 font-medium text-sm">
+                              {rule.fieldName}
+                            </span>
+                            <span className="text-zinc-600 text-xs">→</span>
+                            <span className="text-zinc-300 font-mono text-xs">
+                              {rule.selector}
+                            </span>
+                          </div>
+                          <div className="flex gap-2 mt-1">
+                            {rule.attribute && rule.attribute !== "text" && (
+                              <span className="text-[10px] bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-400">
+                                {rule.attribute}
+                              </span>
+                            )}
+                            {rule.multiple && (
+                              <span className="text-[10px] bg-emerald-900/30 text-emerald-400 px-1.5 py-0.5 rounded">
+                                multiple
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          className="text-indigo-500 hover:text-indigo-400 text-xs px-2 py-1 rounded hover:bg-indigo-500/10"
+                          onClick={() => {
+                            setRules((prev) => [
+                              ...prev,
+                              { ...rule, selected: true },
+                            ]);
+                          }}
+                        >
+                          Add
+                        </button>
                       </div>
-                      <div className="flex gap-2 mt-1">
-                        {rule.attribute && rule.attribute !== "text" && (
-                          <span className="text-[10px] bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-400">
-                            {rule.attribute}
-                          </span>
-                        )}
-                        {rule.multiple && (
-                          <span className="text-[10px] bg-emerald-900/30 text-emerald-400 px-1.5 py-0.5 rounded">
-                            multiple
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      className="text-indigo-500 hover:text-indigo-400 text-xs px-2 py-1 rounded hover:bg-indigo-500/10"
-                      onClick={() => {
-                        setRules(prev => [...prev, { ...rule, selected: true }]);
-                      }}
-                    >
-                      Add
-                    </button>
-                  </div>
-                ))}
+                    ),
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Sample Data */}
           {analysisResult.sampleData && (
             <div className="mb-3">
-              <h5 className="text-xs font-medium text-zinc-400 mb-1">Sample Data:</h5>
+              <h5 className="text-xs font-medium text-zinc-400 mb-1">
+                Sample Data:
+              </h5>
               <pre className="text-xs bg-zinc-900 p-3 rounded-lg overflow-auto max-h-60 text-zinc-300">
                 {JSON.stringify(analysisResult.sampleData, null, 2)}
               </pre>
@@ -534,27 +580,33 @@ export function ScrapingConfigForm({
           )}
 
           {/* Detected List Selectors */}
-          {analysisResult.detectedListSelectors && analysisResult.detectedListSelectors.length > 0 && (
-            <div className="mb-3">
-              <h5 className="text-xs font-medium text-zinc-400 mb-1">Detected List Selectors:</h5>
-              <div className="flex flex-wrap gap-2">
-                {analysisResult.detectedListSelectors.map((selector: string, idx: number) => (
-                  <span
-                    key={idx}
-                    className="text-xs bg-zinc-900 px-2 py-1 rounded border border-zinc-700 text-zinc-300 font-mono cursor-pointer hover:border-indigo-500"
-                    onClick={() => setContainerSelector(selector)}
-                  >
-                    {selector}
-                  </span>
-                ))}
+          {analysisResult.detectedListSelectors &&
+            analysisResult.detectedListSelectors.length > 0 && (
+              <div className="mb-3">
+                <h5 className="text-xs font-medium text-zinc-400 mb-1">
+                  Detected List Selectors:
+                </h5>
+                <div className="flex flex-wrap gap-2">
+                  {analysisResult.detectedListSelectors.map(
+                    (selector: string, idx: number) => (
+                      <span
+                        key={idx}
+                        className="text-xs bg-zinc-900 px-2 py-1 rounded border border-zinc-700 text-zinc-300 font-mono cursor-pointer hover:border-indigo-500"
+                        onClick={() => setContainerSelector(selector)}
+                      >
+                        {selector}
+                      </span>
+                    ),
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Title */}
           {analysisResult.title && (
             <div className="text-xs text-zinc-400">
-              <span className="font-medium">Page Title:</span> {analysisResult.title}
+              <span className="font-medium">Page Title:</span>{" "}
+              {analysisResult.title}
             </div>
           )}
         </div>

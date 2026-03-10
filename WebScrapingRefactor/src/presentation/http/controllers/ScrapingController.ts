@@ -10,17 +10,19 @@ import type { AnalyzeScrapingUseCase } from "../../../application/usecases/Scrap
 import type { ScrapingConfig, RuntimeParams } from "../../../domain/entities/ScrapingConfig";
 import { GetScrapingConfigByNameUseCase } from "../../../application/usecases/Scraping/GetScrapingConfigByNameUseCase";
 import { IScrapingExecutionRepository } from "../../../domain/ports/ScrapingConfig/IScrapingExecutionRepository";
+import { IScrapingAnalysisRepository } from "../../../domain/ports/ScrapingConfig/IScrapingAnalysisRepository";
 
 export interface ScrapingControllerDeps {
   executeScrapingUseCase: ExecuteScrapingUseCase;
   saveConfigUseCase: SaveScrapingConfigUseCase;
   getAllUseCase: GetAllScrapingConfigsUseCase;
   getByIdUseCase: GetScrapingConfigByIdUseCase;
-  getByNameUseCase : GetScrapingConfigByNameUseCase;
+  getByNameUseCase: GetScrapingConfigByNameUseCase;
   updateUseCase: UpdateScrapingConfigUseCase;
   deleteUseCase: DeleteScrapingConfigUseCase;
   analyzeUseCase: AnalyzeScrapingUseCase;
   executionRepo: IScrapingExecutionRepository;
+  analysisRepo: IScrapingAnalysisRepository; // NEW
 }
 
 /**
@@ -30,6 +32,10 @@ export interface ScrapingControllerDeps {
  */
 export class ScrapingController {
   constructor(private readonly deps: ScrapingControllerDeps) {}
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // CONFIGS CRUD
+  // ─────────────────────────────────────────────────────────────────────────
 
   getAll = async (_req: FastifyRequest, reply: FastifyReply) => {
     const configs = await this.deps.getAllUseCase.execute();
@@ -54,14 +60,13 @@ export class ScrapingController {
     reply: FastifyReply,
   ) => {
     const now = new Date();
-
-     const configToSave: ScrapingConfig = {
-    ...req.body,
-    id: randomUUID(),
-    createdAt: now,
-    updatedAt: now,
-  };
-    const saved = await this.deps.saveConfigUseCase.execute(configToSave)
+    const configToSave: ScrapingConfig = {
+      ...req.body,
+      id: randomUUID(),
+      createdAt: now,
+      updatedAt: now,
+    };
+    const saved = await this.deps.saveConfigUseCase.execute(configToSave);
     return reply.status(201).send(saved);
   };
 
@@ -87,6 +92,141 @@ export class ScrapingController {
     return reply.status(204).send();
   };
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // EXECUTIONS — full REST resource
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * GET /scraping/executions
+   * Returns all executions across every configuration.
+   */
+  getAllExecutions = async (_req: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const executions = await this.deps.executionRepo.findAll();
+      return reply.send(executions);
+    } catch (error) {
+      _req.log.error(error);
+      return reply.status(500).send({ error: "Errore nel recupero delle esecuzioni" });
+    }
+  };
+
+  /**
+   * GET /scraping/executions/:id
+   * Returns a single execution by its own ID.
+   */
+  getExecutionById = async (
+    req: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const execution = await this.deps.executionRepo.findById(req.params.id);
+      if (!execution) {
+        return reply.status(404).send({ error: "Esecuzione non trovata" });
+      }
+      return reply.send(execution);
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: "Errore nel recupero dell'esecuzione" });
+    }
+  };
+
+  /**
+   * POST /scraping/executions
+   * Triggers a new execution. Body must include configId; optional runtimeParams.
+   */
+  createExecution = async (
+    req: FastifyRequest<{ Body: { configId: string } & RuntimeParams }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const { configId, ...runtimeParams } = req.body;
+      if (!configId) {
+        return reply.status(400).send({ error: "configId is required" });
+      }
+      const result = await this.deps.executeScrapingUseCase.execute(configId, runtimeParams);
+      return reply.status(201).send(result);
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: (error as Error).message });
+    }
+  };
+
+  /**
+   * GET /scraping/executions/by-name/:configName
+   * Returns all executions for a config looked up by name.
+   */
+  getExecutionsByConfigName = async (
+    req: FastifyRequest<{
+      Params: { configName: string };
+      Querystring: { limit?: number; offset?: number };
+    }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const { configName } = req.params;
+      const { limit = 50, offset = 0 } = req.query;
+
+      const config = await this.deps.getByNameUseCase.execute(configName);
+      if (!config) {
+        return reply.status(404).send({ error: "Configurazione non trovata" });
+      }
+
+      const executions = await this.deps.executionRepo.findByConfigId(config.id, limit, offset);
+      return reply.send(executions);
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: "Errore nel recupero delle esecuzioni" });
+    }
+  };
+
+  /**
+   * GET /scraping/executions/by-config/:configId
+   * Returns all executions for a config looked up by its ID.
+   */
+  getExecutionsByConfigId = async (
+    req: FastifyRequest<{
+      Params: { configId: string };
+      Querystring: { limit?: number; offset?: number };
+    }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const { configId } = req.params;
+      const { limit = 50, offset = 0 } = req.query;
+
+      const config = await this.deps.getByIdUseCase.execute(configId);
+      if (!config) {
+        return reply.status(404).send({ error: "Configurazione non trovata" });
+      }
+
+      const executions = await this.deps.executionRepo.findByConfigId(configId, limit, offset);
+      return reply.send(executions);
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: "Errore nel recupero delle esecuzioni" });
+    }
+  };
+
+  /**
+   * DELETE /scraping/executions/:id
+   * Deletes a single execution by its own ID (no configId needed in path).
+   */
+  deleteExecution = async (
+    req: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      await this.deps.executionRepo.delete(req.params.id);
+      return reply.status(204).send();
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: "Errore nell'eliminazione dell'esecuzione" });
+    }
+  };
+
+  /**
+   * POST /scraping/configs/:id/execute  (kept for backwards compat)
+   */
   execute = async (
     req: FastifyRequest<{ Params: { id: string }; Body: RuntimeParams }>,
     reply: FastifyReply,
@@ -103,6 +243,9 @@ export class ScrapingController {
     }
   };
 
+  /**
+   * POST /scraping/configs/by-name/:configName/execute  (kept for backwards compat)
+   */
   executeByName = async (
     req: FastifyRequest<{ Params: { configName: string }; Body: RuntimeParams }>,
     reply: FastifyReply,
@@ -120,7 +263,49 @@ export class ScrapingController {
     }
   };
 
-  analyze = async (
+  // ─────────────────────────────────────────────────────────────────────────
+  // ANALYSES — full REST resource
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * GET /scraping/analyses
+   * Returns all stored analyses.
+   */
+  getAllAnalyses = async (_req: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const analyses = await this.deps.analysisRepo.findAll();
+      return reply.send(analyses);
+    } catch (error) {
+      _req.log.error(error);
+      return reply.status(500).send({ error: "Errore nel recupero delle analisi" });
+    }
+  };
+
+  /**
+   * GET /scraping/analyses/:id
+   * Returns a single stored analysis by ID.
+   */
+  getAnalysisById = async (
+    req: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const analysis = await this.deps.analysisRepo.findById(req.params.id);
+      if (!analysis) {
+        return reply.status(404).send({ error: "Analisi non trovata" });
+      }
+      return reply.send(analysis);
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: "Errore nel recupero dell'analisi" });
+    }
+  };
+
+  /**
+   * POST /scraping/analyses
+   * Runs a new DOM analysis and persists it. Returns the analysis result.
+   */
+  createAnalysis = async (
     req: FastifyRequest<{
       Body: {
         url: string;
@@ -136,13 +321,36 @@ export class ScrapingController {
     try {
       const { url, ...options } = req.body;
       const result = await this.deps.analyzeUseCase.execute(url, options);
-      return reply.send(result);
+      return reply.status(201).send(result);
     } catch (error) {
       req.log.error(error);
       return reply.status(500).send({ error: (error as Error).message });
     }
   };
 
+  /**
+   * DELETE /scraping/analyses/:id
+   */
+  deleteAnalysis = async (
+    req: FastifyRequest<{ Params: { id: string } }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const existing = await this.deps.analysisRepo.findById(req.params.id);
+      if (!existing) {
+        return reply.status(404).send({ error: "Analisi non trovata" });
+      }
+      await this.deps.analysisRepo.delete(req.params.id);
+      return reply.status(204).send();
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: "Errore nell'eliminazione dell'analisi" });
+    }
+  };
+
+  /**
+   * POST /scraping/configs/:id/analyze  (kept for backwards compat)
+   */
   analyzeById = async (
     req: FastifyRequest<{
       Params: { id: string };
@@ -167,74 +375,11 @@ export class ScrapingController {
       return reply.status(500).send({ error: (error as Error).message });
     }
   };
-    getExecutionsByConfigId = async (
-    request: FastifyRequest<{
-      Params: { configId: string };
-      Querystring: { limit?: number; offset?: number };
-    }>,
-    reply: FastifyReply,
-  ) => {
-    try {
-      const { configId } = request.params;
-      const { limit = 50, offset = 0 } = request.query;
 
-      // Verifica che la configurazione esista
-      const config = await this.deps.getByIdUseCase.execute(configId);
-      if (!config) {
-        return reply.status(404).send({ error: "Configurazione non trovata" });
-      }
+  // ─────────────────────────────────────────────────────────────────────────
+  // DOWNLOAD (kept for backwards compat)
+  // ─────────────────────────────────────────────────────────────────────────
 
-      const executions = await this.deps.executionRepo.findByConfigId(configId, limit, offset);
-      return reply.send(executions);
-    } catch (error) {
-      request.log.error(error);
-      return reply.status(500).send({ error: "Errore nel recupero delle esecuzioni" });
-    }
-  };
-
-  // GET /scraping/executions/by-name/:configName
-  getExecutionsByConfigName = async (
-    request: FastifyRequest<{
-      Params: { configName: string };
-      Querystring: { limit?: number; offset?: number };
-    }>,
-    reply: FastifyReply,
-  ) => {
-    try {
-      const { configName } = request.params;
-      const { limit = 50, offset = 0 } = request.query;
-
-      const config = await this.deps.getByNameUseCase.execute(configName);
-      if (!config) {
-        return reply.status(404).send({ error: "Configurazione non trovata" });
-      }
-
-      const executions = await this.deps.executionRepo.findByConfigId(config.id, limit, offset);
-      return reply.send(executions);
-    } catch (error) {
-      request.log.error(error);
-      return reply.status(500).send({ error: "Errore nel recupero delle esecuzioni" });
-    }
-  };
-
-  // DELETE /scraping/executions/:configId/:executionId
-  deleteExecution = async (
-    request: FastifyRequest<{
-      Params: { configId: string; executionId: string };
-    }>,
-    reply: FastifyReply,
-  ) => {
-    try {
-      const { executionId } = request.params;
-      await this.deps.executionRepo.delete(executionId);
-      return reply.status(204).send();
-    } catch (error) {
-      request.log.error(error);
-      return reply.status(500).send({ error: "Errore nell'eliminazione dell'esecuzione" });
-    }
-  };
-
-  // GET /scraping/download/:configName
   downloadExecutions = async (
     request: FastifyRequest<{
       Params: { configName: string };
@@ -246,13 +391,11 @@ export class ScrapingController {
       const { configName } = request.params;
       const format = request.query.format || "json";
 
-      // Trova la configurazione per nome
       const config = await this.deps.getByNameUseCase.execute(configName);
       if (!config) {
         return reply.status(404).send({ error: "Configurazione non trovata" });
       }
 
-      // Recupera tutte le esecuzioni
       const executions = await this.deps.executionRepo.findByConfigId(config.id);
 
       let content: string;

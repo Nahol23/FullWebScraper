@@ -6,8 +6,6 @@ import { ScrapingError } from "../..//../domain/errors/ScrapingError";
 
 /**
  * Implementazione di IHtmlExtractorPort tramite Cheerio.
- * Nessuna classe esterna sa che viene usato Cheerio —
- * dipendono solo dall'interfaccia del dominio.
  */
 export class HtmlExtractor implements IHtmlExtractorPort {
   extract(
@@ -30,6 +28,18 @@ export class HtmlExtractor implements IHtmlExtractorPort {
     }
   }
 
+  /**
+   * Iterates every element matching containerSelector and extracts one value
+   * per rule per container.
+   *
+   * KEY FIX: the `multiple` flag on a rule means "collect all matches from
+   * the whole page" and only makes sense in extractSingle. Inside a container
+   * loop the repetition is already provided by the container iteration itself,
+   * so we ALWAYS take the first match per rule. Using `multiple: true` here
+   * was causing each field to return an array of ALL matching nodes from the
+   * entire sub-tree (e.g. every `.title` on the page repeated inside every
+   * container object).
+   */
   private extractFromContainers(
     $: cheerio.CheerioAPI,
     rules: ExtractionRule[],
@@ -41,23 +51,24 @@ export class HtmlExtractor implements IHtmlExtractorPort {
       const item: Record<string, any> = {};
 
       for (const rule of rules) {
-        const nodes = $(container).find(rule.selector);
-
-        if (rule.multiple) {
-          item[rule.fieldName] = nodes
-            .map((_, el) => this.extractValue($(el), rule.attribute))
-            .get();
-        } else {
-          item[rule.fieldName] = this.extractValue(nodes.first(), rule.attribute);
-        }
+        const node = $(container).find(rule.selector).first();
+        item[rule.fieldName] = this.extractValue(node, rule.attribute);
       }
 
-      items.push(item);
+      const hasData = Object.values(item).some((v) => v !== "");
+      if (hasData) {
+        items.push(item);
+      }
     });
 
     return items;
   }
 
+  /**
+   * Extracts from the whole document without a container.
+   * Here `multiple: true` collects all matching nodes into an array,
+   * which is the intended behaviour for flat, non-list pages.
+   */
   private extractSingle(
     $: cheerio.CheerioAPI,
     rules: ExtractionRule[],
@@ -81,17 +92,14 @@ export class HtmlExtractor implements IHtmlExtractorPort {
   ): string {
     if (!$el || $el.length === 0) return "";
 
-    // TEXT / INNER TEXT
     if (!attribute || attribute === "text" || attribute === "innerText") {
       return $el.text().trim();
     }
 
-    // RAW HTML
     if (attribute === "html") {
       return $el.html()?.trim() ?? "";
     }
 
-    // BACKGROUND-IMAGE
     if (attribute === "style") {
       const style = $el.attr("style") ?? "";
       const match = style.match(/background-image:\s*url\(["']?(.*?)["']?\)/i);
@@ -99,7 +107,6 @@ export class HtmlExtractor implements IHtmlExtractorPort {
       return style.trim();
     }
 
-    // GENERIC ATTRIBUTES (href, src, data-*, ecc.)
     return $el.attr(attribute)?.trim() ?? "";
   }
 }

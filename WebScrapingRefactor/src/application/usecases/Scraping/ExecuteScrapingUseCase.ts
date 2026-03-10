@@ -55,41 +55,17 @@ export class ExecuteScrapingUseCase {
             mergedConfig.waitForSelector ||
             mergedConfig.pagination?.type === "nextSelector"
           ),
-          containerSelector: mergedConfig.containerSelector, // passiamo il containerSelector all'adapter
+          containerSelector: mergedConfig.containerSelector,
         };
-        console.log(
-          "[ExecuteScrapingUseCase] options:",
-          JSON.stringify(
-            {
-              url: options.url,
-              method: options.method,
-              useJavaScript: options.useJavaScript,
-              waitForSelector: options.waitForSelector,
-              containerSelector: options.containerSelector,
-              rulesCount: options.rules?.length,
-            },
-            null,
-            2,
-          ),
-        );
-        const pageData = await this.scrapingAdapter.scrape(options);
-        console.log(
-          "[ExecuteScrapingUseCase] pageData:",
-          JSON.stringify(pageData, null, 2),
-        );
 
+        const pageData = await this.scrapingAdapter.scrape(options);
         const items = this.normalizeData(
           pageData,
           mergedConfig.rules,
           mergedConfig.containerSelector,
         );
-        console.log(
-          "[ExecuteScrapingUseCase] items after normalize:",
-          JSON.stringify(items, null, 2),
-        );
 
         allData = allData.concat(items);
-
         nextUrl = await this.getNextUrl(mergedConfig, options.url, pageData);
         currentPage++;
       }
@@ -104,8 +80,7 @@ export class ExecuteScrapingUseCase {
         },
       };
 
-      // Salva esecuzione riuscita
-      const executionEntity = {
+      await this.scrapingExecutionRepository.save({
         id: randomUUID(),
         configId,
         timestamp: new Date(),
@@ -115,13 +90,11 @@ export class ExecuteScrapingUseCase {
         resultCount: allData.length,
         status: "success" as const,
         duration: Date.now() - startTime,
-      };
-      await this.scrapingExecutionRepository.save(executionEntity);
+      });
 
       return result;
     } catch (error) {
-      // Salva esecuzione fallita
-      const executionEntity = {
+      await this.scrapingExecutionRepository.save({
         id: randomUUID(),
         configId,
         timestamp: new Date(),
@@ -132,15 +105,11 @@ export class ExecuteScrapingUseCase {
         status: "error" as const,
         errorMessage: (error as Error).message,
         duration: Date.now() - startTime,
-      };
-      await this.scrapingExecutionRepository.save(executionEntity);
+      });
       throw error;
     }
   }
 
-  /**
-   * Unisce i parametri runtime con la configurazione base, tenendo conto anche dei defaultRuntimeParams.
-   */
   private mergeRuntimeParams(
     config: ScrapingConfig,
     runtimeParams?: any,
@@ -162,7 +131,6 @@ export class ExecuteScrapingUseCase {
         runtimeParams.containerSelector ?? config.containerSelector,
     };
 
-    // Sovrascrittura con defaultRuntimeParams se presenti (ma solo se non già sovrascritti da runtimeParams)
     if (config.defaultRuntimeParams) {
       merged.url =
         runtimeParams?.url ?? config.defaultRuntimeParams.url ?? config.url;
@@ -193,9 +161,19 @@ export class ExecuteScrapingUseCase {
   }
 
   /**
-   * Normalizza i dati estratti in un array di oggetti.
-   * Se è stato usato un containerSelector, ci aspettiamo che pageData sia già un array di oggetti.
-   * Altrimenti, se le regole hanno campi multipli, li trasforma in array paralleli.
+   * Normalizes raw page data into an array of objects.
+   *
+   * Three cases:
+   *
+   * 1. containerSelector present → HtmlExtractor already returned
+   *    Record<string,any>[] (one object per container). Pass through directly.
+   *
+   * 2. No containerSelector, rules have multiple:true → pageData is a flat
+   *    object where each key holds an array of values (parallel arrays).
+   *    Zip them into one object per index.
+   *
+   * 3. No containerSelector, no multiple rules → pageData is a single flat
+   *    object. Return it as a single-element array.
    */
   private normalizeData(
     pageData: any,
@@ -204,28 +182,37 @@ export class ExecuteScrapingUseCase {
   ): Record<string, any>[] {
     if (!pageData) return [];
 
-    // Se abbiamo usato un containerSelector, l'adapter ha già restituito un array di oggetti
+    // Case 1 — container mode: extractor already returned array
     if (containerSelector) {
       return Array.isArray(pageData) ? pageData : [];
     }
 
-    // Altrimenti, gestiamo il caso di regole multiple (array paralleli)
-    if (rules.length === 0) return [];
+    if (!rules || rules.length === 0) return [];
 
-    const hasMultiple = rules.some((r) => r.multiple);
-    if (hasMultiple) {
-      const firstMultipleField = rules.find((r) => r.multiple)?.fieldName;
-      if (firstMultipleField && Array.isArray(pageData[firstMultipleField])) {
-        const length = pageData[firstMultipleField].length;
+    // Case 2 — flat mode with multiple:true rules (parallel arrays)
+    const multipleRules = rules.filter((r) => r.multiple);
+    if (multipleRules.length > 0) {
+      // Find the longest array to drive the zip
+      let maxLength = 0;
+      for (const rule of multipleRules) {
+        const val = pageData[rule.fieldName];
+        if (Array.isArray(val) && val.length > maxLength) {
+          maxLength = val.length;
+        }
+      }
+
+      if (maxLength === 0) {
+        // Arrays are all empty — fall through to Case 3
+      } else {
         const items: Record<string, any>[] = [];
-        for (let i = 0; i < length; i++) {
+        for (let i = 0; i < maxLength; i++) {
           const item: Record<string, any> = {};
           for (const rule of rules) {
             if (rule.multiple && Array.isArray(pageData[rule.fieldName])) {
-              item[rule.fieldName] = pageData[rule.fieldName][i];
+              item[rule.fieldName] = pageData[rule.fieldName][i] ?? "";
             } else {
-              // Campi singoli vengono ripetuti per ogni elemento
-              item[rule.fieldName] = pageData[rule.fieldName];
+              // Scalar fields are repeated on every row
+              item[rule.fieldName] = pageData[rule.fieldName] ?? "";
             }
           }
           items.push(item);
@@ -234,13 +221,14 @@ export class ExecuteScrapingUseCase {
       }
     }
 
-    // Se non ci sono multipli, restituiamo un array con un singolo oggetto
-    return [pageData];
+    // Case 3 — single flat object
+    if (typeof pageData === "object" && !Array.isArray(pageData)) {
+      return [pageData];
+    }
+
+    return [];
   }
 
-  /**
-   * Calcola la prossima URL per la paginazione, se configurata.
-   */
   private async getNextUrl(
     config: ScrapingConfig,
     currentUrl: string,
@@ -250,13 +238,10 @@ export class ExecuteScrapingUseCase {
 
     const { type, selector, paramName } = config.pagination;
 
-    // Paginazione tramite selettore del link "successivo" (non implementata)
     if (type === "nextSelector" && selector) {
-      // Per ora non implementata; in futuro potremmo estrarre l'URL dalla pagina
-      return null;
+      return null; // not yet implemented
     }
 
-    // Paginazione tramite parametro URL (es. ?page=2)
     if (type === "urlParam" && paramName) {
       try {
         const url = new URL(currentUrl);
@@ -267,7 +252,6 @@ export class ExecuteScrapingUseCase {
         url.searchParams.set(paramName, (currentPage + 1).toString());
         return url.toString();
       } catch {
-        // Se l'URL non è valido, restituiamo null
         return null;
       }
     }
