@@ -68,19 +68,23 @@ export function ResultViewerModal({
     "json" | "markdown" | "html"
   >("json");
 
-  if (!result) return null;
-
-  const data = result.data;
-  const contentType = result.contentType || "";
+  const data = result?.data;
+  const contentType = result?.contentType || "";
   const isHtml =
     contentType.includes("text/html") ||
     (typeof data === "string" &&
       (data.trim().startsWith("<!DOCTYPE") || data.trim().startsWith("<html")));
 
-  // Prepare formatted strings
   const jsonString =
-    typeof data === "object" ? JSON.stringify(data, null, 2) : String(data);
+    typeof data === "object" ? JSON.stringify(data, null, 2) : String(data ?? "");
   const markdownTable = useMemo(() => jsonToMarkdownTable(data), [data]);
+
+  // Sync the select with the visible preview tab so preview updates when format changes
+  useEffect(() => {
+    setActiveTab(selectedFormat);
+  }, [selectedFormat]);
+
+  if (!result) return null;
 
   const handleDownload = (format: "json" | "markdown" | "html") => {
     let content = "";
@@ -113,11 +117,6 @@ export function ResultViewerModal({
   };
 
   const handleDownloadSelected = () => handleDownload(selectedFormat);
-
-  // Sync the select with the visible preview tab so preview updates when format changes
-  useEffect(() => {
-    setActiveTab(selectedFormat);
-  }, [selectedFormat]);
 
   const handleCopy = async () => {
     try {

@@ -5,18 +5,17 @@ import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
 
 import { configRoutes } from "./presentation/http/routes/configRoute";
+import { scrapingRoutes } from "./presentation/http/routes/scrapingRoutes";
 import { errorHandler } from "./presentation/http/middleware/errorHandler";
-//TODO: se metti slash alla fine del base url, rimuovilo
 
 export async function buildServer() {
   const server = Fastify({
     logger: true,
     ajv: {
       customOptions: {
-        removeAdditional: false, // Mantiene le proprietà extra (utile per i params dinamici)
-        coerceTypes: true, // Converte stringhe in numeri se necessario
+        removeAdditional: false,
+        coerceTypes: true,
         allErrors: true,
-        // Questa riga risolve il crash "unknown keyword: example"
         keywords: ["example"],
       },
     },
@@ -44,7 +43,11 @@ export async function buildServer() {
     staticCSP: false,
   });
 
+  // Registra le rotte esistenti per le configurazioni API
   await server.register(configRoutes, { prefix: "/api/v1" });
+
+  // Registra le nuove rotte per lo scraping
+  await server.register(scrapingRoutes, { prefix: "/api/v1" });
 
   return server;
 }
@@ -56,9 +59,7 @@ async function start() {
   try {
     await server.listen({ port, host: "0.0.0.0" });
 
-    console.log(
-      `\n Server avviato su: http://localhost:${port}/api/v1/configs`,
-    );
+    console.log(`\n Server avviato su: http://localhost:${port}/api/v1/configs`);
     console.log(` Documentazione su:  http://localhost:${port}/docs\n`);
   } catch (err) {
     server.log.error(err);

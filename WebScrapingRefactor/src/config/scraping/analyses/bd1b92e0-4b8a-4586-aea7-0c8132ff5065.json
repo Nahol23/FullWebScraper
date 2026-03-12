@@ -1,0 +1,1546 @@
+{
+  "id": "bd1b92e0-4b8a-4586-aea7-0c8132ff5065",
+  "url": "https://homebase.map-dynamics.com/components/marketplace/start.marketplace.php",
+  "timestamp": "2026-03-12T09:45:11.267Z",
+  "options": {
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "Cookie": "PHPSESSID=07gble54jht1otc1130dlhg49u",
+      "Referer": "https://homebase.map-dynamics.com/soc2026/floorplan",
+      "Origin": "https://homebase.map-dynamics.com",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+      "X-Requested-With": "X-Requested-With"
+    },
+    "body": {
+      "Show_ID": 8881,
+      "sort": "ASC"
+    },
+    "useJavaScript": false
+  },
+  "result": {
+    "url": "https://homebase.map-dynamics.com/components/marketplace/start.marketplace.php",
+    "title": "",
+    "suggestedRules": [
+      {
+        "fieldName": "title",
+        "selector": "h3",
+        "attribute": "text",
+        "multiple": false
+      },
+      {
+        "fieldName": "description",
+        "selector": "p.profileDescription",
+        "attribute": "text",
+        "multiple": false
+      },
+      {
+        "fieldName": "image",
+        "selector": ".profileImage",
+        "attribute": "style",
+        "multiple": false
+      },
+      {
+        "fieldName": "link",
+        "selector": "a",
+        "attribute": "href",
+        "multiple": false
+      },
+      {
+        "fieldName": "text",
+        "selector": "span.searchable",
+        "attribute": "text",
+        "multiple": false
+      }
+    ],
+    "sampleData": [
+      {
+        "title": "Bookmarks"
+      },
+      {
+        "title": "Bookmarks"
+      },
+      {
+        "title": "Filter by Category"
+      },
+      {
+        "title": "SUZHOU DAMAI VEHICLE CO., LTD."
+      },
+      {
+        "title": "1UP USA"
+      },
+      {
+        "title": "4iiii Innovations Inc."
+      },
+      {
+        "title": "5DEV"
+      },
+      {
+        "title": "686"
+      },
+      {
+        "title": "6D Helmets"
+      },
+      {
+        "title": "8 Degree Pedal"
+      },
+      {
+        "title": "Abbey Bike Tools"
+      },
+      {
+        "title": "ABUS"
+      },
+      {
+        "title": "Acai Boys"
+      },
+      {
+        "title": "ACCEL CYCLING"
+      },
+      {
+        "title": "adidas Five Ten"
+      },
+      {
+        "title": "AERON / TPU"
+      },
+      {
+        "title": "AHHA"
+      },
+      {
+        "title": "Albek.co"
+      },
+      {
+        "title": "Alex Global Technology"
+      },
+      {
+        "title": "Allied Cycle Works"
+      },
+      {
+        "title": "Allover"
+      },
+      {
+        "title": "ALSO."
+      },
+      {
+        "title": "Amflow Bikes"
+      },
+      {
+        "title": "Ananda"
+      },
+      {
+        "title": "Arctos Packs"
+      },
+      {
+        "title": "Ari Bikes"
+      },
+      {
+        "title": "Arkoza"
+      },
+      {
+        "title": "Assess Industry Co., Ltd."
+      },
+      {
+        "title": "Assos of Switzerland"
+      },
+      {
+        "title": "Athletic Brewing Company"
+      },
+      {
+        "title": "The Athletic Community"
+      },
+      {
+        "title": "Aventon"
+      },
+      {
+        "title": "B&W International"
+      },
+      {
+        "title": "Bafang Electric (Suzhou) Co., Ltd."
+      },
+      {
+        "title": "The Battery Network (Formerly Call2Recycle)"
+      },
+      {
+        "title": "Bean Brigade LLC"
+      },
+      {
+        "title": "Bear + Flag Roadside"
+      },
+      {
+        "title": "Bear National Team - Gravel"
+      },
+      {
+        "title": "Bell Helmets"
+      },
+      {
+        "title": "Bella Familia Woodfired Pizza"
+      },
+      {
+        "title": "BENITO'S TACOS"
+      },
+      {
+        "title": "Best Day Brewing"
+      },
+      {
+        "title": "Better Bolts"
+      },
+      {
+        "title": "Bianchi"
+      },
+      {
+        "title": "Big Bite"
+      },
+      {
+        "title": "Bike Builders of Berkeley"
+      },
+      {
+        "title": "Bike Tennessee"
+      },
+      {
+        "title": "BikeStow"
+      },
+      {
+        "title": "Biketube Brand"
+      },
+      {
+        "title": "Bikey Wipes USA"
+      },
+      {
+        "title": "Bivo"
+      },
+      {
+        "title": "BlackHeart Bike Company"
+      },
+      {
+        "title": "BOLT Skin + Shave"
+      },
+      {
+        "title": "Bosch eBike Systems"
+      },
+      {
+        "title": "Bowhead Corporation"
+      },
+      {
+        "title": "Boyd Cycling"
+      },
+      {
+        "title": "Bratwurst USA"
+      },
+      {
+        "title": "Brembo"
+      },
+      {
+        "title": "Bridge Bike Works"
+      },
+      {
+        "title": "British Army Cycling Union"
+      },
+      {
+        "title": "Brompton Bicycle"
+      },
+      {
+        "title": "Bryton Sport"
+      },
+      {
+        "title": "BULLS Bikes USA"
+      },
+      {
+        "title": "Bushnell Outdoors"
+      },
+      {
+        "title": "Cache Inc."
+      },
+      {
+        "title": "CADEX"
+      },
+      {
+        "title": "California Department of Corrections and Rehabilitation/Peace Officer Recruitment Unit"
+      },
+      {
+        "title": "California Highway Patrol"
+      },
+      {
+        "title": "CamelBak Products"
+      },
+      {
+        "title": "Campagnolo North America"
+      },
+      {
+        "title": "Cane Creek Cycling Components"
+      },
+      {
+        "title": "Cannondale Bicycles"
+      },
+      {
+        "title": "Canyon Bicycles USA, Inc."
+      },
+      {
+        "title": "Capriroso"
+      },
+      {
+        "title": "Carbs Fuel"
+      },
+      {
+        "title": "Castelli"
+      },
+      {
+        "title": "CatEye America"
+      },
+      {
+        "title": "Central Coastan Pizza LLC"
+      },
+      {
+        "title": "Cheng Shin Rubber (Xiamen)Ind., Ltd."
+      },
+      {
+        "title": "Chengdu Chendian Intelligent Technology CO., LTD."
+      },
+      {
+        "title": "CHENNQ HOU CO., LTD."
+      },
+      {
+        "title": "CHICKEN AND THE FARM,INC."
+      },
+      {
+        "title": "ChuSport"
+      },
+      {
+        "title": "Cib�re Foods"
+      },
+      {
+        "title": "Cionlli Industrial Co.,Ltd"
+      },
+      {
+        "title": "Cirrus Cycles Kinekt"
+      },
+      {
+        "title": "Clik Corporation"
+      },
+      {
+        "title": "Climate Ride"
+      },
+      {
+        "title": "Coffee Tree"
+      },
+      {
+        "title": "COMMENCAL"
+      },
+      {
+        "title": "Continental"
+      },
+      {
+        "title": "Crankbrothers"
+      },
+      {
+        "title": "Cruising Cones Soft Serve Ice Cream"
+      },
+      {
+        "title": "Curious Creatures"
+      },
+      {
+        "title": "CushCore"
+      },
+      {
+        "title": "Cybrei Xiamen E-bike Sports Equipment Co., LTD"
+      },
+      {
+        "title": "Cypress Coast Subaru"
+      },
+      {
+        "title": "Dahon International"
+      },
+      {
+        "title": "Darevie"
+      },
+      {
+        "title": "DARIMO CARBON"
+      },
+      {
+        "title": "Dash Hemp Clothing, Santa Cruz"
+      },
+      {
+        "title": "DECKED"
+      },
+      {
+        "title": "Deda"
+      },
+      {
+        "title": "Deity"
+      },
+      {
+        "title": "Delium Tires"
+      },
+      {
+        "title": "Delta Cycle"
+      },
+      {
+        "title": "DHaRCO"
+      },
+      {
+        "title": "Dippin' Dots - Whitings Fun Foods"
+      },
+      {
+        "title": "Dirdybird Active"
+      },
+      {
+        "title": "DMR"
+      },
+      {
+        "title": "Double Digit Communications"
+      },
+      {
+        "title": "DT Swiss"
+      },
+      {
+        "title": "DUKE RACING WHEELS"
+      },
+      {
+        "title": "Dunlop North America"
+      },
+      {
+        "title": "DVO Suspension Inc"
+      },
+      {
+        "title": "e*thirteen components"
+      },
+      {
+        "title": "E-Z UP"
+      },
+      {
+        "title": "Easton"
+      },
+      {
+        "title": "ECHOS Communications"
+      },
+      {
+        "title": "Ecology Action"
+      },
+      {
+        "title": "Elite"
+      },
+      {
+        "title": "Endura"
+      },
+      {
+        "title": "Enduro Bearings"
+      },
+      {
+        "title": "ENERSOAR (SU ZHOU) CO., LTD."
+      },
+      {
+        "title": "Enervit"
+      },
+      {
+        "title": "ENVE"
+      },
+      {
+        "title": "Ergon USA, Inc"
+      },
+      {
+        "title": "Everbliss Green Outdoor Co., Ltd."
+      },
+      {
+        "title": "EVOC"
+      },
+      {
+        "title": "Exposure Lights"
+      },
+      {
+        "title": "Extreme Racing Shox"
+      },
+      {
+        "title": "The Facepainting Factory"
+      },
+      {
+        "title": "Fairdale Bikes / Odyssey OPTIS"
+      },
+      {
+        "title": "Falken Tires"
+      },
+      {
+        "title": "Family RV"
+      },
+      {
+        "title": "Fast Pickle"
+      },
+      {
+        "title": "Fasthouse"
+      },
+      {
+        "title": "FaultLine395"
+      },
+      {
+        "title": "Feedback Sports"
+      },
+      {
+        "title": "FIDLOCK USA"
+      },
+      {
+        "title": "Fizik"
+      },
+      {
+        "title": "Flowell - best compression pants"
+      },
+      {
+        "title": "Fluid Sports Nutrition"
+      },
+      {
+        "title": "Flylow Gear"
+      },
+      {
+        "title": "Foothill"
+      },
+      {
+        "title": "Forbidden Bike Co."
+      },
+      {
+        "title": "Ford Bronco Wild Fund"
+      },
+      {
+        "title": "Formula 100"
+      },
+      {
+        "title": "Fox Factory"
+      },
+      {
+        "title": "Fox Racing"
+      },
+      {
+        "title": "Fox Racing"
+      },
+      {
+        "title": "Frutas y Antojitos Angeles"
+      },
+      {
+        "title": "FUL CHEE ENT CO., LTD"
+      },
+      {
+        "title": "Full Speed Ahead, Inc"
+      },
+      {
+        "title": "Fun Fried Foods"
+      },
+      {
+        "title": "Gaerne"
+      },
+      {
+        "title": "GALFER USA INC"
+      },
+      {
+        "title": "Garmin International, Inc."
+      },
+      {
+        "title": "Gates"
+      },
+      {
+        "title": "Gear Hugger"
+      },
+      {
+        "title": "Geotrek Vans"
+      },
+      {
+        "title": "Giant Bicycle & Liv Cycling"
+      },
+      {
+        "title": "Girls Switching Gears '"
+      },
+      {
+        "title": "Giro Sport Design"
+      },
+      {
+        "title": "Glade Optics"
+      },
+      {
+        "title": "Gloworm Lights"
+      },
+      {
+        "title": "Good Detour"
+      },
+      {
+        "title": "GOODLIFE Nutrition"
+      },
+      {
+        "title": "GoPro"
+      },
+      {
+        "title": "Gravel Sherpas Adventure Company"
+      },
+      {
+        "title": "The Gravity Cartel"
+      },
+      {
+        "title": "Gredes Corporation"
+      },
+      {
+        "title": "Gtechniq Bike"
+      },
+      {
+        "title": "GU Energy Labs"
+      },
+      {
+        "title": "GUANGXI ORINNO INTELLIGENT MOBILITY CO.,LTD"
+      },
+      {
+        "title": "Gulo Composites"
+      },
+      {
+        "title": "Gusset Components"
+      },
+      {
+        "title": "Halo"
+      },
+      {
+        "title": "HANGZHOU MACFREY TECHNOLOGY CO., LTD"
+      },
+      {
+        "title": "Hasty Awards"
+      },
+      {
+        "title": "Helmet Flair"
+      },
+      {
+        "title": "Helvetia Sports"
+      },
+      {
+        "title": "HiDow"
+      },
+      {
+        "title": "Hiplok"
+      },
+      {
+        "title": "Hollywood Racks"
+      },
+      {
+        "title": "Honey Stinger"
+      },
+      {
+        "title": "Hope Technology"
+      },
+      {
+        "title": "HotBars"
+      },
+      {
+        "title": "HOVERAir"
+      },
+      {
+        "title": "Htracks"
+      },
+      {
+        "title": "Hudski"
+      },
+      {
+        "title": "Huizhou PMT Sports Goods Co., Ltd."
+      },
+      {
+        "title": "Hunt Bike Wheels"
+      },
+      {
+        "title": "HydraPak"
+      },
+      {
+        "title": "Hyper Bicycles"
+      },
+      {
+        "title": "Hyperice"
+      },
+      {
+        "title": "Ibis Cycles"
+      },
+      {
+        "title": "igus Inc"
+      },
+      {
+        "title": "Impact Canopy USA"
+      },
+      {
+        "title": "INBIKE"
+      },
+      {
+        "title": "Industry Nine Components"
+      },
+      {
+        "title": "Infinity Massage Chairs"
+      },
+      {
+        "title": "INNO Racks"
+      },
+      {
+        "title": "Insta360"
+      },
+      {
+        "title": "invisiFRAME"
+      },
+      {
+        "title": "IRC Tire"
+      },
+      {
+        "title": "ISM Saddles, LLC"
+      },
+      {
+        "title": "JackRabbit Mobility"
+      },
+      {
+        "title": "Jagwire"
+      },
+      {
+        "title": "JAKROO"
+      },
+      {
+        "title": "Jamis Bikes"
+      },
+      {
+        "title": "Jiande Wuxing Bicycle Co.,LTD"
+      },
+      {
+        "title": "Jiangsu Safort Metal Products Co., Ltd"
+      },
+      {
+        "title": "JIMIsCAPs"
+      },
+      {
+        "title": "Jinhua Unisky Tools Co., Ltd."
+      },
+      {
+        "title": "JULBO USA"
+      },
+      {
+        "title": "K-EDGE"
+      },
+      {
+        "title": "Kali Protectives"
+      },
+      {
+        "title": "Kaliko's Hawaiian Kitchen"
+      },
+      {
+        "title": "KENDA TIRES"
+      },
+      {
+        "title": "Kenetik"
+      },
+      {
+        "title": "Kids Ride Shotgun"
+      },
+      {
+        "title": "Kitworks"
+      },
+      {
+        "title": "KMC Chain American Corporation"
+      },
+      {
+        "title": "KNIPEX Tools"
+      },
+      {
+        "title": "Kodiak"
+      },
+      {
+        "title": "kogel bearings"
+      },
+      {
+        "title": "KOM Cycling"
+      },
+      {
+        "title": "kommit Outdoor GmbH x Miles Wide Ind."
+      },
+      {
+        "title": "Kona Bicycle Company"
+      },
+      {
+        "title": "Kool Stop Int Inc"
+      },
+      {
+        "title": "KOROYD"
+      },
+      {
+        "title": "Kryptonite Locks"
+      },
+      {
+        "title": "KS USA"
+      },
+      {
+        "title": "K�at Racks"
+      },
+      {
+        "title": "Lake Cycling North America Corp."
+      },
+      {
+        "title": "Lake Family Forest Farms"
+      },
+      {
+        "title": "LAMEDA"
+      },
+      {
+        "title": "LANXI JIEKE SPORTS APPARATUS MANUFACTURING CO., LTD."
+      },
+      {
+        "title": "LeafFilter Gutter Protection"
+      },
+      {
+        "title": "Leatt"
+      },
+      {
+        "title": "Lezyne"
+      },
+      {
+        "title": "Life Time Health"
+      },
+      {
+        "title": "Light Bicycle (Xiamen) Technology Co.,Ltd."
+      },
+      {
+        "title": "LilianEmma llc"
+      },
+      {
+        "title": "LIMKOO Sportswear Co., Ltd."
+      },
+      {
+        "title": "Loam Pass"
+      },
+      {
+        "title": "Lolo Racks"
+      },
+      {
+        "title": "LOOK USA"
+      },
+      {
+        "title": "Lumos"
+      },
+      {
+        "title": "The lumpia Lady"
+      },
+      {
+        "title": "luxefly basecamp"
+      },
+      {
+        "title": "MAAP"
+      },
+      {
+        "title": "Mad Monkey Designs"
+      },
+      {
+        "title": "MAGICSHINE"
+      },
+      {
+        "title": "Magura USA"
+      },
+      {
+        "title": "Maha's Lebanese Cuisine"
+      },
+      {
+        "title": "MAHLE SmartBike Systems"
+      },
+      {
+        "title": "Maktub Espresso Cafe LLC"
+      },
+      {
+        "title": "Mango Blossom Apiary Local Honey"
+      },
+      {
+        "title": "Marin Bikes"
+      },
+      {
+        "title": "Marzocchi"
+      },
+      {
+        "title": "Maurten"
+      },
+      {
+        "title": "Mavic"
+      },
+      {
+        "title": "Maxxis Tires"
+      },
+      {
+        "title": "Maxxis Tires USA - Bicycle"
+      },
+      {
+        "title": "Mdh Sports"
+      },
+      {
+        "title": "MET Helmets & Bluegrass Protectives (QBP)"
+      },
+      {
+        "title": "Michelin"
+      },
+      {
+        "title": "Microshift"
+      },
+      {
+        "title": "MIPS AB"
+      },
+      {
+        "title": "Mobetta Bike Company"
+      },
+      {
+        "title": "Mondraker Bicycle Company"
+      },
+      {
+        "title": "Monterey Bay Parent"
+      },
+      {
+        "title": "Monterey County Sheriff's Search and Rescue Team"
+      },
+      {
+        "title": "Monterey Off Road Cycling Association (MORCA)  A Chapter of IMBA"
+      },
+      {
+        "title": "MONTON"
+      },
+      {
+        "title": "Mooncool"
+      },
+      {
+        "title": "Moonspin"
+      },
+      {
+        "title": "Moots"
+      },
+      {
+        "title": "mountainFLOW"
+      },
+      {
+        "title": "Moved By Bikes"
+      },
+      {
+        "title": "Mr.falafel"
+      },
+      {
+        "title": "MRP"
+      },
+      {
+        "title": "Muc-Off Ltd"
+      },
+      {
+        "title": "MyLime"
+      },
+      {
+        "title": "Nadive"
+      },
+      {
+        "title": "National Ski / Bike Patrol"
+      },
+      {
+        "title": "NAVEE"
+      },
+      {
+        "title": "Neversecond Nutrition"
+      },
+      {
+        "title": "NICA - NorCal Interscholastic cycling league"
+      },
+      {
+        "title": "Nikwax North America"
+      },
+      {
+        "title": "Niner Bikes"
+      },
+      {
+        "title": "NiteRider Technical Lighting"
+      },
+      {
+        "title": "Norco Bicycles"
+      },
+      {
+        "title": "Nossa Familia Coffee"
+      },
+      {
+        "title": "OAK Components GmbH"
+      },
+      {
+        "title": "Ocean and San"
+      },
+      {
+        "title": "ODI"
+      },
+      {
+        "title": "Ohlins Group"
+      },
+      {
+        "title": "Old Man Mountain"
+      },
+      {
+        "title": "OLIPOP"
+      },
+      {
+        "title": "Onewheel"
+      },
+      {
+        "title": "Open Cycle"
+      },
+      {
+        "title": "ORA ENGINEERING CO., LTD"
+      },
+      {
+        "title": "Orange Seal"
+      },
+      {
+        "title": "ORTLIEB/Ortlieb USA LLC"
+      },
+      {
+        "title": "Orucase"
+      },
+      {
+        "title": "OSMAR BUCKLE LTD."
+      },
+      {
+        "title": "Osprey Packs"
+      },
+      {
+        "title": "Otso Cycles"
+      },
+      {
+        "title": "Outbound Lighting"
+      },
+      {
+        "title": "Outdoor Research"
+      },
+      {
+        "title": "Outside Van"
+      },
+      {
+        "title": "Pacific Bowls and Rolls"
+      },
+      {
+        "title": "Panaracer Corp"
+      },
+      {
+        "title": "Panasonic E-Bike Systems"
+      },
+      {
+        "title": "Panda Podium"
+      },
+      {
+        "title": "Park Tool Company"
+      },
+      {
+        "title": "Party Shirt International"
+      },
+      {
+        "title": "PEARL iZUMi"
+      },
+      {
+        "title": "Peaty's Products"
+      },
+      {
+        "title": "Pickle Juice"
+      },
+      {
+        "title": "PIKIO LABS Inc."
+      },
+      {
+        "title": "Pinarello US"
+      },
+      {
+        "title": "Pivot Cycles"
+      },
+      {
+        "title": "POC Sports"
+      },
+      {
+        "title": "Polygon Bikes"
+      },
+      {
+        "title": "Post Carry Co."
+      },
+      {
+        "title": "Praxis Works"
+      },
+      {
+        "title": "Prevelo Bikes"
+      },
+      {
+        "title": "Profile Design"
+      },
+      {
+        "title": "Prologo | Proxim"
+      },
+      {
+        "title": "Promax Components"
+      },
+      {
+        "title": "PROPAIN Bicycles"
+      },
+      {
+        "title": "Q36.5"
+      },
+      {
+        "title": "QBP/Sidi"
+      },
+      {
+        "title": "QINGDAO ROADUP VEHICLE PARTS CO.,LTD"
+      },
+      {
+        "title": "Quad Lock"
+      },
+      {
+        "title": "QuickPro USA"
+      },
+      {
+        "title": "Q�s Buckin BBQ DBA Maktub Espresso Cafe"
+      },
+      {
+        "title": "Race Face"
+      },
+      {
+        "title": "Race Maps"
+      },
+      {
+        "title": "Rad Power Bikes"
+      },
+      {
+        "title": "RADIAN"
+      },
+      {
+        "title": "Ravik"
+      },
+      {
+        "title": "Redmond"
+      },
+      {
+        "title": "Redodo"
+      },
+      {
+        "title": "REDSHIFT SPORTS"
+      },
+      {
+        "title": "Renthal Ltd"
+      },
+      {
+        "title": "Restrap"
+      },
+      {
+        "title": "reTyre AS"
+      },
+      {
+        "title": "Revel Bikes"
+      },
+      {
+        "title": "RevGrips"
+      },
+      {
+        "title": "RHEON LABS"
+      },
+      {
+        "title": "Ride Concepts"
+      },
+      {
+        "title": "RideWrap Bicycle Protection"
+      },
+      {
+        "title": "Ripped Jerky"
+      },
+      {
+        "title": "Ripton"
+      },
+      {
+        "title": "Ritchey Design"
+      },
+      {
+        "title": "Roadrunner Sauna LLC"
+      },
+      {
+        "title": "ROCKBROS SPORTS LLC"
+      },
+      {
+        "title": "Rockintor �"
+      },
+      {
+        "title": "RockyMounts"
+      },
+      {
+        "title": "ROUVY (VirtualTraining s.r.o.)"
+      },
+      {
+        "title": "Rudy Project"
+      },
+      {
+        "title": "Rush Components"
+      },
+      {
+        "title": "RUX"
+      },
+      {
+        "title": "RYZE Coffee"
+      },
+      {
+        "title": "Ryzon GmbH"
+      },
+      {
+        "title": "Saha"
+      },
+      {
+        "title": "Salsa Cycles"
+      },
+      {
+        "title": "Samox"
+      },
+      {
+        "title": "Sandbar Solar and Electric"
+      },
+      {
+        "title": "Sapim USA"
+      },
+      {
+        "title": "Saris Equipment LLC"
+      },
+      {
+        "title": "Sarto"
+      },
+      {
+        "title": "Schwalbe North America"
+      },
+      {
+        "title": "Scicon Sports"
+      },
+      {
+        "title": "SDG COMPONENTS, INC."
+      },
+      {
+        "title": "Sea Otter Boutique by TSMGI"
+      },
+      {
+        "title": "SEKA Bikes"
+      },
+      {
+        "title": "Selle Italia / Selle San Marco / idmatch"
+      },
+      {
+        "title": "Selle SMP"
+      },
+      {
+        "title": "SHANGHAI JACKCOME SPORTS GOODS CO..LTD"
+      },
+      {
+        "title": "Shimano North America Holding, Inc."
+      },
+      {
+        "title": "SHOKZ (SINGAPORE) PTE. LTD."
+      },
+      {
+        "title": "SHREDLY"
+      },
+      {
+        "title": "Sierra Nevada Brewing Company"
+      },
+      {
+        "title": "Silca"
+      },
+      {
+        "title": "Sinter Brakes"
+      },
+      {
+        "title": "Skratch Labs"
+      },
+      {
+        "title": "SkyPark Bike Park"
+      },
+      {
+        "title": "Slacker"
+      },
+      {
+        "title": "Slik Graphics"
+      },
+      {
+        "title": "Slipstream Cycling"
+      },
+      {
+        "title": "Smith Optics"
+      },
+      {
+        "title": "SockGuy"
+      },
+      {
+        "title": "SP CONNECT / SP UNITED USA INC."
+      },
+      {
+        "title": "Specialized Bicycles"
+      },
+      {
+        "title": "Specialized Off-Road"
+      },
+      {
+        "title": "Spice It Up Catering"
+      },
+      {
+        "title": "Splendor Water"
+      },
+      {
+        "title": "SPOT LLC"
+      },
+      {
+        "title": "Sprockids presented by Giant/Liv"
+      },
+      {
+        "title": "SQlab / ION"
+      },
+      {
+        "title": "Squire Bike Locks"
+      },
+      {
+        "title": "Squirt USA Inc"
+      },
+      {
+        "title": "SRAM"
+      },
+      {
+        "title": "SRM Power Meters"
+      },
+      {
+        "title": "SRSUNTOUR"
+      },
+      {
+        "title": "Stablead"
+      },
+      {
+        "title": "Stages Cycling"
+      },
+      {
+        "title": "Stan's"
+      },
+      {
+        "title": "Stelo by Dexcom"
+      },
+      {
+        "title": "Stinner Bicycle Co. LLC"
+      },
+      {
+        "title": "StoreYour"
+      },
+      {
+        "title": "Stromm Cycles"
+      },
+      {
+        "title": "Suayves"
+      },
+      {
+        "title": "SUPER B PRECISION TOOLS CO.,LTD"
+      },
+      {
+        "title": "Sur Nutrition"
+      },
+      {
+        "title": "Surly Bikes"
+      },
+      {
+        "title": "SURRON"
+      },
+      {
+        "title": "SUZHOU MEISENLAN SPORTS GOODS CO., LTD"
+      },
+      {
+        "title": "Suzhou Mojawa Intelligent Electronic Co., Ltd"
+      },
+      {
+        "title": "Swagman"
+      },
+      {
+        "title": "Sweet Protection"
+      },
+      {
+        "title": "Swift Industries"
+      },
+      {
+        "title": "SwissStop"
+      },
+      {
+        "title": "Tailwind Nutrition Inc."
+      },
+      {
+        "title": "Taizhou Antai Bicycle Co.,Ltd"
+      },
+      {
+        "title": "TANRI-Sunscreen"
+      },
+      {
+        "title": "Tarma Designs"
+      },
+      {
+        "title": "TASTE OF MEXICO"
+      },
+      {
+        "title": "TAVELO XIAMEN SPORTS CO.,LTD"
+      },
+      {
+        "title": "Team Booger | Junior Cycling Team"
+      },
+      {
+        "title": "Telepathy Bikes"
+      },
+      {
+        "title": "TentCraft, LLC"
+      },
+      {
+        "title": "Teravail"
+      },
+      {
+        "title": "Thai Chef"
+      },
+      {
+        "title": "Thousand Inc."
+      },
+      {
+        "title": "Thule"
+      },
+      {
+        "title": "TIANJIN TIANHENG INTELLIGENT TECHNOLOGY CO., LTD."
+      },
+      {
+        "title": "Tifosi Optics, Inc."
+      },
+      {
+        "title": "Todson"
+      },
+      {
+        "title": "Tomberlin"
+      },
+      {
+        "title": "Topeak"
+      },
+      {
+        "title": "TowWhee"
+      },
+      {
+        "title": "Transition Bicycle Company"
+      },
+      {
+        "title": "Trio Alliance LLC"
+      },
+      {
+        "title": "Troy Lee Designs"
+      },
+      {
+        "title": "TRP Cycling"
+      },
+      {
+        "title": "Tyax Adventures"
+      },
+      {
+        "title": "Unbroken RTR USA Inc."
+      },
+      {
+        "title": "Unior Bike Tools"
+      },
+      {
+        "title": "United Bicycle Institute, Inc."
+      },
+      {
+        "title": "Unofficial Worldwide - Wilier Triestina USA"
+      },
+      {
+        "title": "UnTapped"
+      },
+      {
+        "title": "Upway"
+      },
+      {
+        "title": "USWE"
+      },
+      {
+        "title": "VAN RYSEL"
+      },
+      {
+        "title": "Vee Tire Co"
+      },
+      {
+        "title": "Velocio"
+      },
+      {
+        "title": "VelociRAX"
+      },
+      {
+        "title": "veloToze"
+      },
+      {
+        "title": "VIAIR CORPORATION"
+      },
+      {
+        "title": "Vinco Performance"
+      },
+      {
+        "title": "Vittoria"
+      },
+      {
+        "title": "Voler"
+      },
+      {
+        "title": "Wahoo Fitness"
+      },
+      {
+        "title": "Waterloo Sparkling Water"
+      },
+      {
+        "title": "WeatherTech Raceway Laguna Seca"
+      },
+      {
+        "title": "WENZHOU JINJIAN SMART LOCK. CO., LTD"
+      },
+      {
+        "title": "Wera Tools"
+      },
+      {
+        "title": "White Industries"
+      },
+      {
+        "title": "Wild Rye"
+      },
+      {
+        "title": "Williams Racing Products Pty Ltd"
+      },
+      {
+        "title": "Wolf Tooth Components"
+      },
+      {
+        "title": "woom bikes USA"
+      },
+      {
+        "title": "Wove"
+      },
+      {
+        "title": "WTB"
+      },
+      {
+        "title": "X10"
+      },
+      {
+        "title": "XDS X-LAB"
+      },
+      {
+        "title": "XFUSION SHOX"
+      },
+      {
+        "title": "Xiamen Carbon Speed Sport Goods Co.,Ltd"
+      },
+      {
+        "title": "Xiamen Hongji Weiye Industrial Co., Ltd"
+      },
+      {
+        "title": "XPEDO"
+      },
+      {
+        "title": "Yakima"
+      },
+      {
+        "title": "YONGKANG MINGDA IMP. & EXP. CO.,LTD"
+      },
+      {
+        "title": "Yoshimura Cycling"
+      },
+      {
+        "title": "ZENO Bicycle Component Co., LTD"
+      },
+      {
+        "title": "Zhejiang Leshang"
+      },
+      {
+        "title": "Zink Bikes LLC"
+      },
+      {
+        "title": "ZIRKEL OPTICS"
+      }
+    ],
+    "detectedListSelectors": [
+      "div.columns"
+    ],
+    "rawPreview": "[\n  {\n    \"title\": \"Bookmarks\"\n  },\n  {\n    \"title\": \"Bookmarks\"\n  },\n  {\n    \"title\": \"Filter by Category\"\n  },\n  {\n    \"title\": \"SUZHOU DAMAI VEHICLE CO., LTD.\"\n  },\n  {\n    \"title\": \"1UP USA\"\n  },\n  {\n    \"title\": \"4iiii Innovations Inc.\"\n  },\n  {\n    \"title\": \"5DEV\"\n  },\n  {\n    \"title\": \"686\"\n  },\n  {\n    \"title\": \"6D Helmets\"\n  },\n  {\n    \"title\": \"8 Degree Pedal\"\n  },\n  {\n    \"title\": \"Abbey Bike Tools\"\n  },\n  {\n    \"title\": \"ABUS\"\n  },\n  {\n    \"title\": \"Acai Boys\"\n  },\n  {\n    \"title\": \"ACCEL CYCLING\"\n  },\n  {\n    \"title\": \"adidas Five Ten\"\n  },\n  {\n    \"title\": \"AERON / TPU\"\n  },\n  {\n    \"title\": \"AHHA\"\n  },\n  {\n    \"title\": \"Albek.co\"\n  },\n  {\n    \"title\": \"Alex Global Technology\"\n  },\n  {\n    \"title\": \"Allied Cycle Works\"\n  },\n  {\n    \"title\": \"Allover\"\n  },\n  {\n    \"title\": \"ALSO.\"\n  },\n  {\n    \"title\": \"Amflow Bikes\"\n  },\n  {\n    \"title\": \"Ananda\"\n  },\n  {\n    \"title\": \"Arctos Packs\"\n  },\n  {\n    \"title\": \"Ari Bikes\"\n  },\n  {\n    \"title\": \"Arkoza\"\n  },\n  {\n    \"title\": \"Assess Industry Co., Ltd.\"\n  },\n  {\n    \"title\": \"Assos of Switzerland\"\n  },\n  {\n    \"title\": \"Athletic Brewing Company\"\n  },\n  {\n    \"title\": \"The Athletic Community\"\n  },\n  {\n    \"title\": \"Aventon\"\n  },\n  {\n    \"title\": \"B&W International\"\n  },\n  {\n    \"title\": \"Bafang Electric (Suzhou) Co., Ltd.\"\n  },\n  {\n    \"title\": \"The Battery Network (Formerly Call2Recycle)\"\n  },\n  {\n    \"title\": \"Bean Brigade LLC\"\n  },\n  {\n    \"title\": \"Bear + Flag Roadside\"\n  },\n  {\n    \"title\": \"Bear National Team - Gravel\"\n  },\n  {\n    \"title\": \"Bell Helmets\"\n  },\n  {\n    \"title\": \"Bella Familia Woodfired Pizza\"\n  },\n  {\n    \"title\": \"BENITO'S TACOS\"\n  },\n  {\n    \"title\": \"Best Day Brewing\"\n  },\n  {\n    \"title\": \"Better Bolts\"\n  },\n  {\n    \"title\": \"Bianchi\"\n  },\n  {\n    \"title\": \"Big Bite\"\n  },\n  {\n    \"title\": \"Bike Builders of Berkeley\"\n  },\n  {\n    \"title\": \"Bike Tennessee\"\n  },\n  {\n    \"title\": \"BikeStow\"\n  },\n  {\n    \"title\": \"Biketube Brand\"\n  },\n  {\n    \"title\": \"Bikey Wipes USA\"\n  },\n  {\n    \"title\":"
+  },
+  "status": "completed"
+}

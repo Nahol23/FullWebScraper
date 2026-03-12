@@ -1,0 +1,48 @@
+{
+  "name": "HB",
+  "url": "https://homebase.map-dynamics.com/components/marketplace/start.marketplace.php",
+  "method": "POST",
+  "headers": {
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "Cookie": "PHPSESSID=j0kdn3hsecth24nm53o56cbu7r",
+    "Referer": "https://homebase.map-dynamics.com/soc2026/floorplan",
+    "Origin": "https://homebase.map-dynamics.com",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+    "X-requested-With": "X-Requested-With"
+  },
+  "body": {
+    "Show_ID": 8881,
+    "sort": "ASC"
+  },
+  "rules": [
+    {
+      "fieldName": "title",
+      "selector": "h3",
+      "attribute": "text"
+    },
+    {
+      "fieldName": "description",
+      "selector": "p.profileDescription",
+      "attribute": "text"
+    },
+    {
+      "fieldName": "image",
+      "selector": ".profileImage",
+      "attribute": "text"
+    },
+    {
+      "fieldName": "link",
+      "selector": "a",
+      "attribute": "href"
+    },
+    {
+      "fieldName": "text",
+      "selector": "span.searchable",
+      "attribute": "text"
+    }
+  ],
+  "containerSelector": "div.columns",
+  "id": "daad4e13-73fd-4d8c-a481-b15e6e316c03",
+  "createdAt": "2026-03-10T09:26:34.672Z",
+  "updatedAt": "2026-03-10T09:26:34.672Z"
+}

@@ -1,3 +1,4 @@
+// src/presentation/components/drawer/ConfigurationTab.tsx
 import { useState, useEffect } from "react";
 import { Trash2, Plus, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
@@ -16,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "../../components/ui/dialog"; // Import del dialog
+} from "../../components/ui/dialog";
 import type {
   ApiConfig,
   ApiParam,
@@ -142,13 +143,11 @@ export function ConfigurationTab({
     setHeaders({ ...headers, [key]: value });
   };
 
-  // Apre il dialog per aggiungere un campo
   const handleAddSelectedField = () => {
     setNewFieldValue("");
     setIsAddFieldDialogOpen(true);
   };
 
-  // Conferma l'aggiunta del campo
   const handleAddFieldConfirm = () => {
     if (newFieldValue.trim()) {
       setSelectedFields([...selectedFields, newFieldValue.trim()]);
@@ -243,17 +242,13 @@ export function ConfigurationTab({
             <div key={index} className="flex gap-2">
               <Input
                 value={param.key}
-                onChange={(e) =>
-                  handleQueryParamChange(index, "key", e.target.value)
-                }
+                onChange={(e) => handleQueryParamChange(index, "key", e.target.value)}
                 placeholder="Parameter name"
                 className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
               />
               <Input
                 value={param.value}
-                onChange={(e) =>
-                  handleQueryParamChange(index, "value", e.target.value)
-                }
+                onChange={(e) => handleQueryParamChange(index, "value", e.target.value)}
                 placeholder="Parameter value"
                 className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
               />

@@ -1,0 +1,57 @@
+{
+  "id": "8022945a-6b65-474e-83cd-9fbf38685c15",
+  "configId": "b7c85934-93c0-4d25-9a1d-038d7c8efae6",
+  "timestamp": "2026-03-12T10:55:52.651Z",
+  "url": "https://homebase.map-dynamics.com/components/marketplace/start.marketplace.php",
+  "rulesUsed": [
+    {
+      "fieldName": "title",
+      "selector": "h3",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "description",
+      "selector": "p.profileDescription",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "image",
+      "selector": ".profileImage",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "link",
+      "selector": "a",
+      "attribute": "href",
+      "multiple": true
+    },
+    {
+      "fieldName": "text",
+      "selector": "span.searchable",
+      "attribute": "text",
+      "multiple": true
+    }
+  ],
+  "result": {
+    "data": [
+      {
+        "title": "Bookmarks"
+      },
+      {
+        "title": "Sponsors"
+      }
+    ],
+    "meta": {
+      "totalPages": 1,
+      "currentPage": 1,
+      "itemsPerPage": 2,
+      "totalItems": 2
+    }
+  },
+  "resultCount": 2,
+  "status": "success",
+  "duration": 510
+}
