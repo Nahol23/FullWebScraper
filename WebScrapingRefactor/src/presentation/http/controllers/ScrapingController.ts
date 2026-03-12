@@ -7,7 +7,7 @@ import type { GetScrapingConfigByIdUseCase } from "../../../application/usecases
 import type { UpdateScrapingConfigUseCase } from "../../../application/usecases/Scraping/UpdateScrapingConfigUseCase";
 import type { DeleteScrapingConfigUseCase } from "../../../application/usecases/Scraping/DeleteScrapingConfigUseCase";
 import type { AnalyzeScrapingUseCase } from "../../../application/usecases/Scraping/AnalyzeScrapingUsecase";
-import type { ScrapingConfig, RuntimeParams } from "../../../domain/entities/ScrapingConfig";
+import type { ScrapingConfig, ScrapingRuntimeParams } from "../../../domain/entities/ScrapingConfig";
 
 export interface ScrapingControllerDeps {
   executeScrapingUseCase: ExecuteScrapingUseCase;
@@ -84,7 +84,7 @@ export class ScrapingController {
   };
 
   execute = async (
-    req: FastifyRequest<{ Params: { id: string }; Body: RuntimeParams }>,
+    req: FastifyRequest<{ Params: { id: string }; Body: ScrapingRuntimeParams }>,
     reply: FastifyReply,
   ) => {
     try {

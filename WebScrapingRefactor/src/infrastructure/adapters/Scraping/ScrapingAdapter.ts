@@ -4,11 +4,7 @@ import type { ScrapeOptions } from "../../../domain/types/ScrapeOptions";
 import type { HttpFetcher } from "./HttpFetcher";
 import type { JsBrowserFetcher } from "./JsBrowserFetcher";
 
-/**
- * Responsabilità unica: orchestrare fetch + estrazione con regole.
- * Implementa solo IScrapingPort — niente IHtmlFetcherPort.
- * L'analisi DOM è responsabilità di ScrapingAnalyzer.
- */
+
 export class ScrapingAdapter implements IScrapingPort {
   constructor(
     private readonly httpFetcher: HttpFetcher,

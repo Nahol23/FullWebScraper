@@ -131,7 +131,7 @@ export async function scrapingRoutes(fastify: FastifyInstance) {
     deleteUseCase: new DeleteScrapingConfigUseCase(repo),
     analyzeUseCase: new AnalyzeScrapingUseCase(scraper, domAnalyzer, analysisRepo),
   });
-  // ─────────────────────────────────────────────────────────────────────────
+  
 
   // CRUD
   fastify.get("/scraping/configs", {

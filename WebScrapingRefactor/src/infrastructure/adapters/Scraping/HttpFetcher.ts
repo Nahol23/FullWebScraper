@@ -72,18 +72,23 @@ export class HttpFetcher {
     return String(body);
   }
 
-  private resolveContentTypeHeader(
-    headers: Record<string, string>,
-    contentType: string | undefined,
-    body: unknown,
-  ): Record<string, string> {
-    if (typeof body === "object" && !contentType?.includes("application/json")) {
-      const result = this.mergeHeaders(headers, {});
-      result["Content-Type"] = "application/json";
-      return result;
-    }
-    return headers;
+private resolveContentTypeHeader(
+  headers: Record<string, string>,
+  contentType: string | undefined,
+  body: unknown,
+): Record<string, string> {
+  // Se il Content-Type è già esplicitamente impostato, rispettalo
+  if (contentType) return headers;
+
+  // Solo se non è stato specificato nulla, default a json per oggetti
+  if (typeof body === "object") {
+    const result = this.mergeHeaders(headers, {});
+    result["Content-Type"] = "application/json";
+    return result;
   }
+
+  return headers;
+}
 
   private urlEncode(obj: Record<string, unknown>): string {
     return Object.entries(obj)
