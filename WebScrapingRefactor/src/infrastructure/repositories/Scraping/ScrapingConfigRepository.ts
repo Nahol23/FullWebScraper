@@ -39,6 +39,11 @@ export class ScrapingConfigRepository implements IScrapingConfigRepository {
     return JSON.parse(data);
   }
 
+  async getByName(name: string): Promise<ScrapingConfig | null> {
+    const all = await this.getAll();
+    return all.find(config => config.name === name) || null;
+  }
+
   async save(config: ScrapingConfig): Promise<ScrapingConfig> {
     const filePath = this.getFilePath(config.id);
     fs.writeFileSync(filePath, JSON.stringify(config, null, 2), "utf-8");

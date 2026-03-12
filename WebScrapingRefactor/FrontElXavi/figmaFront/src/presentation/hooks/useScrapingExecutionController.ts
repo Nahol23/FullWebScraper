@@ -1,18 +1,33 @@
-import { scrapingApi } from '@/di/scrapingIoc';
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
+import type { ScrapingExecution } from "../../domain/entities/ScrapingExecution";
+import type { ScrapingAnalysisResponse } from "../../domain/entities/ScrapingAnalysisResult";
+import {
+  executeScrapingByNameUseCase,
+  fetchScrapingLogsUseCase,
+  deleteScrapingExecutionUseCase,
+  downloadScrapingLogsUseCase,
+  analyzeScrapingUseCase,
+  analyzeScrapingByIdUseCase,
+} from "../../di/scrapingIoc";
 
 export function useScrapingExecutionController() {
   const [isExecuting, setIsExecuting] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [lastResult, setLastResult] = useState<any>(null);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<ScrapingAnalysisResponse | null>(null);
+  const [logs, setLogs] = useState<ScrapingExecution[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const execute = useCallback(async (configId: string, runtimeParams?: any) => {
+  const execute = useCallback(async (configName: string, runtimeParams?: any) => {
+    if (!configName) {
+      console.error("configName is required for execution");
+      return;
+    }
     setIsExecuting(true);
     setError(null);
     try {
-      const result = await scrapingApi.execute(configId, runtimeParams);
+      const result = await executeScrapingByNameUseCase.execute(configName, runtimeParams);
       setLastResult(result);
       return result;
     } catch (err: any) {
@@ -27,7 +42,7 @@ export function useScrapingExecutionController() {
     setIsAnalyzing(true);
     setError(null);
     try {
-      const result = await scrapingApi.analyze(url, options);
+      const result = await analyzeScrapingUseCase.execute({ url, ...options });
       setAnalysisResult(result);
       return result;
     } catch (err: any) {
@@ -42,7 +57,7 @@ export function useScrapingExecutionController() {
     setIsAnalyzing(true);
     setError(null);
     try {
-      const result = await scrapingApi.analyzeById(configId, options);
+      const result = await analyzeScrapingByIdUseCase.execute(configId, options);
       setAnalysisResult(result);
       return result;
     } catch (err: any) {
@@ -53,15 +68,60 @@ export function useScrapingExecutionController() {
     }
   }, []);
 
+  const fetchLogs = useCallback(async (configName: string) => {
+    if (!configName) return;
+    setIsLoadingLogs(true);
+    setError(null);
+    try {
+      const data = await fetchScrapingLogsUseCase.execute(configName);
+      setLogs(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  }, []);
+
+  const deleteLog = useCallback(async (configId: string, executionId: string) => {
+    try {
+      await deleteScrapingExecutionUseCase.execute(configId, executionId);
+      setLogs((prev) => prev.filter((log) => log.id !== executionId));
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }, []);
+
+  const downloadLogs = useCallback(async (configName: string, format: "json" | "markdown" = "json") => {
+    try {
+      const blob = await downloadScrapingLogsUseCase.execute(configName, format);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `${configName}.${format === "markdown" ? "md" : "json"}`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }, []);
+
+  const clearError = useCallback(() => setError(null), []);
+
   return {
     isExecuting,
-    isAnalyzing,
     lastResult,
-    analysisResult,
-    error,
     execute,
+    isAnalyzing,
+    analysisResult,
     analyze,
     analyzeById,
-    clearError: () => setError(null),
+    logs,
+    isLoadingLogs,
+    fetchLogs,
+    deleteLog,
+    downloadLogs,
+    error,
+    clearError,
   };
 }

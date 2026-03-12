@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { DeleteExecutionUseCase } from '../../../application/usecases/DeleteExecutionUseCase';
-import type { IApiExecutionRepository } from '../../../domain/ports/IApiExecutionRepository';
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { DeleteExecutionUseCase } from "../../../application/usecases/api/DeleteExecutionUseCase";
+import type { IApiExecutionRepository } from "../../../domain/ports/IApiExecutionRepository";
 
-describe('DeleteExecutionUseCase', () => {
+describe("DeleteExecutionUseCase", () => {
   let mockRepo: IApiExecutionRepository;
   let useCase: DeleteExecutionUseCase;
 
@@ -16,9 +16,12 @@ describe('DeleteExecutionUseCase', () => {
     useCase = new DeleteExecutionUseCase(mockRepo);
   });
 
-  it('dovrebbe eliminare un log di esecuzione', async () => {
-    await useCase.execute('cfg123', 'exec456');
+  it("dovrebbe eliminare un log di esecuzione", async () => {
+    await useCase.execute("cfg123", "exec456");
 
-    expect(vi.mocked(mockRepo.deleteLog)).toHaveBeenCalledWith('cfg123', 'exec456');
+    expect(vi.mocked(mockRepo.deleteLog)).toHaveBeenCalledWith(
+      "cfg123",
+      "exec456",
+    );
   });
 });

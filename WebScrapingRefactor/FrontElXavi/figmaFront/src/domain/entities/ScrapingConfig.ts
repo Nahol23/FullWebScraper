@@ -1,7 +1,7 @@
 export interface ExtractionRule {
   fieldName: string;
   selector: string;
-  attribute?: "text" | "html" | "href" | "src" | "innerText";
+  attribute?: "text" | "html" | "href" | "src" | "innerText" | "style";
   multiple?: boolean;
   transform?: string;
 }

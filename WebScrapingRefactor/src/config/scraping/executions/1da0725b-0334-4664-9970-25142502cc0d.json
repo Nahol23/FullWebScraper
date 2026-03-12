@@ -1,0 +1,101 @@
+{
+  "id": "1da0725b-0334-4664-9970-25142502cc0d",
+  "configId": "07c5ac31-ffcb-4321-9980-bf5a357a8b5e",
+  "timestamp": "2026-03-09T14:22:50.788Z",
+  "url": "https://homebase.map-dynamics.com/components/marketplace/start.marketplace.php",
+  "rulesUsed": [
+    {
+      "fieldName": "title",
+      "selector": ".row h3",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "description",
+      "selector": ".row p, .row .description, .row .profileDescription",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "image",
+      "selector": ".row [style*='background-image']",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "link",
+      "selector": ".row a[href]",
+      "attribute": "href",
+      "multiple": true
+    },
+    {
+      "fieldName": "text",
+      "selector": ".row .searchable, .row span, .row p",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "title",
+      "selector": ".row h3",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "description",
+      "selector": ".row p, .row .description, .row .profileDescription",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "image",
+      "selector": ".row [style*='background-image']",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "link",
+      "selector": ".row a[href]",
+      "attribute": "href",
+      "multiple": true
+    },
+    {
+      "fieldName": "text",
+      "selector": ".row .searchable, .row span, .row p",
+      "attribute": "text",
+      "multiple": true
+    }
+  ],
+  "result": {
+    "data": [
+      {
+        "title": [
+          "Bookmarks",
+          "Sponsors"
+        ],
+        "description": [],
+        "image": [],
+        "link": [],
+        "text": []
+      },
+      {
+        "title": [
+          "Bookmarks",
+          "Sponsors"
+        ],
+        "description": [],
+        "image": [],
+        "link": [],
+        "text": []
+      }
+    ],
+    "meta": {
+      "totalPages": 1,
+      "currentPage": 1,
+      "itemsPerPage": 2,
+      "totalItems": 2
+    }
+  },
+  "resultCount": 2,
+  "status": "success",
+  "duration": 363
+}

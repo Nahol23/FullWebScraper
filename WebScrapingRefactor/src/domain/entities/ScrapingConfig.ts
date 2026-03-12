@@ -1,14 +1,16 @@
+
 export interface ScrapingRuntimeParams {
   waitForSelector?: string;
   maxPages?: number;
   rules?: ExtractionRule[];
   containerSelector?: string;
+
 }
 
 export interface ExtractionRule {
   fieldName: string;
   selector: string;
-  attribute?: "text" | "html" | "href" | "src" | "innerText";
+  attribute?: "text" | "html" | "href" | "src" | "innerText" | "style";
   multiple?: boolean;
   transform?: string;
 }
@@ -34,3 +36,6 @@ export interface ScrapingConfig {
   updatedAt?: Date;
   defaultRuntimeParams?: ScrapingRuntimeParams;
 }
+
+
+

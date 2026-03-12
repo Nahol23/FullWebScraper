@@ -4,8 +4,8 @@
  * Pure TypeScript - No React, No Axios dependencies
  */
 
-import type { ApiConfig } from "../../domain/entities/ApiConfig";
-import type { IConfigRepository } from "../../domain/ports/IConfigRepository";
+import type { ApiConfig } from "../../../domain/entities/ApiConfig";
+import type { IConfigRepository } from "../../../domain/ports/IConfigRepository";
 
 export class GetConfigsUseCase {
   constructor(private readonly configRepository: IConfigRepository) {}

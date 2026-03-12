@@ -1,0 +1,99 @@
+{
+  "id": "d73f5df1-ee4c-4c4e-ac12-4f4b9340a0ad",
+  "url": "https://homebase.map-dynamics.com/components/marketplace/start.marketplace.php",
+  "timestamp": "2026-03-12T09:34:42.014Z",
+  "options": {
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "Cookie": "PHPSESSID=07gble54jht1otc1130dlhg49u",
+      "Referer": "https://homebase.map-dynamics.com/soc2026/floorplan",
+      "Origin": "https://homebase.map-dynamics.com",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+      "X-Requested-With": "X-Requested-With"
+    },
+    "body": {
+      "Show_ID": 8881,
+      "sort": "ASC"
+    },
+    "useJavaScript": false
+  },
+  "result": {
+    "url": "https://homebase.map-dynamics.com/components/marketplace/start.marketplace.php",
+    "title": "",
+    "suggestedRules": [
+      {
+        "fieldName": "title",
+        "selector": "h3",
+        "attribute": "text",
+        "multiple": false
+      },
+      {
+        "fieldName": "description",
+        "selector": "p.profileDescription",
+        "attribute": "text",
+        "multiple": false
+      },
+      {
+        "fieldName": "image",
+        "selector": ".profileImage",
+        "attribute": "style",
+        "multiple": false
+      },
+      {
+        "fieldName": "link",
+        "selector": "a",
+        "attribute": "href",
+        "multiple": false
+      },
+      {
+        "fieldName": "text",
+        "selector": "span.searchable",
+        "attribute": "text",
+        "multiple": false
+      }
+    ],
+    "sampleData": [
+      {
+        "title": "Bookmarks",
+        "description": "",
+        "image": "https://mapd-client-images.s3.us-east-2.amazonaws.com/images/1418_1UP-blue-Star-red_RGB.png?w=200",
+        "link": "javascript:flipAllFilters()",
+        "text": "suzhou damai vehicle co., ltd."
+      },
+      {
+        "title": "Bookmarks",
+        "description": "",
+        "image": "",
+        "link": "",
+        "text": ""
+      },
+      {
+        "title": "Filter by Category",
+        "description": "",
+        "image": "",
+        "link": "javascript:flipAllFilters()",
+        "text": ""
+      },
+      {
+        "title": "SUZHOU DAMAI VEHICLE CO., LTD.",
+        "description": "",
+        "image": "",
+        "link": "",
+        "text": "suzhou damai vehicle co., ltd."
+      },
+      {
+        "title": "1UP USA",
+        "description": "Bike, Cargo, and Motorcycle racks and accessories.",
+        "image": "https://mapd-client-images.s3.us-east-2.amazonaws.com/images/1418_1UP-blue-Star-red_RGB.png?w=200",
+        "link": "",
+        "text": "1up usa bike, cargo, and motorcycle racks and accessories. bike racks, hitch racks, cargo racks, roof racks, vertical racks, moto racks, racks, cargo, moto,"
+      }
+    ],
+    "detectedListSelectors": [
+      "div.columns"
+    ],
+    "rawPreview": "[\n  {\n    \"title\": \"Bookmarks\",\n    \"description\": \"\",\n    \"image\": \"https://mapd-client-images.s3.us-east-2.amazonaws.com/images/1418_1UP-blue-Star-red_RGB.png?w=200\",\n    \"link\": \"javascript:flipAllFilters()\",\n    \"text\": \"suzhou damai vehicle co., ltd.\"\n  },\n  {\n    \"title\": \"Bookmarks\",\n    \"description\": \"\",\n    \"image\": \"\",\n    \"link\": \"\",\n    \"text\": \"\"\n  },\n  {\n    \"title\": \"Filter by Category\",\n    \"description\": \"\",\n    \"image\": \"\",\n    \"link\": \"javascript:flipAllFilters()\",\n    \"text\": \"\"\n  },\n  {\n    \"title\": \"SUZHOU DAMAI VEHICLE CO., LTD.\",\n    \"description\": \"\",\n    \"image\": \"\",\n    \"link\": \"\",\n    \"text\": \"suzhou damai vehicle co., ltd.\"\n  },\n  {\n    \"title\": \"1UP USA\",\n    \"description\": \"Bike, Cargo, and Motorcycle racks and accessories.\",\n    \"image\": \"https://mapd-client-images.s3.us-east-2.amazonaws.com/images/1418_1UP-blue-Star-red_RGB.png?w=200\",\n    \"link\": \"\",\n    \"text\": \"1up usa bike, cargo, and motorcycle racks and accessories. bike racks, hitch racks, cargo racks, roof racks, vertical racks, moto racks, racks, cargo, moto,\"\n  },\n  {\n    \"title\": \"4iiii Innovations Inc.\",\n    \"description\": \"4iiii Innovations is dedicated to bringing professional-grade training technology to every rider. Based in the...\",\n    \"image\": \"https://mapd-client-images.s3.us-east-2.amazonaws.com/images/1769106057-4469_4iiii-logo.png?w=200\",\n    \"link\": \"\",\n    \"text\": \"4iiii innovations inc. 4iiii innovations is dedicated to bringing professional-grade training technology to every rider. based in the foothills of the canadian rockies, we design and build intuitive tools, including our industry leading power meters and heart rate monitor that simplify the path to peak performance. we believe elite accuracy should be accessible to everyone, which is why we engineer our equipment to meet the demands of athletes at every level. whether you�re competing for a world title or chasing a personal best, 4iiii provides the precision data you need to reach your next level. "
+  },
+  "status": "completed"
+}

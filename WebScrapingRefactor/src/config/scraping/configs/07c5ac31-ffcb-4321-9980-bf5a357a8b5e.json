@@ -1,0 +1,83 @@
+{
+  "name": "HomeB",
+  "url": "https://homebase.map-dynamics.com/components/marketplace/start.marketplace.php",
+  "method": "POST",
+  "headers": {
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "Cookie": "PHPSESSID=j0kdn3hsecth24nm53o56cbu7r",
+    "Referer": "https://homebase.map-dynamics.com/soc2026/floorplan",
+    "Origin": "https://homebase.map-dynamics.com",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+    "X-Requested-With": "X-Requested-With"
+  },
+  "body": {
+    "Show_ID": 8881,
+    "sort": "ASC"
+  },
+  "rules": [
+    {
+      "fieldName": "title",
+      "selector": ".row h3",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "description",
+      "selector": ".row p, .row .description, .row .profileDescription",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "image",
+      "selector": ".row [style*='background-image']",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "link",
+      "selector": ".row a[href]",
+      "attribute": "href",
+      "multiple": true
+    },
+    {
+      "fieldName": "text",
+      "selector": ".row .searchable, .row span, .row p",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "title",
+      "selector": ".row h3",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "description",
+      "selector": ".row p, .row .description, .row .profileDescription",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "image",
+      "selector": ".row [style*='background-image']",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "link",
+      "selector": ".row a[href]",
+      "attribute": "href",
+      "multiple": true
+    },
+    {
+      "fieldName": "text",
+      "selector": ".row .searchable, .row span, .row p",
+      "attribute": "text",
+      "multiple": true
+    }
+  ],
+  "containerSelector": ".row",
+  "id": "07c5ac31-ffcb-4321-9980-bf5a357a8b5e",
+  "createdAt": "2026-03-06T14:00:58.823Z",
+  "updatedAt": "2026-03-06T14:00:58.823Z"
+}

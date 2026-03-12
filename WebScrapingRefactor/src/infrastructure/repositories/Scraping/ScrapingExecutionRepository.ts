@@ -3,7 +3,6 @@ import path from 'path';
 import { IScrapingExecutionRepository } from '../../../domain/ports/ScrapingConfig/IScrapingExecutionRepository';
 import { ScrapingExecution } from '../../../domain/entities/ScrapingExecution';
 
-
 export class ScrapingExecutionRepository implements IScrapingExecutionRepository {
   private readonly storageDir = path.join(process.cwd(), 'src', 'config', 'scraping', 'executions');
 
@@ -15,6 +14,12 @@ export class ScrapingExecutionRepository implements IScrapingExecutionRepository
 
   private getFilePath(id: string): string {
     return path.join(this.storageDir, `${id}.json`);
+  }
+
+  async execute(configId: string, params?: any): Promise<any> {
+    // This would be implemented to call the scraping adapter
+    // For now, return a placeholder
+    return { success: true, data: [] };
   }
 
   async save(execution: ScrapingExecution): Promise<void> {
@@ -29,11 +34,6 @@ export class ScrapingExecutionRepository implements IScrapingExecutionRepository
     return JSON.parse(data);
   }
 
-  async findByConfigId(configId: string): Promise<ScrapingExecution[]> {
-    const all = await this.findAll();
-    return all.filter(e => e.configId === configId);
-  }
-
   async findAll(): Promise<ScrapingExecution[]> {
     const files = fs.readdirSync(this.storageDir).filter(f => f.endsWith('.json'));
     return files.map(file => {
@@ -42,8 +42,22 @@ export class ScrapingExecutionRepository implements IScrapingExecutionRepository
     });
   }
 
+  async findByConfigId(configId: string, limit: number = 50, offset: number = 0): Promise<ScrapingExecution[]> {
+    const all = await this.findAll();
+    return all
+      .filter(e => e.configId === configId)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(offset, offset + limit);
+  }
+
   async delete(id: string): Promise<void> {
     const filePath = this.getFilePath(id);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  }
+
+  async downloadLogs(configName: string, format: string): Promise<Blob> {
+    // This would be implemented to generate and return a blob
+    // For now, return an empty blob
+    return new Blob([]);
   }
 }
