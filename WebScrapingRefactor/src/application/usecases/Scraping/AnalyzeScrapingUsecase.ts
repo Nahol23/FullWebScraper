@@ -34,42 +34,66 @@ export class AnalyzeScrapingUseCase {
       const containerSelector = analysis.listSelectors?.[0] ?? undefined;
       const rules = analysis.suggestedRules;
 
-      // 2) Primo tentativo di estrazione
-      // the scraper may return a string, array, object, etc.; use a loose type
-      let sampleData: any = await this.scraper.scrape({
+      // 2) Estrazione SAMPLE — max 5 elementi, niente array paralleli
+
+      // Per il sample usiamo solo la rule più rappresentativa (title/name o la prima)
+      // e forziamo multiple:false per avere valori scalari, non array.
+      const primaryRule =
+        rules.find((r) => /title|name/i.test(r.fieldName)) ?? rules[0];
+      const sampleRules = primaryRule
+        ? [{ ...primaryRule, multiple: false }]
+        : rules.map((r) => ({ ...r, multiple: false }));
+
+      let rawData: any = await this.scraper.scrape({
         url,
         method: options?.method,
         headers: options?.headers,
         body: options?.body,
         useJavaScript: options?.useJavaScript,
         waitForSelector: options?.waitForSelector,
-        rules,
+        rules: sampleRules,
         containerSelector,
       });
 
-      // 3) Fallback se sampleData è vuoto
+      // 3) Fallback se rawData è vuoto
       if (
-        (!sampleData ||
-          (Array.isArray(sampleData) && sampleData.length === 0)) &&
+        (!rawData || (Array.isArray(rawData) && rawData.length === 0)) &&
         containerSelector
       ) {
-        // Prova senza containerSelector
-        sampleData = await this.scraper.scrape({
+        rawData = await this.scraper.scrape({
           url,
           method: options?.method,
           headers: options?.headers,
           body: options?.body,
           useJavaScript: options?.useJavaScript,
           waitForSelector: options?.waitForSelector,
-          rules,
+          rules: sampleRules,
         });
+      }
+
+      // Tronca a SAMPLE_LIMIT
+      let sampleData: any;
+      if (Array.isArray(rawData)) {
+        sampleData = rawData.slice(0);
+      } else if (
+        rawData !== null &&
+        typeof rawData === "object" &&
+        !Array.isArray(rawData)
+      ) {
+        // Oggetto singolo o con chiavi numeriche — wrap in array e tronca
+        const values = Object.keys(rawData).every((k) => !isNaN(Number(k)))
+          ? (Object.values(rawData) as any[]).slice(0)
+          : [rawData];
+        sampleData = values;
+      } else {
+        sampleData = rawData;
       }
 
       // 4) Raw preview per debugging
       const rawPreview =
-        typeof sampleData === "string"
-          ? sampleData.slice(0, 2000)
-          : JSON.stringify(sampleData, null, 2).slice(0, 2000);
+        typeof rawData === "string"
+          ? rawData.slice(0, 2000)
+          : JSON.stringify(rawData, null, 2).slice(0, 2000);
 
       const result: ScrapingAnalysisResult = {
         url,

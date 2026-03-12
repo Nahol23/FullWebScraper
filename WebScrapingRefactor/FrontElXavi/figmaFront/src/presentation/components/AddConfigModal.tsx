@@ -1,4 +1,3 @@
-// src/presentation/components/AddConfigModal.tsx
 import { useState, useEffect } from "react";
 import { Loader2, X, Plus } from "lucide-react";
 import {
@@ -82,7 +81,7 @@ export function AddConfigModal({
   const [headerRows, setHeaderRows] = useState<KeyValueRow[]>([
     { id: "1", key: "Content-Type", value: "application/json" },
   ]);
-  const [bodyJson, setBodyJson] = useState("{\n  \n}");
+  const [bodyJson, setBodyJson] = useState("");
 
   // Campi specifici API
   const [baseUrl, setBaseUrl] = useState("https://");
@@ -195,12 +194,17 @@ export function AddConfigModal({
       });
 
       let body: any = undefined;
-      if (method === "POST" && bodyJson.trim()) {
-        try {
-          body = JSON.parse(bodyJson);
-        } catch {
-          setError("Invalid JSON in body parameters");
-          return;
+      if (method === "POST") {
+        const trimmed = bodyJson.trim();
+        if (trimmed) {
+          try {
+            body = JSON.parse(trimmed);
+          } catch {
+            setError(
+              "Invalid JSON in body — check for missing quotes, commas, or brackets",
+            );
+            return;
+          }
         }
       }
 
@@ -268,12 +272,17 @@ export function AddConfigModal({
       });
 
       let parsedBody: any = undefined;
-      if (method === "POST" && bodyJson.trim()) {
-        try {
-          parsedBody = JSON.parse(bodyJson);
-        } catch {
-          setError("Invalid JSON in body parameters");
-          return;
+      if (method === "POST") {
+        const trimmed = bodyJson.trim();
+        if (trimmed) {
+          try {
+            parsedBody = JSON.parse(trimmed);
+          } catch {
+            setError(
+              "Invalid JSON in body — check for missing quotes, commas, or brackets",
+            );
+            return;
+          }
         }
       }
 
@@ -428,13 +437,18 @@ export function AddConfigModal({
 
       // Prepara body per POST
       let bodyPayload: any = undefined;
-      if (method === "POST" && bodyJson.trim()) {
-        try {
-          bodyPayload = JSON.parse(bodyJson);
-        } catch {
-          setError("Invalid JSON in body parameters");
-          setIsSaving(false);
-          return;
+      if (method === "POST") {
+        const trimmed = bodyJson.trim();
+        if (trimmed) {
+          try {
+            bodyPayload = JSON.parse(trimmed);
+          } catch {
+            setError(
+              "Invalid JSON in body — check for missing quotes, commas, or brackets",
+            );
+            setIsSaving(false);
+            return;
+          }
         }
       }
 
@@ -594,7 +608,7 @@ export function AddConfigModal({
     setHeaderRows([
       { id: "1", key: "Content-Type", value: "application/json" },
     ]);
-    setBodyJson("{\n  \n}");
+    setBodyJson("");
     setError(null);
 
     // Reset API
@@ -758,7 +772,7 @@ export function AddConfigModal({
                     <Textarea
                       value={bodyJson}
                       onChange={(e) => setBodyJson(e.target.value)}
-                      placeholder='{\n  "key": "value"\n}'
+                      placeholder='{"key": "value"}'
                       className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm min-h-[150px]"
                     />
                   </div>
@@ -836,41 +850,6 @@ export function AddConfigModal({
                 <ScrapingConfigForm
                   url={url}
                   setUrl={setUrl}
-                  method={method}
-                  setMethod={setMethod}
-                  headers={headerRows.reduce(
-                    (acc, row) => {
-                      if (row.key.trim()) acc[row.key.trim()] = row.value;
-                      return acc;
-                    },
-                    {} as Record<string, string>,
-                  )}
-                  setHeaders={(newHeaders) => {
-                    const newRows = Object.entries(newHeaders).map(
-                      ([key, value]) => ({
-                        id: crypto.randomUUID(),
-                        key,
-                        value,
-                      }),
-                    );
-                    setHeaderRows(newRows);
-                  }}
-                  // Qui non puoi usare bodyPayload perché non è in scope
-                  // Usa bodyJson direttamente o un altro stato
-                  body={
-                    method === "POST" && bodyJson.trim()
-                      ? (() => {
-                          try {
-                            return JSON.parse(bodyJson);
-                          } catch {
-                            return undefined;
-                          }
-                        })()
-                      : undefined
-                  }
-                  setBody={(newBody) =>
-                    setBodyJson(JSON.stringify(newBody, null, 2))
-                  }
                   rules={rules}
                   setRules={setRules}
                   containerSelector={containerSelector}

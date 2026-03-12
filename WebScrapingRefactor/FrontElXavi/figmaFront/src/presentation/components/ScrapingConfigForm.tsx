@@ -1,4 +1,4 @@
-// src/presentation/components/ScrapingConfigForm.tsx
+import { useState, useEffect } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -68,6 +68,32 @@ export function ScrapingConfigForm({
   selectAllRules = false,
   setSelectAllRules,
 }: ScrapingConfigFormProps) {
+  // Keep raw string so user can type freely without JSON.parse interrupting
+  const [bodyRaw, setBodyRaw] = useState<string>(() => {
+    if (!body) return "";
+    if (typeof body === "string") return body;
+    try { return JSON.stringify(body, null, 2); } catch { return ""; }
+  });
+
+  // Sync bodyRaw when body prop changes from outside (e.g. on config open)
+  useEffect(() => {
+    if (!body) { setBodyRaw(""); return; }
+    if (typeof body === "string") { setBodyRaw(body); return; }
+    try { setBodyRaw(JSON.stringify(body, null, 2)); } catch { setBodyRaw(""); }
+  }, []);// eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleBodyChange = (value: string) => {
+    setBodyRaw(value);
+    if (!setBody) return;
+    // Always store the raw string — caller is responsible for parsing on submit
+    try {
+      setBody(JSON.parse(value));
+    } catch {
+      // Keep the string so parent can show it, but don't crash
+      setBody(value);
+    }
+  };
+
   const addRule = () => {
     setRules((prev) => [
       ...prev,
@@ -116,16 +142,6 @@ export function ScrapingConfigForm({
       const newHeaders = { ...headers };
       delete newHeaders[key];
       setHeaders(newHeaders);
-    }
-  };
-
-  const updateBody = (value: string) => {
-    if (setBody) {
-      try {
-        setBody(JSON.parse(value));
-      } catch {
-        setBody(value);
-      }
     }
   };
 
@@ -243,12 +259,8 @@ export function ScrapingConfigForm({
           </Label>
           <textarea
             id="body"
-            value={
-              typeof body === "object"
-                ? JSON.stringify(body, null, 2)
-                : body || ""
-            }
-            onChange={(e) => updateBody(e.target.value)}
+            value={bodyRaw}
+            onChange={(e) => handleBodyChange(e.target.value)}
             placeholder='{\n  "key": "value"\n}'
             rows={5}
             className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-indigo-500"
