@@ -1,4 +1,4 @@
-import { ScrapingAdapter } from "../../../infrastructure/adapters/Scraping/ScrapingAdapter";
+import { IScrapingPort} from "../../../domain/ports/IScrapingPort";
 import type { ScrapingConfig, ScrapingRuntimeParams } from "../../../domain/entities/ScrapingConfig";
 import { ConfigNotFoundError } from "../../../domain/errors/AppError";
 import { randomUUID } from "crypto";
@@ -23,7 +23,7 @@ export class ExecuteScrapingUseCase {
   constructor(
     private readonly scrapingConfigRepository: IScrapingConfigRepository,
     private readonly scrapingExecutionRepository: IScrapingExecutionRepository,
-    private readonly scrapingAdapter: ScrapingAdapter,
+    private readonly scrapingAdapter: IScrapingPort,
   ) {}
 
   async execute(configId: string, runtimeParams?: ScrapingRuntimeParams): Promise<ExecuteScrapingResult> {
