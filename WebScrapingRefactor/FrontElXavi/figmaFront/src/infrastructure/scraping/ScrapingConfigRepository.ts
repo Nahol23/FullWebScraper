@@ -9,7 +9,6 @@ export class ScrapingConfigRepository implements IScrapingConfigRepository {
   async getAll(): Promise<ScrapingConfig[]> {
     const { data } =
       await this.httpClient.get<ScrapingConfig[]>("/scraping/configs");
-    console.log("Primo oggetto grezzo:", JSON.stringify(data[0], null, 2));
     return data;
   }
 

@@ -1,3 +1,4 @@
+// src/presentation/components/AddConfigModal.tsx
 import { useState, useEffect } from "react";
 import { Loader2, X, Plus } from "lucide-react";
 import {
@@ -675,108 +676,19 @@ export function AddConfigModal({
                 </div>
               )}
 
-              {/* Campi comuni (nome, metodo, headers, body) */}
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm text-zinc-300">
-                    Configuration Name *
-                  </Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="My Config"
-                    className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="method" className="text-sm text-zinc-300">
-                    HTTP Method
-                  </Label>
-                  <select
-                    id="method"
-                    value={method}
-                    onChange={(e) =>
-                      setMethod(e.target.value as "GET" | "POST")
-                    }
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
-                  >
-                    <option value="GET">GET</option>
-                    <option value="POST">POST</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-sm text-zinc-300">
-                      HTTP Headers
-                    </Label>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => addRow(setHeaderRows)}
-                      className="bg-zinc-800 hover:bg-zinc-700 border-0 text-white gap-1 h-8"
-                    >
-                      <Plus className="h-3.5 w-3.5" /> Add Header
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    {headerRows.map((row) => (
-                      <div key={row.id} className="flex gap-2">
-                        <Input
-                          value={row.key}
-                          onChange={(e) =>
-                            updateRow(
-                              row.id,
-                              "key",
-                              e.target.value,
-                              setHeaderRows,
-                            )
-                          }
-                          placeholder="Header Key"
-                          className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
-                        />
-                        <Input
-                          value={row.value}
-                          onChange={(e) =>
-                            updateRow(
-                              row.id,
-                              "value",
-                              e.target.value,
-                              setHeaderRows,
-                            )
-                          }
-                          placeholder="Header Value"
-                          className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => removeRow(row.id, setHeaderRows)}
-                          className="bg-zinc-900 border-zinc-800 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 flex-shrink-0"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {method === "POST" && (
-                  <div className="space-y-2">
-                    <Label className="text-sm text-zinc-300">Body (JSON)</Label>
-                    <Textarea
-                      value={bodyJson}
-                      onChange={(e) => setBodyJson(e.target.value)}
-                      placeholder='{"key": "value"}'
-                      className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm min-h-[150px]"
-                    />
-                  </div>
-                )}
+              {/* Configuration Name — sempre visibile */}
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-sm text-zinc-300">
+                  Configuration Name *
+                </Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="My Config"
+                  className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white"
+                  required
+                />
               </div>
 
               {/* Form specifico per API */}
@@ -809,44 +721,96 @@ export function AddConfigModal({
 
               {/* Form specifico per Scraping */}
               <TabsContent value="scraping" className="mt-0 space-y-6">
-                {/* Selettore contenitore (dopo analisi) */}
-                {availableContainers.length > 0 && (
-                  <div className="space-y-2">
+                {/* Method */}
+                <div className="space-y-2">
+                  <Label className="text-sm text-zinc-300">HTTP Method</Label>
+                  <select
+                    value={method}
+                    onChange={(e) =>
+                      setMethod(e.target.value as "GET" | "POST")
+                    }
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="GET">GET</option>
+                    <option value="POST">POST</option>
+                  </select>
+                </div>
+
+                {/* Headers */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
                     <Label className="text-sm text-zinc-300">
-                      Select Container
+                      HTTP Headers
                     </Label>
-                    <select
-                      value={selectedContainerIndex}
-                      onChange={(e) =>
-                        handleContainerChange(Number(e.target.value))
-                      }
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-white text-sm"
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addRow(setHeaderRows)}
+                      className="bg-zinc-800 hover:bg-zinc-700 border-0 text-white gap-1 h-8"
                     >
-                      {availableContainers.map((container, idx) => (
-                        <option key={idx} value={idx}>
-                          {container.selector} ({container.count} items)
-                        </option>
-                      ))}
-                    </select>
-                    {availableContainers[selectedContainerIndex]
-                      ?.sampleData && (
-                      <div className="mt-2 p-2 bg-zinc-800/50 rounded border border-zinc-700">
-                        <p className="text-xs text-zinc-400 mb-1">
-                          Sample data preview:
-                        </p>
-                        <pre className="text-xs font-mono text-zinc-300 whitespace-pre-wrap max-h-40 overflow-auto">
-                          {JSON.stringify(
-                            availableContainers[selectedContainerIndex]
-                              .sampleData,
-                            null,
-                            2,
-                          )}
-                        </pre>
+                      <Plus className="h-3.5 w-3.5" /> Add Header
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {headerRows.map((row) => (
+                      <div key={row.id} className="space-y-1">
+                        <Input
+                          value={row.key}
+                          onChange={(e) =>
+                            updateRow(
+                              row.id,
+                              "key",
+                              e.target.value,
+                              setHeaderRows,
+                            )
+                          }
+                          placeholder="Header Key"
+                          className="w-full bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
+                        />
+                        <div className="flex gap-2">
+                          <Input
+                            value={row.value}
+                            onChange={(e) =>
+                              updateRow(
+                                row.id,
+                                "value",
+                                e.target.value,
+                                setHeaderRows,
+                              )
+                            }
+                            placeholder="Header Value"
+                            className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => removeRow(row.id, setHeaderRows)}
+                            className="bg-zinc-900 border-zinc-800 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-400 flex-shrink-0"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    )}
+                    ))}
+                  </div>
+                </div>
+
+                {/* Body */}
+                {method === "POST" && (
+                  <div className="space-y-2">
+                    <Label className="text-sm text-zinc-300">Body (JSON)</Label>
+                    <Textarea
+                      value={bodyJson}
+                      onChange={(e) => setBodyJson(e.target.value)}
+                      placeholder='{"key": "value"}'
+                      className="bg-zinc-900 border-zinc-800 focus-visible:border-indigo-500 text-white font-mono text-sm min-h-[120px]"
+                    />
                   </div>
                 )}
 
+                {/* ScrapingConfigForm — solo URL, rules, container, pagination */}
                 <ScrapingConfigForm
                   url={url}
                   setUrl={setUrl}
