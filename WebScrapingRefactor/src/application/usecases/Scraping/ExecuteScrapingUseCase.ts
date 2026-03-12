@@ -92,7 +92,7 @@ export class ExecuteScrapingUseCase {
       };
 
       const pageData = await this.scrapingAdapter.scrape(options);
-      console.log("=== pageData raw ===", JSON.stringify(pageData, null, 2));
+     
       const items = this.normalizer.normalize(pageData, config.rules, config.containerSelector);
       allData = allData.concat(items);
 

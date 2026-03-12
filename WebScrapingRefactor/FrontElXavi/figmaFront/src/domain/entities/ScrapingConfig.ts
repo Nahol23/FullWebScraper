@@ -12,7 +12,7 @@ export interface ScrapingConfig {
   url: string;
   method?: "GET" | "POST";
   headers?: Record<string, string>;
-  body?: any;
+  body?: unknown;
   rules: ExtractionRule[];
   pagination?: {
     type: "nextSelector" | "urlParam";
@@ -29,7 +29,7 @@ export interface ScrapingConfig {
     url?: string;
     method?: "GET" | "POST";
     headers?: Record<string, string>;
-    body?: any;
+    body?: unknown;
     waitForSelector?: string;
     rules?: ExtractionRule[];
     maxPages?: number;
@@ -41,4 +41,21 @@ export interface ScrapingConfig {
       maxPages?: number;
     };
   };
+}
+
+/**
+ * Type guard that ensures a ScrapingConfig has a resolvable id.
+ * Use this at UI boundaries before passing config.id to any use case.
+ *
+ * @example
+ * if (!hasResolvedId(config)) {
+ *   toast.error("Configurazione non ancora sincronizzata col server");
+ *   return;
+ * }
+ * await deleteScrapingConfig(config.id);
+ */
+export function hasResolvedId(
+  config: ScrapingConfig,
+): config is ScrapingConfig & { id: string } {
+  return typeof config.id === "string" && config.id.length > 0;
 }

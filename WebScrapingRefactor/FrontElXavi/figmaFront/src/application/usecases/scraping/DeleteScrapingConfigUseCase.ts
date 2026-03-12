@@ -6,9 +6,9 @@ export class DeleteScrapingConfigUseCase {
     private readonly scrapingConfigRepository: IScrapingConfigRepository,
   ) {}
 
+  
   async execute(configId: string): Promise<void> {
-    const config = await this.scrapingConfigRepository.getById(configId);
-    if (!config) {
+    if (!configId) {
       throw new ConfigNotFoundError(configId);
     }
     await this.scrapingConfigRepository.delete(configId);

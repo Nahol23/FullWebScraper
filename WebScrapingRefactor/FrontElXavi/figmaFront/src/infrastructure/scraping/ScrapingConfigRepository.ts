@@ -3,46 +3,62 @@ import type { ScrapingConfig } from "../../domain/entities/ScrapingConfig";
 import { HttpClient } from "../http/httpClient";
 import { ApiExecutionError } from "@/domain/errors/AppError";
 
+/**
+ * Normalizes a raw backend object into a valid ScrapingConfig.
+ *
+ * The backend may return objects where the primary key is exposed as
+ * `_id`, `configId`, or not at all (using `name` as the de-facto key).
+ * This function guarantees that `config.id` is always a non-empty string
+ * before the object leaves the infrastructure layer.
+ */
+function normalizeConfig(raw: Record<string, unknown>): ScrapingConfig {
+  const id =
+    (raw["id"] as string | undefined) ||
+    (raw["_id"] as string | undefined) ||
+    (raw["configId"] as string | undefined) ||
+    (raw["name"] as string | undefined) || // last-resort: name is unique
+    "";
+
+  return { ...(raw as unknown as ScrapingConfig), id };
+}
+
 export class ScrapingConfigRepository implements IScrapingConfigRepository {
   constructor(private readonly httpClient: HttpClient) {}
 
   async getAll(): Promise<ScrapingConfig[]> {
     const { data } =
-      await this.httpClient.get<ScrapingConfig[]>("/scraping/configs");
-    console.log("Primo oggetto grezzo:", JSON.stringify(data[0], null, 2));
-    return data;
+      await this.httpClient.get<Record<string, unknown>[]>("/scraping/configs");
+    return data.map(normalizeConfig);
   }
 
   async getById(id: string): Promise<ScrapingConfig | null> {
     try {
-      const { data } = await this.httpClient.get<ScrapingConfig>(
+      const { data } = await this.httpClient.get<Record<string, unknown>>(
         `/scraping/configs/${id}`,
       );
-      return data;
-    } catch (error) {
+      return normalizeConfig(data);
+    } catch {
       return null;
     }
   }
 
   async getByName(name: string): Promise<ScrapingConfig | null> {
     const all = await this.getAll();
-    return all.find((c) => c.name === name) || null;
+    return all.find((c) => c.name === name) ?? null;
   }
 
   async save(config: Omit<ScrapingConfig, "id">): Promise<ScrapingConfig> {
     try {
-      console.log("[ScrapingConfigRepository] sending config:", config);
-      const response = await this.httpClient.post<ScrapingConfig>(
+      const response = await this.httpClient.post<Record<string, unknown>>(
         "/scraping/configs",
         config,
       );
-      console.log("[ScrapingConfigRepository] response data:", response.data);
-      return response.data;
-    } catch (error: any) {
+      return normalizeConfig(response.data);
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string }; status?: number } };
       throw new ApiExecutionError(
-        error.response?.data?.message ||
-          "Errore nel salvataggio della configurazione",
-        error.response?.status,
+        err.response?.data?.message ?? "Errore nel salvataggio della configurazione",
+        err.response?.status,
       );
     }
   }
