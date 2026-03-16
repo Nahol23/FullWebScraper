@@ -1,0 +1,28 @@
+{
+  "name": "no-js",
+  "url": "https://no-js.club/",
+  "method": "GET",
+  "rules": [
+    {
+      "fieldName": "title",
+      "selector": "h1, h2, h3",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "description",
+      "selector": "p",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "link",
+      "selector": "a[href]",
+      "attribute": "href",
+      "multiple": true
+    }
+  ],
+  "id": "82e9b675-fbe1-4218-abe6-5016144ff83c",
+  "createdAt": "2026-03-16T11:47:29.392Z",
+  "updatedAt": "2026-03-16T11:47:29.392Z"
+}

@@ -40,7 +40,7 @@ export function TopBar({
                 <circle cx="5" cy="19" r="1" />
               </svg>
             </div>
-            <span className="text-xl font-bold text-white">API Manager</span>
+            <span className="text-xl font-bold text-white">DATA Manager</span>
           </div>
 
           {/* Search Bar */}

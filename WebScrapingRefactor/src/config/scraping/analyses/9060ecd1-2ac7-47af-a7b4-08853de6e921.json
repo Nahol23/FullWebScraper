@@ -1,0 +1,41 @@
+{
+  "id": "9060ecd1-2ac7-47af-a7b4-08853de6e921",
+  "url": "https://no-js.club/",
+  "timestamp": "2026-03-16T11:52:40.221Z",
+  "options": {
+    "method": "GET",
+    "useJavaScript": false
+  },
+  "result": {
+    "url": "https://no-js.club/",
+    "title": "no-JS.club | Promenade for JavaScript freed websites",
+    "suggestedRules": [
+      {
+        "fieldName": "title",
+        "selector": "h1, h2, h3",
+        "attribute": "text",
+        "multiple": true
+      },
+      {
+        "fieldName": "description",
+        "selector": "p",
+        "attribute": "text",
+        "multiple": true
+      },
+      {
+        "fieldName": "link",
+        "selector": "a[href]",
+        "attribute": "href",
+        "multiple": true
+      }
+    ],
+    "sampleData": [
+      {
+        "title": "The no-JS Club"
+      }
+    ],
+    "detectedListSelectors": [],
+    "rawPreview": "{\n  \"title\": \"The no-JS Club\"\n}"
+  },
+  "status": "completed"
+}

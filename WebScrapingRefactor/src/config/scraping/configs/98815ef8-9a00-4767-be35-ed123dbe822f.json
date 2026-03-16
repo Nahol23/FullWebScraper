@@ -1,0 +1,22 @@
+{
+  "name": "test",
+  "url": "https://motherfuckingwebsite.com/",
+  "method": "GET",
+  "rules": [
+    {
+      "fieldName": "title",
+      "selector": "h1, h2, h3",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "description",
+      "selector": "p",
+      "attribute": "text",
+      "multiple": true
+    }
+  ],
+  "id": "98815ef8-9a00-4767-be35-ed123dbe822f",
+  "createdAt": "2026-03-16T11:37:19.400Z",
+  "updatedAt": "2026-03-16T11:37:19.400Z"
+}

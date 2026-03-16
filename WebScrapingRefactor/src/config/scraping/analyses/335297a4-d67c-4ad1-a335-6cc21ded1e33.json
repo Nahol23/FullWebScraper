@@ -1,0 +1,35 @@
+{
+  "id": "335297a4-d67c-4ad1-a335-6cc21ded1e33",
+  "url": "https://motherfuckingwebsite.com/",
+  "timestamp": "2026-03-16T11:52:52.656Z",
+  "options": {
+    "method": "GET",
+    "useJavaScript": false
+  },
+  "result": {
+    "url": "https://motherfuckingwebsite.com/",
+    "title": "Motherfucking Website",
+    "suggestedRules": [
+      {
+        "fieldName": "title",
+        "selector": "h1, h2, h3",
+        "attribute": "text",
+        "multiple": true
+      },
+      {
+        "fieldName": "description",
+        "selector": "p",
+        "attribute": "text",
+        "multiple": true
+      }
+    ],
+    "sampleData": [
+      {
+        "title": "This is a motherfucking website."
+      }
+    ],
+    "detectedListSelectors": [],
+    "rawPreview": "{\n  \"title\": \"This is a motherfucking website.\"\n}"
+  },
+  "status": "completed"
+}
