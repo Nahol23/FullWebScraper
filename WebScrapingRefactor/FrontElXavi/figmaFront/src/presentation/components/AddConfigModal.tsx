@@ -639,7 +639,7 @@ export function AddConfigModal({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-zinc-950 border-zinc-800 text-white">
+        <DialogContent className="w-[min(48rem,calc(100vw-2rem))] max-h-[90vh] overflow-y-auto overflow-x-hidden bg-zinc-950 border-zinc-800 text-white p-6">
           <DialogHeader>
             <DialogTitle className="text-2xl font-semibold text-white">
               Add New Configuration
@@ -652,6 +652,7 @@ export function AddConfigModal({
           <Tabs
             value={configType}
             onValueChange={(v) => setConfigType(v as "api" | "scraping")}
+            className="w-full min-w-0"
           >
             <TabsList className="grid w-full grid-cols-2 bg-zinc-900 border border-zinc-800 mb-4">
               <TabsTrigger
@@ -668,7 +669,7 @@ export function AddConfigModal({
               </TabsTrigger>
             </TabsList>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6 w-full min-w-0 overflow-hidden">
               {error && (
                 <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-3 rounded-lg text-sm">
                   {error}
@@ -676,7 +677,7 @@ export function AddConfigModal({
               )}
 
               {/* Campi comuni (nome, metodo, headers, body) */}
-              <div className="space-y-4">
+              <div className="space-y-4 min-w-0 overflow-hidden">
                 <div className="space-y-2">
                   <Label htmlFor="name" className="text-sm text-zinc-300">
                     Configuration Name *
@@ -780,7 +781,7 @@ export function AddConfigModal({
               </div>
 
               {/* Form specifico per API */}
-              <TabsContent value="api" className="mt-0 space-y-6">
+              <TabsContent value="api" className="mt-0 space-y-6 min-w-0 overflow-hidden">
                 <ApiConfigForm
                   baseUrl={baseUrl}
                   setBaseUrl={setBaseUrl}
@@ -808,7 +809,7 @@ export function AddConfigModal({
               </TabsContent>
 
               {/* Form specifico per Scraping */}
-              <TabsContent value="scraping" className="mt-0 space-y-6">
+              <TabsContent value="scraping" className="mt-0 space-y-6 min-w-0 overflow-hidden">
                 {/* Selettore contenitore (dopo analisi) */}
                 {availableContainers.length > 0 && (
                   <div className="space-y-2">
@@ -834,7 +835,7 @@ export function AddConfigModal({
                         <p className="text-xs text-zinc-400 mb-1">
                           Sample data preview:
                         </p>
-                        <pre className="text-xs font-mono text-zinc-300 whitespace-pre-wrap max-h-40 overflow-auto">
+                        <pre className="text-xs font-mono text-zinc-300 whitespace-pre-wrap break-words max-w-full max-h-40 overflow-auto">
                           {JSON.stringify(
                             availableContainers[selectedContainerIndex]
                               .sampleData,

@@ -167,7 +167,7 @@ export function ScrapingConfigForm({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0 w-full overflow-hidden">
       {/* URL */}
       <div className="space-y-2">
         <Label htmlFor="url" className="text-sm text-zinc-300">
@@ -218,18 +218,18 @@ export function ScrapingConfigForm({
           </div>
           <div className="space-y-2">
             {Object.entries(headers).map(([key, value], index) => (
-              <div key={index} className="flex gap-2">
+              <div key={index} className="flex gap-2 min-w-0">
                 <Input
                   value={key}
                   onChange={(e) => updateHeader(key, e.target.value, value)}
                   placeholder="Header Key"
-                  className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
+                  className="flex-1 min-w-0 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
                 />
                 <Input
                   value={value}
                   onChange={(e) => updateHeader(key, key, e.target.value)}
                   placeholder="Header Value"
-                  className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
+                  className="flex-1 min-w-0 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
                 />
                 <Button
                   type="button"
@@ -340,12 +340,12 @@ export function ScrapingConfigForm({
               key={index}
               className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3 space-y-2"
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 min-w-0">
                 <input
                   type="checkbox"
                   checked={rule.selected || false}
                   onChange={(e) => handleRuleSelect(index, e.target.checked)}
-                  className="w-4 h-4 rounded border-zinc-600 bg-zinc-900 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-zinc-900"
+                  className="w-4 h-4 rounded border-zinc-600 bg-zinc-900 text-indigo-600 focus:ring-indigo-500 focus:ring-offset-zinc-900 flex-shrink-0"
                 />
                 <Input
                   value={rule.fieldName}
@@ -353,7 +353,7 @@ export function ScrapingConfigForm({
                     updateRule(index, "fieldName", e.target.value)
                   }
                   placeholder="Field name"
-                  className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
+                  className="flex-1 min-w-0 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
                 />
                 <Input
                   value={rule.selector}
@@ -361,7 +361,7 @@ export function ScrapingConfigForm({
                     updateRule(index, "selector", e.target.value)
                   }
                   placeholder="CSS selector"
-                  className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
+                  className="flex-1 min-w-0 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
                 />
                 <Button
                   type="button"
@@ -585,7 +585,7 @@ export function ScrapingConfigForm({
               <h5 className="text-xs font-medium text-zinc-400 mb-1">
                 Sample Data:
               </h5>
-              <pre className="text-xs bg-zinc-900 p-3 rounded-lg overflow-auto max-h-60 text-zinc-300">
+              <pre className="text-xs bg-zinc-900 p-3 rounded-lg overflow-x-auto max-h-60 text-zinc-300 whitespace-pre-wrap break-words max-w-full">
                 {JSON.stringify(analysisResult.sampleData, null, 2)}
               </pre>
             </div>
