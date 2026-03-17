@@ -53,7 +53,7 @@ export interface ApiConfigTable {
   method:   string                          
 
   query_params_json:    string | null        
-  headers_json:         string | null        
+  headers:         string | null        
   body_json:            string | null        
   data_path:            string | null
   pagination_json:      string | null       
@@ -72,7 +72,7 @@ export interface AnalysisTable {
   id:     string
   url:    string
   method: string                            
-// unknown
+  body_json: string | null  
   headers_json:           string | null     
   status:                 string             
   discovered_schema_json: string | null     
