@@ -33,6 +33,7 @@
   },
   "homepage": "https://github.com/EidolonPoe/WebScrapingProva#readme",
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^24.10.9",
     "@types/uuid": "^10.0.0",
     "@types/ws": "^8.18.1",
@@ -40,6 +41,7 @@
     "@typescript-eslint/parser": "^8.56.0",
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^10.0.1",
+    "kysely-ctl": "^0.20.0",
     "nodemon": "^3.1.11",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
@@ -51,10 +53,12 @@
     "@fastify/swagger-ui": "^5.2.4",
     "@mendable/firecrawl-js": "^4.8.3",
     "axios": "^1.13.2",
+    "better-sqlite3": "^12.6.2",
     "cheerio": "^1.2.0",
     "dotenv": "^17.2.3",
     "fastify": "^5.7.1",
     "franc-min": "^6.2.0",
+    "kysely": "^0.28.11",
     "puppeteer": "^24.37.5",
     "uuid": "^13.0.0"
   }

@@ -7,6 +7,8 @@ import swaggerUi from "@fastify/swagger-ui";
 import { configRoutes } from "./presentation/http/routes/configRoute";
 import { scrapingRoutes } from "./presentation/http/routes/scrapingRoutes";
 import { errorHandler } from "./presentation/http/middleware/errorHandler";
+import {db} from "./infrastructure/database/database"
+import { runMigrations } from "./infrastructure/database/migrator";
 
 export async function buildServer() {
   const server = Fastify({
@@ -53,6 +55,8 @@ export async function buildServer() {
 }
 
 async function start() {
+  
+  await runMigrations(db);
   const server = await buildServer();
   const port = Number(process.env.PORT) || 3000;
 
