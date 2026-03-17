@@ -116,7 +116,9 @@ export default function App() {
   // Auto-refresh every 30 seconds
   useEffect(() => {
     if (!autoRefreshEnabled) return;
+
     if (isAddModalOpen) return;
+    // don't auto-refresh while add modal is open to prevent disrupting user input
 
     const interval = setInterval(() => {
       if (configType === "api") {
@@ -268,27 +270,33 @@ export default function App() {
     },
     [updateApiConfig],
   );
-const handleUpdateScrapingConfig = useCallback(
-  async (updatedConfig: ScrapingConfig) => {
-    try {
-      // 1. Cattura la risposta dal server! 
-      // Deve essere l'oggetto completo di UUID generato dal repository.
-      const savedConfig = await updateScrapingConfig(updatedConfig.id, updatedConfig);
-      
-      // 2. Aggiorna lo stato con l'oggetto REALE del database
-      setSelectedScrapingConfig(savedConfig);
-      
-      // 3. (Opzionale ma consigliato) Aggiorna anche la lista globale se presente
-      // setConfigs(prev => prev.map(c => c.name === savedConfig.name ? savedConfig : c));
+  const handleUpdateScrapingConfig = useCallback(
+    async (updatedConfig: ScrapingConfig) => {
+      console.log("Integrity Check - ID:", updatedConfig.id);
 
-      toast.success("Configurazione scraping aggiornata con successo!");
-    } catch (error) {
-      console.error("Errore aggiornamento:", error);
-      toast.error("Errore durante l'aggiornamento");
-    }
-  },
-  [updateScrapingConfig],
-);
+      console.log("Integrity Check - Name:", updatedConfig.name);
+
+      console.log(
+        "Is ID equal to Name?",
+
+        updatedConfig.id === updatedConfig.name,
+      );
+
+      try {
+        await updateScrapingConfig(updatedConfig.id, updatedConfig);
+
+        setSelectedScrapingConfig(updatedConfig);
+
+        toast.success("Configurazione scraping aggiornata con successo!");
+      } catch (error) {
+        console.error("Errore aggiornamento:", error);
+
+        toast.error("Errore durante l'aggiornamento");
+      }
+    },
+
+    [updateScrapingConfig],
+  );
 
   // --- DELETE HANDLERS ---
   const handleApiDeleteClick = useCallback((config: ApiConfig) => {
