@@ -18,7 +18,6 @@ import { UpdateScrapingConfigUseCase } from "../../../application/usecases/Scrap
 import { DeleteScrapingConfigUseCase } from "../../../application/usecases/Scraping/DeleteScrapingConfigUseCase";
 import { AnalyzeScrapingUseCase } from "../../../application/usecases/Scraping/AnalyzeScrapingUsecase";
 
-
 const errorResponseSchema = {
   type: "object",
   properties: {
@@ -64,8 +63,12 @@ const scrapingConfigBodySchema = {
   type: "object",
   required: ["name", "url", "rules"],
   properties: {
+    id: { type: "string" },
     name: { type: "string", examples: ["Wikipedia Scraper"] },
-    url: { type: "string", examples: ["https://en.wikipedia.org/wiki/Web_scraping"] },
+    url: {
+      type: "string",
+      examples: ["https://en.wikipedia.org/wiki/Web_scraping"],
+    },
     method: { type: "string", enum: ["GET", "POST"], default: "GET" },
     headers: {
       type: "object",
@@ -188,14 +191,17 @@ const analysisResultSchema = {
   },
 };
 
-
 export async function scrapingRoutes(fastify: FastifyInstance) {
   // Composition root
   const browser = new PuppeteerBrowser();
   const httpFetcher = new HttpFetcher();
   const jsBrowserFetcher = new JsBrowserFetcher(browser);
 
-  const scraper = new ScrapingAdapter(httpFetcher, jsBrowserFetcher, new HtmlExtractor());
+  const scraper = new ScrapingAdapter(
+    httpFetcher,
+    jsBrowserFetcher,
+    new HtmlExtractor(),
+  );
   const domAnalyzer = new ScrapingAnalyzer(httpFetcher, jsBrowserFetcher);
 
   const repo = new ScrapingConfigRepository();
@@ -203,228 +209,370 @@ export async function scrapingRoutes(fastify: FastifyInstance) {
   const analysisRepo = new ScrapingAnalysisRepository();
 
   const controller = new ScrapingController({
-    executeScrapingUseCase: new ExecuteScrapingUseCase(repo, executionRepo, scraper),
+    executeScrapingUseCase: new ExecuteScrapingUseCase(
+      repo,
+      executionRepo,
+      scraper,
+    ),
     saveConfigUseCase: new SaveScrapingConfigUseCase(repo),
     getAllUseCase: new GetAllScrapingConfigsUseCase(repo),
     getByIdUseCase: new GetScrapingConfigByIdUseCase(repo),
     getByNameUseCase: new GetScrapingConfigByNameUseCase(repo),
     updateUseCase: new UpdateScrapingConfigUseCase(repo),
     deleteUseCase: new DeleteScrapingConfigUseCase(repo),
-    analyzeUseCase: new AnalyzeScrapingUseCase(scraper, domAnalyzer, analysisRepo),
+    analyzeUseCase: new AnalyzeScrapingUseCase(
+      scraper,
+      domAnalyzer,
+      analysisRepo,
+    ),
     executionRepo,
-    analysisRepo, 
+    analysisRepo,
   });
-  
 
-  //  CONFIGS 
+  //  CONFIGS
 
-  fastify.get("/scraping/configs", {
-    schema: {
-      summary: "List all scraping configurations",
-      tags: ["Scraping - Configs"],
-      response: { 200: { type: "array", items: scrapingConfigBodySchema }, 500: errorResponseSchema },
-    },
-  }, controller.getAll);
-
-  fastify.get("/scraping/configs/:id", {
-    schema: {
-      summary: "Get scraping configuration by ID",
-      tags: ["Scraping - Configs"],
-      params: idParamSchema,
-      response: { 200: scrapingConfigBodySchema, 404: errorResponseSchema, 500: errorResponseSchema },
-    },
-  }, controller.getById);
-
-  fastify.post("/scraping/configs", {
-    schema: {
-      summary: "Create new scraping configuration",
-      tags: ["Scraping - Configs"],
-      body: scrapingConfigBodySchema,
-      response: { 201: scrapingConfigBodySchema, 400: errorResponseSchema, 500: errorResponseSchema },
-    },
-  }, controller.create);
-
-  fastify.put("/scraping/configs/:id", {
-    schema: {
-      summary: "Update scraping configuration",
-      tags: ["Scraping - Configs"],
-      params: idParamSchema,
-      body: updateBodySchema,
-      response: {
-        200: { type: "object", properties: { message: { type: "string" } } },
-        404: errorResponseSchema,
-        500: errorResponseSchema,
+  fastify.get(
+    "/scraping/configs",
+    {
+      schema: {
+        summary: "List all scraping configurations",
+        tags: ["Scraping - Configs"],
+        response: {
+          200: { type: "array", items: scrapingConfigBodySchema },
+          500: errorResponseSchema,
+        },
       },
     },
-  }, controller.update);
+    controller.getAll,
+  );
 
-  fastify.delete("/scraping/configs/:id", {
-    schema: {
-      summary: "Delete scraping configuration",
-      tags: ["Scraping - Configs"],
-      params: idParamSchema,
-      response: { 204: { type: "null" }, 404: errorResponseSchema, 500: errorResponseSchema },
+  fastify.get(
+    "/scraping/configs/:id",
+    {
+      schema: {
+        summary: "Get scraping configuration by ID",
+        tags: ["Scraping - Configs"],
+        params: idParamSchema,
+        response: {
+          200: scrapingConfigBodySchema,
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
     },
-  }, controller.delete);
+    controller.getById,
+  );
+
+  fastify.post(
+    "/scraping/configs",
+    {
+      schema: {
+        summary: "Create new scraping configuration",
+        tags: ["Scraping - Configs"],
+        body: scrapingConfigBodySchema,
+        response: {
+          201: scrapingConfigBodySchema,
+          400: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.create,
+  );
+
+  fastify.put(
+    "/scraping/configs/:id",
+    {
+      schema: {
+        summary: "Update scraping configuration",
+        tags: ["Scraping - Configs"],
+        params: idParamSchema,
+        body: updateBodySchema,
+        response: {
+          200: { type: "object", properties: { message: { type: "string" } } },
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.update,
+  );
+
+  fastify.delete(
+    "/scraping/configs/:id",
+    {
+      schema: {
+        summary: "Delete scraping configuration",
+        tags: ["Scraping - Configs"],
+        params: idParamSchema,
+        response: {
+          204: { type: "null" },
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.delete,
+  );
 
   // Backwards-compat execute shortcuts on /configs
-  fastify.post("/scraping/configs/:id/execute", {
-    schema: {
-      summary: "Execute scraping by config ID (shortcut)",
-      tags: ["Scraping - Configs"],
-      params: idParamSchema,
-      body: { type: "object", additionalProperties: true },
-      response: { 200: { type: "object", additionalProperties: true }, 404: errorResponseSchema, 500: errorResponseSchema },
+  fastify.post(
+    "/scraping/configs/:id/execute",
+    {
+      schema: {
+        summary: "Execute scraping by config ID (shortcut)",
+        tags: ["Scraping - Configs"],
+        params: idParamSchema,
+        body: { type: "object", additionalProperties: true },
+        response: {
+          200: { type: "object", additionalProperties: true },
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
     },
-  }, controller.execute);
+    controller.execute,
+  );
 
-  fastify.post("/scraping/configs/by-name/:configName/execute", {
-    schema: {
-      summary: "Execute scraping by config name (shortcut)",
-      tags: ["Scraping - Configs"],
-      params: configNameParamSchema,
-      body: { type: "object", additionalProperties: true },
-      response: { 200: { type: "object", additionalProperties: true }, 404: errorResponseSchema, 500: errorResponseSchema },
+  fastify.post(
+    "/scraping/configs/by-name/:configName/execute",
+    {
+      schema: {
+        summary: "Execute scraping by config name (shortcut)",
+        tags: ["Scraping - Configs"],
+        params: configNameParamSchema,
+        body: { type: "object", additionalProperties: true },
+        response: {
+          200: { type: "object", additionalProperties: true },
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
     },
-  }, controller.executeByName);
+    controller.executeByName,
+  );
 
   // Backwards-compat analyze shortcut on /configs
-  fastify.post("/scraping/configs/:id/analyze", {
-    schema: {
-      summary: "Analyze a config's URL (shortcut)",
-      tags: ["Scraping - Configs"],
-      params: idParamSchema,
-      body: {
-        type: "object",
-        properties: { useJavaScript: { type: "boolean" }, waitForSelector: { type: "string" } },
-      },
-      response: { 200: analysisResultSchema, 404: errorResponseSchema, 500: errorResponseSchema },
-    },
-  }, controller.analyzeById);
-
-  // EXECUTIONS 
-
-
-  fastify.get("/scraping/executions", {
-    schema: {
-      summary: "List all executions across all configurations",
-      tags: ["Scraping - Executions"],
-      response: { 200: executionListSchema, 500: errorResponseSchema },
-    },
-  }, controller.getAllExecutions);
-
-  fastify.post("/scraping/executions", {
-    schema: {
-      summary: "Trigger a new scraping execution",
-      tags: ["Scraping - Executions"],
-      body: {
-        type: "object",
-        required: ["configId"],
-        properties: {
-          configId: { type: "string", description: "ID of the config to run" },
+  fastify.post(
+    "/scraping/configs/:id/analyze",
+    {
+      schema: {
+        summary: "Analyze a config's URL (shortcut)",
+        tags: ["Scraping - Configs"],
+        params: idParamSchema,
+        body: {
+          type: "object",
+          properties: {
+            useJavaScript: { type: "boolean" },
+            waitForSelector: { type: "string" },
+          },
         },
-        additionalProperties: true, // allows runtimeParams
-      },
-      response: {
-        201: { type: "object", additionalProperties: true },
-        400: errorResponseSchema,
-        404: errorResponseSchema,
-        500: errorResponseSchema,
+        response: {
+          200: analysisResultSchema,
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
       },
     },
-  }, controller.createExecution);
+    controller.analyzeById,
+  );
 
-  fastify.get("/scraping/executions/by-name/:configName", {
-    schema: {
-      summary: "List executions by configuration name",
-      tags: ["Scraping - Executions"],
-      params: configNameParamSchema,
-      querystring: executionQuerySchema,
-      response: { 200: executionListSchema, 404: errorResponseSchema, 500: errorResponseSchema },
-    },
-  }, controller.getExecutionsByConfigName);
+  // EXECUTIONS
 
-  fastify.get("/scraping/executions/by-config/:configId", {
-    schema: {
-      summary: "List executions by configuration ID",
-      tags: ["Scraping - Executions"],
-      params: configIdParamSchema,
-      querystring: executionQuerySchema,
-      response: { 200: executionListSchema, 404: errorResponseSchema, 500: errorResponseSchema },
+  fastify.get(
+    "/scraping/executions",
+    {
+      schema: {
+        summary: "List all executions across all configurations",
+        tags: ["Scraping - Executions"],
+        response: { 200: executionListSchema, 500: errorResponseSchema },
+      },
     },
-  }, controller.getExecutionsByConfigId);
+    controller.getAllExecutions,
+  );
+
+  fastify.post(
+    "/scraping/executions",
+    {
+      schema: {
+        summary: "Trigger a new scraping execution",
+        tags: ["Scraping - Executions"],
+        body: {
+          type: "object",
+          required: ["configId"],
+          properties: {
+            configId: {
+              type: "string",
+              description: "ID of the config to run",
+            },
+          },
+          additionalProperties: true, // allows runtimeParams
+        },
+        response: {
+          201: { type: "object", additionalProperties: true },
+          400: errorResponseSchema,
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.createExecution,
+  );
+
+  fastify.get(
+    "/scraping/executions/by-name/:configName",
+    {
+      schema: {
+        summary: "List executions by configuration name",
+        tags: ["Scraping - Executions"],
+        params: configNameParamSchema,
+        querystring: executionQuerySchema,
+        response: {
+          200: executionListSchema,
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.getExecutionsByConfigName,
+  );
+
+  fastify.get(
+    "/scraping/executions/by-config/:configId",
+    {
+      schema: {
+        summary: "List executions by configuration ID",
+        tags: ["Scraping - Executions"],
+        params: configIdParamSchema,
+        querystring: executionQuerySchema,
+        response: {
+          200: executionListSchema,
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.getExecutionsByConfigId,
+  );
 
   // NOTE: parameterised routes after static sub-paths to avoid Fastify conflicts
-  fastify.get("/scraping/executions/:id", {
-    schema: {
-      summary: "Get a single execution by its ID",
-      tags: ["Scraping - Executions"],
-      params: idParamSchema,
-      response: { 200: executionItemSchema, 404: errorResponseSchema, 500: errorResponseSchema },
-    },
-  }, controller.getExecutionById);
-
-  fastify.delete("/scraping/executions/:id", {
-    schema: {
-      summary: "Delete a single execution by its ID",
-      tags: ["Scraping - Executions"],
-      params: idParamSchema,
-      response: { 204: { type: "null" }, 404: errorResponseSchema, 500: errorResponseSchema },
-    },
-  }, controller.deleteExecution);
-
- // Analyze
-
-  fastify.get("/scraping/analyses", {
-    schema: {
-      summary: "List all stored DOM analyses",
-      tags: ["Scraping - Analyses"],
-      response: { 200: analysisListSchema, 500: errorResponseSchema },
-    },
-  }, controller.getAllAnalyses);
-
-  fastify.post("/scraping/analyses", {
-    schema: {
-      summary: "Run a new DOM analysis and store the result",
-      tags: ["Scraping - Analyses"],
-      body: analyzeBodySchema,
-      response: {
-        201: analysisResultSchema,
-        500: errorResponseSchema,
+  fastify.get(
+    "/scraping/executions/:id",
+    {
+      schema: {
+        summary: "Get a single execution by its ID",
+        tags: ["Scraping - Executions"],
+        params: idParamSchema,
+        response: {
+          200: executionItemSchema,
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
       },
     },
-  }, controller.createAnalysis);
+    controller.getExecutionById,
+  );
 
-  fastify.get("/scraping/analyses/:id", {
-    schema: {
-      summary: "Get a single stored analysis by ID",
-      tags: ["Scraping - Analyses"],
-      params: idParamSchema,
-      response: { 200: analysisItemSchema, 404: errorResponseSchema, 500: errorResponseSchema },
-    },
-  }, controller.getAnalysisById);
-
-  fastify.delete("/scraping/analyses/:id", {
-    schema: {
-      summary: "Delete a stored analysis by ID",
-      tags: ["Scraping - Analyses"],
-      params: idParamSchema,
-      response: { 204: { type: "null" }, 404: errorResponseSchema, 500: errorResponseSchema },
-    },
-  }, controller.deleteAnalysis);
-
-
-  fastify.get("/scraping/download/:configName", {
-    schema: {
-      summary: "Download all executions for a config as JSON or Markdown",
-      tags: ["Scraping - Executions"],
-      params: configNameParamSchema,
-      querystring: downloadQuerySchema,
-      response: {
-        200: { description: "File download", type: "string", format: "binary" },
-        404: errorResponseSchema,
-        500: errorResponseSchema,
+  fastify.delete(
+    "/scraping/executions/:id",
+    {
+      schema: {
+        summary: "Delete a single execution by its ID",
+        tags: ["Scraping - Executions"],
+        params: idParamSchema,
+        response: {
+          204: { type: "null" },
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
       },
     },
-  }, controller.downloadExecutions);
+    controller.deleteExecution,
+  );
+
+  // Analyze
+
+  fastify.get(
+    "/scraping/analyses",
+    {
+      schema: {
+        summary: "List all stored DOM analyses",
+        tags: ["Scraping - Analyses"],
+        response: { 200: analysisListSchema, 500: errorResponseSchema },
+      },
+    },
+    controller.getAllAnalyses,
+  );
+
+  fastify.post(
+    "/scraping/analyses",
+    {
+      schema: {
+        summary: "Run a new DOM analysis and store the result",
+        tags: ["Scraping - Analyses"],
+        body: analyzeBodySchema,
+        response: {
+          201: analysisResultSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.createAnalysis,
+  );
+
+  fastify.get(
+    "/scraping/analyses/:id",
+    {
+      schema: {
+        summary: "Get a single stored analysis by ID",
+        tags: ["Scraping - Analyses"],
+        params: idParamSchema,
+        response: {
+          200: analysisItemSchema,
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.getAnalysisById,
+  );
+
+  fastify.delete(
+    "/scraping/analyses/:id",
+    {
+      schema: {
+        summary: "Delete a stored analysis by ID",
+        tags: ["Scraping - Analyses"],
+        params: idParamSchema,
+        response: {
+          204: { type: "null" },
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.deleteAnalysis,
+  );
+
+  fastify.get(
+    "/scraping/download/:configName",
+    {
+      schema: {
+        summary: "Download all executions for a config as JSON or Markdown",
+        tags: ["Scraping - Executions"],
+        params: configNameParamSchema,
+        querystring: downloadQuerySchema,
+        response: {
+          200: {
+            description: "File download",
+            type: "string",
+            format: "binary",
+          },
+          404: errorResponseSchema,
+          500: errorResponseSchema,
+        },
+      },
+    },
+    controller.downloadExecutions,
+  );
 }

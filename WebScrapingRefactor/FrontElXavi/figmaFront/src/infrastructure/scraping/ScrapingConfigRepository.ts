@@ -12,16 +12,12 @@ import { ApiExecutionError } from "@/domain/errors/AppError";
  * before the object leaves the infrastructure layer.
  */
 function normalizeConfig(raw: Record<string, unknown>): ScrapingConfig {
-  const id =
-    (raw["id"] as string | undefined) ||
-    (raw["_id"] as string | undefined) ||
-    (raw["configId"] as string | undefined) ||
-    (raw["name"] as string | undefined) || // last-resort: name is unique
-    "";
-
-  return { ...(raw as unknown as ScrapingConfig), id };
+  const id = raw["id"] ?? raw["_id"] ?? raw["configId"];
+  if (!id) {
+    throw new Error("Risposta backend senza ID per la configurazione scraping");
+  }
+  return { ...(raw as unknown as ScrapingConfig), id: String(id) };
 }
-
 export class ScrapingConfigRepository implements IScrapingConfigRepository {
   constructor(private readonly httpClient: HttpClient) {}
 
