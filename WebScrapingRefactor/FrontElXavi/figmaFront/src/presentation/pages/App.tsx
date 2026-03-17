@@ -110,6 +110,7 @@ export default function App() {
   // Auto-refresh every 30 seconds
   useEffect(() => {
     if (!autoRefreshEnabled) return;
+    if(isAddModalOpen)      return; // don't auto-refresh while add modal is open to prevent disrupting user input
 
     const interval = setInterval(() => {
       if (configType === "api") {
@@ -129,6 +130,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, [
     autoRefreshEnabled,
+    isAddModalOpen,
     configType,
     fetchApiConfigs,
     fetchScrapingConfigs,
