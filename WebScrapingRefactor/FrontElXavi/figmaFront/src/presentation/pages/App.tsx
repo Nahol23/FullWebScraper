@@ -87,14 +87,20 @@ export default function App() {
   } = useScrapingExecutionController();
 
   // --- API DRAWER STATE ---
-  const [selectedApiConfig, setSelectedApiConfig] = useState<ApiConfig | null>(null);
+  const [selectedApiConfig, setSelectedApiConfig] = useState<ApiConfig | null>(
+    null,
+  );
   const [isApiDrawerOpen, setIsApiDrawerOpen] = useState(false);
-  const [apiConfigToDelete, setApiConfigToDelete] = useState<ApiConfig | null>(null);
+  const [apiConfigToDelete, setApiConfigToDelete] = useState<ApiConfig | null>(
+    null,
+  );
 
   // --- SCRAPING DRAWER STATE ---
-  const [selectedScrapingConfig, setSelectedScrapingConfig] = useState<ScrapingConfig | null>(null);
+  const [selectedScrapingConfig, setSelectedScrapingConfig] =
+    useState<ScrapingConfig | null>(null);
   const [isScrapingDrawerOpen, setIsScrapingDrawerOpen] = useState(false);
-  const [scrapingConfigToDelete, setScrapingConfigToDelete] = useState<ScrapingConfig | null>(null);
+  const [scrapingConfigToDelete, setScrapingConfigToDelete] =
+    useState<ScrapingConfig | null>(null);
 
   // Initial load
   useEffect(() => {
@@ -110,6 +116,7 @@ export default function App() {
   // Auto-refresh every 30 seconds
   useEffect(() => {
     if (!autoRefreshEnabled) return;
+    if (isAddModalOpen) return;
 
     const interval = setInterval(() => {
       if (configType === "api") {
@@ -129,6 +136,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, [
     autoRefreshEnabled,
+    isAddModalOpen,
     configType,
     fetchApiConfigs,
     fetchScrapingConfigs,
@@ -176,16 +184,25 @@ export default function App() {
   }, [scrapingConfigs, searchQuery]);
 
   const paginatedApiConfigs = useMemo(() => {
-    return filteredApiConfigs.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+    return filteredApiConfigs.slice(
+      page * rowsPerPage,
+      page * rowsPerPage + rowsPerPage,
+    );
   }, [filteredApiConfigs, page, rowsPerPage]);
 
   const paginatedScrapingConfigs = useMemo(() => {
-    return filteredScrapingConfigs.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+    return filteredScrapingConfigs.slice(
+      page * rowsPerPage,
+      page * rowsPerPage + rowsPerPage,
+    );
   }, [filteredScrapingConfigs, page, rowsPerPage]);
 
   const totalApiPages = Math.ceil(filteredApiConfigs.length / rowsPerPage);
-  const totalScrapingPages = Math.ceil(filteredScrapingConfigs.length / rowsPerPage);
-  const currentTotalPages = configType === "api" ? totalApiPages : totalScrapingPages;
+  const totalScrapingPages = Math.ceil(
+    filteredScrapingConfigs.length / rowsPerPage,
+  );
+  const currentTotalPages =
+    configType === "api" ? totalApiPages : totalScrapingPages;
   const isLoading = configType === "api" ? isApiLoading : isScrapingLoading;
   const error = configType === "api" ? apiError : scrapingError;
 
@@ -251,20 +268,27 @@ export default function App() {
     },
     [updateApiConfig],
   );
+const handleUpdateScrapingConfig = useCallback(
+  async (updatedConfig: ScrapingConfig) => {
+    try {
+      // 1. Cattura la risposta dal server! 
+      // Deve essere l'oggetto completo di UUID generato dal repository.
+      const savedConfig = await updateScrapingConfig(updatedConfig.id, updatedConfig);
+      
+      // 2. Aggiorna lo stato con l'oggetto REALE del database
+      setSelectedScrapingConfig(savedConfig);
+      
+      // 3. (Opzionale ma consigliato) Aggiorna anche la lista globale se presente
+      // setConfigs(prev => prev.map(c => c.name === savedConfig.name ? savedConfig : c));
 
-  const handleUpdateScrapingConfig = useCallback(
-    async (updatedConfig: ScrapingConfig) => {
-      try {
-        await updateScrapingConfig(updatedConfig.id, updatedConfig);
-        setSelectedScrapingConfig(updatedConfig);
-        toast.success("Configurazione scraping aggiornata con successo!");
-      } catch (error) {
-        console.error("Errore aggiornamento:", error);
-        toast.error("Errore durante l'aggiornamento");
-      }
-    },
-    [updateScrapingConfig],
-  );
+      toast.success("Configurazione scraping aggiornata con successo!");
+    } catch (error) {
+      console.error("Errore aggiornamento:", error);
+      toast.error("Errore durante l'aggiornamento");
+    }
+  },
+  [updateScrapingConfig],
+);
 
   // --- DELETE HANDLERS ---
   const handleApiDeleteClick = useCallback((config: ApiConfig) => {
@@ -442,7 +466,9 @@ export default function App() {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-4xl font-extrabold text-white tracking-tight mb-2">
-                  {configType === "api" ? "API Dashboard" : "Scraping Dashboard"}
+                  {configType === "api"
+                    ? "API Dashboard"
+                    : "Scraping Dashboard"}
                 </h1>
                 <div className="flex items-center gap-3">
                   <span className="flex h-2 w-2 rounded-full bg-emerald-500"></span>
@@ -480,7 +506,9 @@ export default function App() {
                     <input
                       type="checkbox"
                       checked={autoRefreshEnabled}
-                      onChange={() => setAutoRefreshEnabled(!autoRefreshEnabled)}
+                      onChange={() =>
+                        setAutoRefreshEnabled(!autoRefreshEnabled)
+                      }
                       className="sr-only"
                     />
                     <div
@@ -515,7 +543,11 @@ export default function App() {
                 </svg>
                 {error}
                 <button
-                  onClick={configType === "api" ? fetchApiConfigs : fetchScrapingConfigs}
+                  onClick={
+                    configType === "api"
+                      ? fetchApiConfigs
+                      : fetchScrapingConfigs
+                  }
                   className="ml-auto text-sm bg-red-500/20 hover:bg-red-500/30 px-3 py-1 rounded"
                 >
                   Riprova
@@ -525,7 +557,10 @@ export default function App() {
           </div>
 
           {/* Config Cards Grid */}
-          {(configType === "api" ? paginatedApiConfigs : paginatedScrapingConfigs).length === 0 ? (
+          {(configType === "api"
+            ? paginatedApiConfigs
+            : paginatedScrapingConfigs
+          ).length === 0 ? (
             <div className="text-center py-32 border-2 border-dashed border-zinc-900 rounded-3xl bg-zinc-900/20">
               <div className="bg-zinc-900 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-zinc-800">
                 <svg
@@ -620,16 +655,32 @@ export default function App() {
                       disabled={page === 0}
                       className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 disabled:opacity-20 transition-all"
                     >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
                         <path d="M15 18l-6-6 6-6" />
                       </svg>
                     </button>
                     <button
-                      onClick={() => setPage((p) => Math.min(currentTotalPages - 1, p + 1))}
+                      onClick={() =>
+                        setPage((p) => Math.min(currentTotalPages - 1, p + 1))
+                      }
                       disabled={page >= currentTotalPages - 1}
                       className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 disabled:opacity-20 transition-all"
                     >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <svg
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
                         <path d="M9 18l6-6-6-6" />
                       </svg>
                     </button>
@@ -729,7 +780,8 @@ export default function App() {
               <span className="font-semibold text-white">
                 "{apiConfigToDelete?.name}"
               </span>
-              ? Questa azione è irreversibile e tutti i log associati verranno persi.
+              ? Questa azione è irreversibile e tutti i log associati verranno
+              persi.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -763,7 +815,8 @@ export default function App() {
               <span className="font-semibold text-white">
                 "{scrapingConfigToDelete?.name}"
               </span>
-              ? Questa azione è irreversibile e tutti i log associati verranno persi.
+              ? Questa azione è irreversibile e tutti i log associati verranno
+              persi.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

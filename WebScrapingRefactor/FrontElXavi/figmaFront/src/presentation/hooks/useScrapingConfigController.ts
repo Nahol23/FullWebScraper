@@ -18,7 +18,10 @@ export function useScrapingConfigController() {
     setError(null);
     try {
       const data = await getScrapingConfigsUseCase.execute();
-      setConfigs(data);
+      const uniqueConfigs = Array.from(
+        new Map(data.map((c) => [c.id, c])).values(),
+      );
+      setConfigs(uniqueConfigs);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -28,21 +31,16 @@ export function useScrapingConfigController() {
 
   const saveScrapingConfig = useCallback(
     async (config: Omit<ScrapingConfig, "id">) => {
-      console.log(
-        "[useScrapingConfigController] ===== SAVE CONFIG CALLED =====",
-        config,
-      );
       setIsLoading(true);
       try {
         const saved = await saveScrapingConfigUseCase.execute(config);
-        console.log(
-          "[useScrapingConfigController] saved config from use case:",
-          saved,
-        );
-        setConfigs((prev) => [...prev, saved]);
+        setConfigs((prev) => {
+          const map = new Map(prev.map((c) => [c.id, c]));
+          map.set(saved.id, saved);
+          return Array.from(map.values());
+        });
         return saved;
       } catch (err: any) {
-        console.error("[useScrapingConfigController] save error:", err);
         setError(err.message);
         throw err;
       } finally {
@@ -51,7 +49,6 @@ export function useScrapingConfigController() {
     },
     [],
   );
-
   const updateConfig = useCallback(
     async (id: string, updates: Partial<ScrapingConfig>) => {
       setIsLoading(true);

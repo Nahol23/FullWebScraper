@@ -14,7 +14,6 @@ function resolveDatabasePath(): string {
   const fileName = env === "production" ? "prod.db" : "dev.db";
   const dbPath = path.resolve(process.cwd(), "data", fileName);
 
-  // Crea la directory 'data/' se non esiste ancora
   const dir = path.dirname(dbPath);
   fs.mkdirSync(dir, { recursive: true });
 
