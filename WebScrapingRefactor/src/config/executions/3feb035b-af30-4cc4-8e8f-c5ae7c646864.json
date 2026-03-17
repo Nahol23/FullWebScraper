@@ -1,0 +1,46 @@
+{
+  "id": "3feb035b-af30-4cc4-8e8f-c5ae7c646864",
+  "configId": "4fbf0869-94c0-4e6b-81b3-3ea265cd4ea5",
+  "timestamp": "2026-03-16T11:29:02.257Z",
+  "parametersUsed": {
+    "dataPath": "data.list",
+    "selectedFields": [
+      "id",
+      "external_id",
+      "name",
+      "about",
+      "url",
+      "is_parent_exhibitor",
+      "owner_id",
+      "country",
+      "city",
+      "region",
+      "is_pavilion",
+      "logo",
+      "isNew",
+      "stands",
+      "stands.hall_id",
+      "stands.hall",
+      "stands.mapsPeopleFloorId",
+      "stands.stands_count",
+      "stands.stand",
+      "stands.stands",
+      "stands.stands.id",
+      "stands.stands.name",
+      "category_id",
+      "count_child_exhibitors",
+      "role",
+      "objectType"
+    ],
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": {
+      "page": 2,
+      "limit": 100,
+      "nextResult": {}
+    }
+  },
+  "resultCount": 60,
+  "status": "success"
+}

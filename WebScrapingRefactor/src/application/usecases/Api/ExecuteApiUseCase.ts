@@ -52,10 +52,7 @@ export class ExecuteApiUseCase {
           url.searchParams.set(param.key, param.value),
         );
       }
-      console.log(
-        "[ExecuteApiUseCase] URL finale con queryParams:",
-        url.toString(),
-      );
+     
 
       // --- COSTRUZIONE BODY ---
       let finalBody: any = undefined;
@@ -135,13 +132,6 @@ export class ExecuteApiUseCase {
       let status: "success" | "error" = "success";
       let errorMessage: string | undefined;
 
-      console.log("[UseCase] API Request:", {
-        url: url.toString(),
-        method: config.method,
-        headers: finalHeaders,
-        body: config.method.toUpperCase() === "GET" ? undefined : finalBody,
-        apiParams,
-      });
 
       try {
         responseData = await this.apiPort.request({

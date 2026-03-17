@@ -1,0 +1,89 @@
+{
+  "id": "f1c912ff-fd71-4d69-a7a8-2cf24e40a637",
+  "configId": "82e9b675-fbe1-4218-abe6-5016144ff83c",
+  "timestamp": "2026-03-16T11:50:40.702Z",
+  "url": "https://no-js.club/",
+  "rulesUsed": [
+    {
+      "fieldName": "title",
+      "selector": "h1, h2, h3",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "description",
+      "selector": "p",
+      "attribute": "text",
+      "multiple": true
+    },
+    {
+      "fieldName": "link",
+      "selector": "a[href]",
+      "attribute": "href",
+      "multiple": true
+    }
+  ],
+  "result": {
+    "data": [
+      {
+        "title": "The no-JS Club",
+        "description": "The no-js.club is up again! Now maintained by shruub, but not much changed otherwise!",
+        "link": "/"
+      },
+      {
+        "title": "",
+        "description": "This project was inspired by websites like the 250KB club, the 512KB club, the 1MB club and the former noJS club. If you want to join us please have a look at the FAQ to learn how.",
+        "link": "/members/"
+      },
+      {
+        "title": "",
+        "description": "Copyright © 2022, Frank Homburg, © 2023-2024 shruub",
+        "link": "/faq/"
+      },
+      {
+        "title": "",
+        "description": "The no-JS Club was created by Frank Homburg and is the successor to Karan Goel's now archived project, The noJS Club. Now maintained by shruub.",
+        "link": "/"
+      },
+      {
+        "title": "",
+        "description": "Maintained with 💜 for a JavaScript freer Internet.",
+        "link": "https://250kb.club/"
+      },
+      {
+        "title": "",
+        "description": "",
+        "link": "https://512kb.club/"
+      },
+      {
+        "title": "",
+        "description": "",
+        "link": "https://1mb.club/"
+      },
+      {
+        "title": "",
+        "description": "",
+        "link": "/faq"
+      },
+      {
+        "title": "",
+        "description": "",
+        "link": "https://goel.io"
+      },
+      {
+        "title": "",
+        "description": "",
+        "link": "https://github.com/karan/nojs.club"
+      }
+    ],
+    "meta": {
+      "totalPages": 1,
+      "currentPage": 1,
+      "itemsPerPage": 10,
+      "totalItems": 10
+    }
+  },
+  "resultCount": 10,
+  "status": "success",
+  "duration": 500
+}
