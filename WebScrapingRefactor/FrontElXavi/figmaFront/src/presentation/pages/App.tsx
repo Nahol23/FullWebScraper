@@ -272,16 +272,6 @@ export default function App() {
   );
   const handleUpdateScrapingConfig = useCallback(
     async (updatedConfig: ScrapingConfig) => {
-      console.log("Integrity Check - ID:", updatedConfig.id);
-
-      console.log("Integrity Check - Name:", updatedConfig.name);
-
-      console.log(
-        "Is ID equal to Name?",
-
-        updatedConfig.id === updatedConfig.name,
-      );
-
       try {
         await updateScrapingConfig(updatedConfig.id, updatedConfig);
 

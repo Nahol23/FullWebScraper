@@ -39,7 +39,7 @@ export function ScrapingExecuteTab({
     const params: any = {};
     if (waitForSelector.trim()) params.waitForSelector = waitForSelector.trim();
     if (maxPages && parseInt(maxPages) > 1) params.maxPages = parseInt(maxPages);
-
+    
     // Pass only the runtime params — caller (ScrapingConfigDrawer) already
     // knows the configName and forwards it to the execution use case.
     await onExecute(Object.keys(params).length > 0 ? params : undefined);

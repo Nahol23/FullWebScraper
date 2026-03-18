@@ -191,16 +191,6 @@ export class ExecuteApiUseCase {
         runtimeParams?.limit,
         config.pagination?.defaultLimit,
       );
-      if (targetArray.length > 0) {
-        console.log(
-          "[ExecuteApiUseCase] Chiavi del primo elemento raw:",
-          Object.keys(targetArray),
-        );
-        console.log(
-          "[ExecuteApiUseCase] Primo elemento raw:",
-          JSON.stringify(targetArray[0], null, 2),
-        );
-      }
       if (config.filter?.field && config.filter?.value !== undefined) {
         targetArray = this.applyFilter(
           targetArray,

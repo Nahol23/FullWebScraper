@@ -23,7 +23,7 @@ export class DownloadAllUseCase {
     const config = await this.configRepo.findByName(configName);
     if (!config) throw new Error(`Configurazione "${configName}" non trovata`);
 
-    // ✅ FIX 1: Mappiamo "markdown" su ".md" per avere un'estensione file standard
+    //  FIX 1: Mappiamo "markdown" su ".md" per avere un'estensione file standard
     const extension = format === 'markdown' ? 'md' : 'json';
     
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -46,7 +46,6 @@ export class DownloadAllUseCase {
     let isFirstBatch = true;
     let totalDownloaded = 0;
 
-    console.log(`[Download] Inizio export: ${configName} (Format: ${format}, Paginato: ${isPaginated})`);
 
     while (hasMore) {
       // 1. Costruzione Parametri
@@ -77,7 +76,7 @@ export class DownloadAllUseCase {
       // 3. Scrittura su File
       if (format === 'markdown') {
         if (isFirstBatch) {
-          // ✅ FIX 2: Passiamo solo il primo elemento (batchData[0]) per creare l'header
+          // FIX 2: Passiamo solo il primo elemento (batchData[0]) per creare l'header
           const header = this.formatService.getMarkdownHeader(batchData[0], config.selectedFields);
           fs.appendFileSync(filePath, `# Report: ${configName}\n\n${header}\n`);
         }
@@ -95,7 +94,6 @@ export class DownloadAllUseCase {
       }
 
       totalDownloaded += batchData.length;
-      console.log(`[Download] Scaricati ${batchData.length} record... (Totale: ${totalDownloaded})`);
 
       // 4. Logica Loop
       if (isPaginated && pagConfig) {
@@ -116,7 +114,6 @@ export class DownloadAllUseCase {
       fs.appendFileSync(filePath, ']');
     }
 
-    console.log(`[Download] Completato. File: ${filePath}`);
     return filePath;
   }
 }
