@@ -286,7 +286,6 @@ export function AddConfigModal({
         }
       }
 
-
       const result = await analyzeScraping(url, {
         method,
         headers,
@@ -519,7 +518,6 @@ export function AddConfigModal({
           setIsSaving(false);
           return;
         }
-
 
         // Costruisci pagination solo se maxPages > 1
         const paginationToSave =

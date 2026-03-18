@@ -70,7 +70,16 @@ export function ScrapingConfigurationTab({
         waitForSelector: waitForSelector || undefined,
       });
       setAnalysisResult(result);
-      
+
+      if (result.suggestedRules && result.suggestedRules.length > 0) {
+        setRules(
+          result.suggestedRules.map((rule: any) => ({
+            ...rule,
+            selected: true,
+          })),
+        );
+        setSelectAllRules(true);
+      }
     } catch (err) {
       console.error("[ScrapingConfigurationTab] Analysis error:", err);
     }
