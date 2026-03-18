@@ -61,16 +61,6 @@ export function ScrapingConfigurationTab({
       if (method === "POST" && body) {
         parsedBody = body;
       }
-
-      console.log("[ScrapingConfigurationTab] Analyzing with:", {
-        url,
-        method,
-        headers: headersObject,
-        body: parsedBody,
-        useJavaScript: !!waitForSelector,
-        waitForSelector: waitForSelector || undefined,
-      });
-
       const result = await analyze(url, {
         method,
         headers:
@@ -79,9 +69,8 @@ export function ScrapingConfigurationTab({
         useJavaScript: !!waitForSelector,
         waitForSelector: waitForSelector || undefined,
       });
-
-      console.log("[ScrapingConfigurationTab] Analysis result:", result);
       setAnalysisResult(result);
+      
     } catch (err) {
       console.error("[ScrapingConfigurationTab] Analysis error:", err);
     }
@@ -118,11 +107,6 @@ export function ScrapingConfigurationTab({
       pagination: paginationToSave,
     };
 
-    console.log(
-      "[ScrapingConfigurationTab] Saving config with",
-      selectedRules.length,
-      "rules",
-    );
     await onUpdate(updatedConfig);
   };
 

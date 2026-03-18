@@ -12,7 +12,6 @@ export class ApiUseCase {
     body?: any
   ): Promise<any> {
     const res = await this.api.request<any>({ url, method, body });
-    console.log("DEBUG: Raw API Response Keys:", Object.keys(res));
     return res;
   }
 

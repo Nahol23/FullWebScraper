@@ -286,14 +286,6 @@ export function AddConfigModal({
         }
       }
 
-      console.log("[AddConfigModal] Calling analyzeScraping with:", {
-        url,
-        method,
-        headers,
-        body: parsedBody,
-        useJavaScript: !!waitForSelector,
-        waitForSelector: waitForSelector || undefined,
-      });
 
       const result = await analyzeScraping(url, {
         method,
@@ -303,14 +295,7 @@ export function AddConfigModal({
         waitForSelector: waitForSelector || undefined,
       });
 
-      console.log("[AddConfigModal] Scraping analysis result:", result);
-      setScrapingAnalysis(result);
-
       if (result.suggestedRules && result.suggestedRules.length > 0) {
-        console.log(
-          "[AddConfigModal] Setting suggested rules:",
-          result.suggestedRules,
-        );
         setRules(
           result.suggestedRules.map((rule: any) => ({
             ...rule,
@@ -324,10 +309,6 @@ export function AddConfigModal({
         result.detectedListSelectors &&
         result.detectedListSelectors.length > 0
       ) {
-        console.log(
-          "[AddConfigModal] Setting container selector:",
-          result.detectedListSelectors[0],
-        );
         setContainerSelector(result.detectedListSelectors[0]);
       }
     } catch (err) {
@@ -482,7 +463,6 @@ export function AddConfigModal({
           executionHistory: [],
         };
 
-        console.log("[AddConfigModal] Saving API config:", configPayload);
         onAdd(configPayload as ApiConfig, "api");
       } else {
         if (!url.trim()) {
@@ -540,11 +520,6 @@ export function AddConfigModal({
           return;
         }
 
-        // Log del payload per debug
-        console.log(
-          "[AddConfigModal] Selected rules payload:",
-          JSON.stringify(selectedRules, null, 2),
-        );
 
         // Costruisci pagination solo se maxPages > 1
         const paginationToSave =
@@ -579,10 +554,6 @@ export function AddConfigModal({
           ...(paginationToSave && { pagination: paginationToSave }),
         };
 
-        console.log(
-          "[AddConfigModal] Saving scraping config:",
-          JSON.stringify(configPayload, null, 2),
-        );
         onAdd(configPayload as ScrapingConfig, "scraping");
       }
 
@@ -669,7 +640,10 @@ export function AddConfigModal({
               </TabsTrigger>
             </TabsList>
 
-            <form onSubmit={handleSubmit} className="space-y-6 w-full min-w-0 overflow-hidden">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-6 w-full min-w-0 overflow-hidden"
+            >
               {error && (
                 <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-3 rounded-lg text-sm">
                   {error}
@@ -781,7 +755,10 @@ export function AddConfigModal({
               </div>
 
               {/* Form specifico per API */}
-              <TabsContent value="api" className="mt-0 space-y-6 min-w-0 overflow-hidden">
+              <TabsContent
+                value="api"
+                className="mt-0 space-y-6 min-w-0 overflow-hidden"
+              >
                 <ApiConfigForm
                   baseUrl={baseUrl}
                   setBaseUrl={setBaseUrl}
@@ -809,7 +786,10 @@ export function AddConfigModal({
               </TabsContent>
 
               {/* Form specifico per Scraping */}
-              <TabsContent value="scraping" className="mt-0 space-y-6 min-w-0 overflow-hidden">
+              <TabsContent
+                value="scraping"
+                className="mt-0 space-y-6 min-w-0 overflow-hidden"
+              >
                 {/* Selettore contenitore (dopo analisi) */}
                 {availableContainers.length > 0 && (
                   <div className="space-y-2">

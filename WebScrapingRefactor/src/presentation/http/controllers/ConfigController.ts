@@ -132,37 +132,20 @@ export class ConfigController {
     }>,
     reply: FastifyReply,
   ) => {
-    console.log(
-      "[ConfigController.analyze] Body ricevuto:",
-      JSON.stringify(request.body, null, 2),
-    );
+    
     const { url, method, body, headers } = request.body;
-    console.log("[ConfigController.analyze] Params extracted:", {
-      url,
-      method,
-      body,
-      headers,
-    });
+    
     const result = await this.createAnalysisUseCase.execute(
       url,
       method,
       body,
       headers,
     );
-    console.log(
-      "[ConfigController.analyze] Result from use case:",
-      JSON.stringify(result, null, 2),
-    );
+    
     const plainResult = JSON.parse(JSON.stringify(result));
-    console.log(
-      "[ConfigController.analyze] Converted to plain object:",
-      JSON.stringify(plainResult, null, 2),
-    );
-    console.log(
-      "[ConfigController.analyze] About to send response with status 200",
-    );
+    
+    
     reply.status(200).send(plainResult);
-    console.log("[ConfigController.analyze] Response sent");
     return;
   };
 

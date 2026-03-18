@@ -141,9 +141,7 @@ export function ExecuteTab({
     setEasyLimit("");
   }, [config.id]); // solo quando l'id cambia
 
-  useEffect(() => {
-    console.log("[ExecuteTab] latestResult changed:", latestResult);
-  }, [latestResult]);
+  
 
   const handleExecute = async () => {
     let params: RuntimeParams = {};
