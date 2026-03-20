@@ -1,10 +1,10 @@
-
 export interface ScrapingRuntimeParams {
-  waitForSelector?: string;
   maxPages?: number;
+  waitForSelector?: string;
   rules?: ExtractionRule[];
   containerSelector?: string;
-
+  startPage?: number;
+  resumeFromUrl?: string;
 }
 
 export interface ExtractionRule {
@@ -28,6 +28,8 @@ export interface ScrapingConfig {
     selector?: string;
     paramName?: string;
     maxPages?: number;
+    startPage?: number;
+    resumeFromUrl?: string;
   };
   waitForSelector?: string;
   containerSelector?: string;
@@ -36,6 +38,3 @@ export interface ScrapingConfig {
   updatedAt?: Date;
   defaultRuntimeParams?: ScrapingRuntimeParams;
 }
-
-
-

@@ -1,6 +1,5 @@
 import { IConfigRepository } from "../../../domain/ports/IConfigRepository";
 import { IApiPort } from "../../../domain/ports/Api/IApiPort";
-import { ApiResponseDTO } from "../../dto/ApiResponseDto";
 import {
   getNestedData,
   findFirstArrayPath,
@@ -8,6 +7,19 @@ import {
 import { IExecutionRepository } from "../../../domain/ports/Execution/IExecutionRepository";
 import { Execution } from "../../../domain/entities/Execution";
 import { randomUUID } from "crypto";
+
+export interface ApiExecutionResponse {
+  data: unknown[];
+  nextPageUrl: string | null;
+  filteredBy?: unknown;
+  meta: {
+    paths: string[];
+    total: number;
+    limit?: number;
+    validObjectsCount: number;
+    pagesScraped: number;
+  };
+}
 
 export class ExecuteApiUseCase {
   constructor(
@@ -19,17 +31,12 @@ export class ExecuteApiUseCase {
   async execute(
     idOrName: string,
     runtimeParams?: Record<string, unknown>,
-  ): Promise<ApiResponseDTO | any> {
+  ): Promise<ApiExecutionResponse> {
     try {
       // 1. Cerca per ID, se fallisce cerca per Nome
       let config = await this.configRepo.findById(idOrName);
-      if (!config) {
-        config = await this.configRepo.findByName(idOrName);
-      }
-
-      if (!config) {
-        throw new Error(`Configurazione '${idOrName}' non trovata`);
-      }
+      if (!config) config = await this.configRepo.findByName(idOrName);
+      if (!config) throw new Error(`Configurazione '${idOrName}' non trovata`);
 
       const effectiveDataPath =
         runtimeParams?.dataPath !== undefined
@@ -46,61 +53,72 @@ export class ExecuteApiUseCase {
 
       // --- COSTRUZIONE URL ---
       const url = this.buildUrl(config.baseUrl, config.endpoint);
-
       if (config.queryParams) {
         config.queryParams.forEach((param) =>
           url.searchParams.set(param.key, param.value),
         );
       }
-     
 
       // --- COSTRUZIONE BODY ---
-      let finalBody: any = undefined;
+      let finalBody: unknown = undefined;
       if (config.method.toUpperCase() !== "GET" && config.body) {
         try {
           finalBody =
             typeof config.body === "string"
               ? JSON.parse(config.body)
               : JSON.parse(JSON.stringify(config.body));
-        } catch (e) {
-          finalBody = {}; // Fallback sicuro
+        } catch {
+          finalBody = {};
         }
       }
 
       // --- COSTRUZIONE HEADERS ---
-      let finalHeaders: Record<string, string> = {
-        ...(config.headers || {}),
+      const finalHeaders: Record<string, string> = {
+        ...(config.headers ?? {}),
       };
 
       let apiParams: Record<string, unknown> = {};
       if (runtimeParams) {
         const {
           headers,
-          dataPath,
-          selectedFields,
-          limit,
+          dataPath: _dataPath,
+          selectedFields: _selectedFields,
+          limit: _limit,
           queryParams,
           body,
+          startPage: _startPage,
+          resumeFromUrl: _resumeFromUrl,
+          maxPages: _maxPages,
           ...rest
         } = runtimeParams;
 
         if (body !== undefined) {
-          if (typeof body === "string") {
-            try {
-              finalBody = JSON.parse(body);
-            } catch {
-              finalBody = body;
-            }
-          } else {
-            finalBody = body;
-          }
+          finalBody =
+            typeof body === "string"
+              ? (() => {
+                  try {
+                    return JSON.parse(body);
+                  } catch {
+                    return body;
+                  }
+                })()
+              : body;
         }
 
-        // Gestione headers...
         if (headers) {
           Object.entries(headers as Record<string, unknown>).forEach(
             ([k, v]) => {
               finalHeaders[k] = v === undefined || v === null ? "" : String(v);
+            },
+          );
+        }
+
+        if (queryParams && typeof queryParams === "object") {
+          Object.entries(queryParams as Record<string, unknown>).forEach(
+            ([key, value]) => {
+              if (value !== undefined && value !== null) {
+                url.searchParams.set(key, String(value));
+              }
             },
           );
         }
@@ -111,35 +129,84 @@ export class ExecuteApiUseCase {
       }
 
       if (Object.keys(apiParams).length > 0) {
-        this.mergeRuntimeParams(config.method, url, finalBody, apiParams);
+        this.mergeRuntimeParams(
+          config.method,
+          url,
+          finalBody as Record<string, unknown> | undefined,
+          apiParams,
+        );
       }
 
-      //  gestione parametri di query da runtimeParams.queryParams
-      if (
-        runtimeParams?.queryParams &&
-        typeof runtimeParams.queryParams === "object"
-      ) {
-        Object.entries(
-          runtimeParams.queryParams as Record<string, unknown>,
-        ).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
-            url.searchParams.set(key, String(value));
-          }
-        });
-      }
+      // ── Esecuzione ────────────────────────────────────────────────────────
 
       let responseData: unknown;
       let status: "success" | "error" = "success";
       let errorMessage: string | undefined;
-
+      let nextPageUrl: string | null = null;
+      let pagesScraped = 1;
+      let alreadyExtracted = false;
 
       try {
-        responseData = await this.apiPort.request({
-          url: url.toString(),
-          method: config.method,
-          body: config.method.toUpperCase() === "GET" ? undefined : finalBody,
-          headers: finalHeaders,
-        });
+        const isPost = config.method.toUpperCase() === "POST";
+        const body = finalBody as Record<string, unknown> | undefined;
+
+        // Auto-detect paginazione body:
+        // Se il config body originale contiene "page" gestiamo paginazione POST
+        const configBodyHasPage =
+          config.body !== null &&
+          typeof config.body === "object" &&
+          "page" in (config.body as Record<string, unknown>);
+
+        const bodyHasPage =
+          isPost &&
+          body !== null &&
+          typeof body === "object" &&
+          ("page" in body || configBodyHasPage);
+
+        if (bodyHasPage) {
+          // Assicura che page sia nel body finale
+          if (body && !("page" in body) && configBodyHasPage) {
+            (body as Record<string, unknown>).page = (
+              config.body as Record<string, unknown>
+            ).page;
+          }
+
+          const startPage =
+            (runtimeParams?.startPage as number | undefined) ?? 1;
+          const maxPages =
+            (runtimeParams?.maxPages as number | undefined) ?? 10;
+          const limitField = this.detectLimitField(body ?? {});
+
+          const result = await this.apiPort.requestPaginated(
+            {
+              url: url.toString(),
+              method: config.method,
+              body,
+              headers: finalHeaders,
+            },
+            {
+              type: "bodyParam",
+              bodyParamName: "page",
+              bodyLimitName: limitField,
+              maxPages,
+              startPage,
+              resumeFromUrl: runtimeParams?.resumeFromUrl as string | undefined,
+            },
+            effectiveDataPath ?? undefined,
+          );
+
+          responseData = result.items;
+          nextPageUrl = result.nextPageUrl;
+          pagesScraped = result.pagesScraped;
+          alreadyExtracted = true;
+        } else {
+          responseData = await this.apiPort.request({
+            url: url.toString(),
+            method: config.method,
+            body: isPost ? finalBody : undefined,
+            headers: finalHeaders,
+          });
+        }
       } catch (error) {
         status = "error";
         errorMessage = (error as Error).message;
@@ -149,48 +216,43 @@ export class ExecuteApiUseCase {
           id: randomUUID(),
           configId: config.id,
           timestamp: new Date(),
-          parametersUsed: runtimeParams || {},
+          parametersUsed: runtimeParams ?? {},
           resultCount: 0,
-          status: status,
-          errorMessage: errorMessage,
+          status,
+          errorMessage,
+          nextPageUrl,
+          pagesScraped,
         };
 
         if (status === "success" && responseData) {
-          const rawArray = this.extractArray(responseData, effectiveDataPath);
+          const rawArray = alreadyExtracted
+            ? Array.isArray(responseData)
+              ? responseData
+              : [responseData]
+            : this.extractArray(responseData, effectiveDataPath);
           execution.resultCount = rawArray.length;
         }
 
         await this.executionRepo.save(execution);
       }
 
-      const hasDataPathTransform =
-        runtimeParams?.dataPath !== undefined ||
-        (config.dataPath && runtimeParams?.dataPath === undefined);
+      // ── Trasformazioni + risposta sempre strutturata ──────────────────────
 
-      const hasSelectedFieldsTransform =
-        runtimeParams?.selectedFields !== undefined ||
-        (config.selectedFields?.length &&
-          runtimeParams?.selectedFields === undefined);
+      // Se dataPath già applicato internamente usa responseData direttamente
+      let targetArray = alreadyExtracted
+        ? Array.isArray(responseData)
+          ? responseData
+          : [responseData]
+        : this.extractArray(responseData, effectiveDataPath);
 
-      const hasFilter = !!(config.filter && config.filter.field);
-      const hasLimit = runtimeParams?.limit !== undefined;
-
-      const hasTransformations =
-        hasDataPathTransform ||
-        hasSelectedFieldsTransform ||
-        hasFilter ||
-        hasLimit;
-
-      if (!hasTransformations) {
-        return responseData;
-      }
-
-      let targetArray = this.extractArray(responseData, effectiveDataPath);
+      // Applica limit
       targetArray = this.applyLimitSafety(
         targetArray,
         runtimeParams?.limit,
         config.pagination?.defaultLimit,
       );
+
+      // Applica filter
       if (config.filter?.field && config.filter?.value !== undefined) {
         targetArray = this.applyFilter(
           targetArray,
@@ -198,6 +260,7 @@ export class ExecuteApiUseCase {
         );
       }
 
+      // Applica selectedFields
       if (effectiveSelectedFields && effectiveSelectedFields.length > 0) {
         targetArray = this.selectFields(targetArray, effectiveSelectedFields);
       }
@@ -207,8 +270,10 @@ export class ExecuteApiUseCase {
           item !== null && typeof item === "object" && !Array.isArray(item),
       );
 
+      // SEMPRE struttura uniforme — il frontend può sempre leggere nextPageUrl
       return {
         data: targetArray,
+        nextPageUrl,
         filteredBy: config.filter,
         meta: {
           paths: effectiveDataPath ? [effectiveDataPath] : [],
@@ -216,30 +281,32 @@ export class ExecuteApiUseCase {
           limit:
             typeof effectiveLimit === "number" ? effectiveLimit : undefined,
           validObjectsCount: validObjects.length,
+          pagesScraped,
         },
       };
     } catch (error) {
       console.error("[ExecuteApiUseCase] Unhandled error:", error);
-      if (error instanceof Error) {
-        console.error("Stack:", error.stack);
-      }
-      throw error; // Rilancia per il gestore globale di Fastify
+      if (error instanceof Error) console.error("Stack:", error.stack);
+      throw error;
     }
   }
 
-  // Tutti i metodi privati rimangono identici
+  // ── private ────────────────────────────────────────────────────────────────
+
+  private detectLimitField(body: Record<string, unknown>): string {
+    const candidates = ["limit", "pageSize", "per_page", "hitsPerPage", "size"];
+    return candidates.find((k) => k in body) ?? "limit";
+  }
+
   private buildUrl(baseUrl: string, endpoint: string): URL {
     const base = baseUrl.replace(/\/+$/, "");
     const [path, queryString] = endpoint.split("?");
     const cleanPath = path.replace(/^\/+/, "").replace(/\/+$/, "");
-
     const url = new URL(`${base}/${cleanPath}`);
-
     if (queryString) {
       const params = new URLSearchParams(queryString);
       params.forEach((value, key) => url.searchParams.set(key, value));
     }
-
     return url;
   }
 
@@ -250,11 +317,9 @@ export class ExecuteApiUseCase {
     runtimeParams: Record<string, unknown>,
   ): void {
     const isPost = method.toUpperCase() === "POST";
-
     Object.entries(runtimeParams).forEach(([key, value]) => {
       const hasDot = key.includes(".");
       const existsInBody = body ? this.keyExistsInObject(body, key) : false;
-
       if (isPost && body && (hasDot || existsInBody)) {
         this.setNestedValue(body, key, value);
       } else {
@@ -270,17 +335,12 @@ export class ExecuteApiUseCase {
         return Array.isArray(extracted) ? extracted : [extracted];
       }
     }
-
     const autoPath = findFirstArrayPath(responseData);
     if (autoPath) {
       const extracted = getNestedData(responseData, autoPath);
       return Array.isArray(extracted) ? extracted : [];
     }
-
-    if (Array.isArray(responseData)) {
-      return responseData;
-    }
-
+    if (Array.isArray(responseData)) return responseData;
     return responseData !== null && responseData !== undefined
       ? [responseData]
       : [];
@@ -290,10 +350,9 @@ export class ExecuteApiUseCase {
     data: unknown[],
     filter: { field: string; value: unknown },
   ): unknown[] {
-    return data.filter((item) => {
-      const value = this.getNestedValue(item, filter.field);
-      return value == filter.value;
-    });
+    return data.filter(
+      (item) => this.getNestedValue(item, filter.field) == filter.value,
+    );
   }
 
   private selectFields(data: unknown[], fields: string[]): unknown[] {
@@ -321,15 +380,11 @@ export class ExecuteApiUseCase {
   ): boolean {
     const parts = key.split(".");
     let current: unknown = obj;
-
     for (const part of parts) {
-      if (!current || typeof current !== "object" || Array.isArray(current)) {
+      if (!current || typeof current !== "object" || Array.isArray(current))
         return false;
-      }
       const currentObj = current as Record<string, unknown>;
-      if (!(part in currentObj)) {
-        return false;
-      }
+      if (!(part in currentObj)) return false;
       current = currentObj[part];
     }
     return true;
@@ -342,7 +397,6 @@ export class ExecuteApiUseCase {
   ): void {
     const parts = key.split(".");
     let current: Record<string, unknown> = obj;
-
     for (let i = 0; i < parts.length - 1; i++) {
       const part = parts[i];
       if (
@@ -363,27 +417,15 @@ export class ExecuteApiUseCase {
     runtimeLimit: unknown,
     configDefaultLimit?: number,
   ): unknown[] {
-    let limit: number | undefined = undefined;
-
+    let limit: number | undefined;
     if (runtimeLimit !== undefined && runtimeLimit !== null) {
       const parsed = Number(runtimeLimit);
-      if (!isNaN(parsed) && parsed >= 0) {
-        limit = parsed;
-      }
+      if (!isNaN(parsed) && parsed >= 0) limit = parsed;
     }
-
-    if (limit === undefined && configDefaultLimit) {
-      limit = configDefaultLimit;
-    }
-
-    if (limit === 0) {
-      return data;
-    }
-
-    if (limit !== undefined && limit > 0 && data.length > limit) {
+    if (limit === undefined && configDefaultLimit) limit = configDefaultLimit;
+    if (limit === 0) return data;
+    if (limit !== undefined && limit > 0 && data.length > limit)
       return data.slice(0, limit);
-    }
-
     return data;
   }
 }

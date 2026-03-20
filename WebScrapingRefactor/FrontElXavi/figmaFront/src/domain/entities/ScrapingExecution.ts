@@ -3,10 +3,12 @@ export interface ScrapingExecution {
   configId: string;
   timestamp: Date;
   url: string;
-  rulesUsed: any[];
-  result: any;
+  rulesUsed: unknown[];
+  result: unknown;
   resultCount: number;
-  status: 'success' | 'error';
+  status: "success" | "error";
   errorMessage?: string;
   duration?: number;
+  nextPageUrl: string | null;
+  pagesScraped: number;
 }

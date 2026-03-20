@@ -11,7 +11,7 @@ export interface ScrapingAnalysisResult {
   url: string;
   title: string;
   suggestedRules: ExtractionRule[];
-  sampleData: any;
+  sampleData: unknown;
   detectedListSelectors: string[];
   rawPreview?: string;
 }
@@ -30,21 +30,17 @@ export class AnalyzeScrapingUseCase {
     try {
       // 1) Analisi DOM generica
       const analysis = await this.domAnalyzer.fetchAndAnalyze(url, options);
-
       const containerSelector = analysis.listSelectors?.[0] ?? undefined;
       const rules = analysis.suggestedRules;
 
-      // 2) Estrazione SAMPLE — max 5 elementi, niente array paralleli
-
-      // Per il sample usiamo solo la rule più rappresentativa (title/name o la prima)
-      // e forziamo multiple:false per avere valori scalari, non array.
+      // 2) Sample — regola più rappresentativa, niente paginazione
       const primaryRule =
         rules.find((r) => /title|name/i.test(r.fieldName)) ?? rules[0];
       const sampleRules = primaryRule
         ? [{ ...primaryRule, multiple: false }]
         : rules.map((r) => ({ ...r, multiple: false }));
 
-      let rawData: any = await this.scraper.scrape({
+      const baseOptions = {
         url,
         method: options?.method,
         headers: options?.headers,
@@ -52,48 +48,26 @@ export class AnalyzeScrapingUseCase {
         useJavaScript: options?.useJavaScript,
         waitForSelector: options?.waitForSelector,
         rules: sampleRules,
+        // Nessuna pagination per il sample: vogliamo solo la prima pagina
+      };
+
+      // items è Record<string, unknown>[]
+      let { items } = await this.scraper.scrape({
+        ...baseOptions,
         containerSelector,
       });
 
-      // 3) Fallback se rawData è vuoto
-      if (
-        (!rawData || (Array.isArray(rawData) && rawData.length === 0)) &&
-        containerSelector
-      ) {
-        rawData = await this.scraper.scrape({
-          url,
-          method: options?.method,
-          headers: options?.headers,
-          body: options?.body,
-          useJavaScript: options?.useJavaScript,
-          waitForSelector: options?.waitForSelector,
-          rules: sampleRules,
-        });
+      // 3) Fallback se items è vuoto
+      if (items.length === 0 && containerSelector) {
+        ({ items } = await this.scraper.scrape(baseOptions));
       }
 
-      // Tronca a SAMPLE_LIMIT
-      let sampleData: any;
-      if (Array.isArray(rawData)) {
-        sampleData = rawData.slice(0);
-      } else if (
-        rawData !== null &&
-        typeof rawData === "object" &&
-        !Array.isArray(rawData)
-      ) {
-        // Oggetto singolo o con chiavi numeriche — wrap in array e tronca
-        const values = Object.keys(rawData).every((k) => !isNaN(Number(k)))
-          ? (Object.values(rawData) as any[]).slice(0)
-          : [rawData];
-        sampleData = values;
-      } else {
-        sampleData = rawData;
-      }
+      // 4) sampleData: già un array tipizzato, nessun cast necessario
+      const sampleData: unknown[] =
+        items.length > 0 ? items : [];
 
-      // 4) Raw preview per debugging
-      const rawPreview =
-        typeof rawData === "string"
-          ? rawData.slice(0, 2000)
-          : JSON.stringify(rawData, null, 2).slice(0, 2000);
+      // 5) Raw preview per debugging
+      const rawPreview = JSON.stringify(sampleData, null, 2).slice(0, 2000);
 
       const result: ScrapingAnalysisResult = {
         url,
@@ -104,7 +78,7 @@ export class AnalyzeScrapingUseCase {
         rawPreview,
       };
 
-      // 5) Salvataggio analisi
+      // 6) Salvataggio analisi
       await this.analysisRepository.save({
         id: randomUUID(),
         url,

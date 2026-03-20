@@ -21,18 +21,19 @@ interface ScrapingConfigDrawerProps {
   onClose: () => void;
   onUpdate: (config: ScrapingConfig) => Promise<void>;
   onDelete: (config: ScrapingConfig) => void;
-  /**
-   * Called with (configName, runtimeParams?) — App.tsx is the single place
-   * that knows both the name and the execution use case.
-   */
-  onExecute: (configName: string, params?: any) => Promise<void>;
+  onExecute: (
+    configName: string,
+    params?: Record<string, unknown>,
+  ) => Promise<void>;
+  onResume: (configId: string, maxPages?: number) => Promise<void>;
   isExecuting: boolean;
+  isResuming: boolean;
   logs: ScrapingExecution[];
   isLoadingLogs: boolean;
   onRefreshLogs: () => void;
   onDeleteLog: (logId: string) => Promise<void>;
   onDownload: (format: "json" | "markdown") => void;
-  lastResult?: any;
+  lastResult?: Record<string, unknown>;
 }
 
 type TabType = "configuration" | "execute" | "history";
@@ -44,7 +45,9 @@ export function ScrapingConfigDrawer({
   onUpdate,
   onDelete,
   onExecute,
+  onResume,
   isExecuting,
+  isResuming,
   logs,
   isLoadingLogs,
   onRefreshLogs,
@@ -69,14 +72,16 @@ export function ScrapingConfigDrawer({
     await onUpdate(updated);
   };
 
-  /**
-   * Bridge: ScrapingExecuteTab only passes runtimeParams (it doesn't know
-   * the configName). We close over editedConfig.name here so the correct
-   * name is always forwarded to App.tsx → executeScrapingByNameUseCase.
-   */
-  const handleExecute = async (params?: any) => {
+  // Bridge: ScrapingExecuteTab only passes runtimeParams, we close over configName
+  const handleExecute = async (params?: Record<string, unknown>) => {
     if (!editedConfig.name) return;
     await onExecute(editedConfig.name, params);
+  };
+
+  // Bridge: resume uses configId
+  const handleResume = async (maxPages?: number) => {
+    if (!editedConfig.id) return;
+    await onResume(editedConfig.id, maxPages);
   };
 
   return (
@@ -165,7 +170,9 @@ export function ScrapingConfigDrawer({
                   <ScrapingExecuteTab
                     config={editedConfig}
                     onExecute={handleExecute}
+                    onResume={handleResume}
                     isExecuting={isExecuting}
+                    isResuming={isResuming}
                     lastResult={lastResult}
                   />
                 </div>

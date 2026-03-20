@@ -5,18 +5,10 @@ import { parseJson, toJson } from "../database/mappers/jsonMapper";
 import { randomUUID } from "crypto";
 
 export class ExecutionRepository implements IExecutionRepository {
+
   async findAll(): Promise<Execution[]> {
     const rows = await db.selectFrom("executions").selectAll().execute();
-    return rows.map((row) => ({
-      id: row.id,
-      configId: row.config_id,
-      timestamp: new Date(row.timestamp),
-      parametersUsed:
-        parseJson<Record<string, any>>(row.parameters_used_json) ?? {},
-      resultCount: row.result_count,
-      status: row.status as "success" | "error",
-      errorMessage: row.error_message ?? undefined,
-    }));
+    return rows.map((row) => this.toDomain(row));
   }
 
   async findById(id: string): Promise<Execution | null> {
@@ -26,16 +18,7 @@ export class ExecutionRepository implements IExecutionRepository {
       .where("id", "=", id)
       .executeTakeFirst();
     if (!row) return null;
-    return {
-      id: row.id,
-      configId: row.config_id,
-      timestamp: new Date(row.timestamp),
-      parametersUsed:
-        parseJson<Record<string, any>>(row.parameters_used_json) ?? {},
-      resultCount: row.result_count,
-      status: row.status as "success" | "error",
-      errorMessage: row.error_message ?? undefined,
-    };
+    return this.toDomain(row);
   }
 
   async findByConfigId(configId: string): Promise<Execution[]> {
@@ -44,27 +27,20 @@ export class ExecutionRepository implements IExecutionRepository {
       .selectAll()
       .where("config_id", "=", configId)
       .execute();
-    return rows.map((row) => ({
-      id: row.id,
-      configId: row.config_id,
-      timestamp: new Date(row.timestamp),
-      parametersUsed:
-        parseJson<Record<string, any>>(row.parameters_used_json) ?? {},
-      resultCount: row.result_count,
-      status: row.status as "success" | "error",
-      errorMessage: row.error_message ?? undefined,
-    }));
+    return rows.map((row) => this.toDomain(row));
   }
 
   async save(execution: Execution): Promise<void> {
     const id = execution.id || randomUUID();
     const toInsert = {
       id,
-      config_id: execution.configId,
+      config_id:            execution.configId,
       parameters_used_json: toJson(execution.parametersUsed) ?? "{}",
-      result_count: execution.resultCount,
-      status: execution.status,
-      error_message: execution.errorMessage ?? null,
+      result_count:         execution.resultCount,
+      status:               execution.status,
+      error_message:        execution.errorMessage ?? null,
+      next_page_url:        execution.nextPageUrl ?? null,
+      pages_scraped:        execution.pagesScraped ?? 0,
     };
     await db
       .insertInto("executions")
@@ -75,5 +51,21 @@ export class ExecutionRepository implements IExecutionRepository {
 
   async delete(id: string): Promise<void> {
     await db.deleteFrom("executions").where("id", "=", id).execute();
+  }
+
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private toDomain(row: Record<string, any>): Execution {
+    return {
+      id:             row.id,
+      configId:       row.config_id,
+      timestamp:      new Date(row.timestamp),
+      parametersUsed: parseJson<Record<string, unknown>>(row.parameters_used_json) ?? {},
+      resultCount:    row.result_count,
+      status:         row.status as "success" | "error",
+      errorMessage:   row.error_message ?? undefined,
+      nextPageUrl:    row.next_page_url ?? null,
+      pagesScraped:   row.pages_scraped ?? 0,
+    };
   }
 }

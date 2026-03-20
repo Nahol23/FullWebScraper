@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Play, Loader2, Filter, Eye } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Play, Loader2, Filter, Eye, RotateCcw } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Textarea } from "../../components/ui/textarea";
 import { Label } from "../../components/ui/label";
@@ -29,22 +29,30 @@ import { ResultViewerModal } from "../ResultViewerModal";
 interface ExecuteTabProps {
   config: ApiConfig;
   onExecute: (configId: string, params?: RuntimeParams) => Promise<void>;
+  onResume: (configId: string, maxPages?: number) => Promise<void>;
   isExecuting: boolean;
+  isResuming: boolean;
   lastLogs: ExecutionHistory[];
-  lastExecutionResult?: any;
+  lastExecutionResult?: {
+    data?: unknown;
+    nextPageUrl?: string | null;
+    meta?: { pagesScraped?: number; totalItems?: number };
+    [key: string]: unknown;
+  };
   onUpdate?: (updatedConfig: ApiConfig) => Promise<void>;
 }
 
 export function ExecuteTab({
   config,
   onExecute,
+  onResume,
   isExecuting,
+  isResuming,
   lastExecutionResult,
 }: ExecuteTabProps) {
   const [inputMode, setInputMode] = useState<"easy" | "raw">("easy");
 
   // --- Easy Mode state ---
-
   const [easyPage, setEasyPage] = useState("");
   const [easyLimit, setEasyLimit] = useState("");
   const [isFieldsOpen, setIsFieldsOpen] = useState(false);
@@ -68,10 +76,7 @@ export function ExecuteTab({
     ),
   );
 
-  // --- DataPath override ---
   const [customDataPath, setCustomDataPath] = useState(config.dataPath || "");
-
-  // --- selectedFields override ---
   const [customSelectedFields, setCustomSelectedFields] = useState<string>(
     JSON.stringify(config.selectedFields || [], null, 2),
   );
@@ -100,12 +105,21 @@ export function ExecuteTab({
     ),
   );
 
-  const [, setFlattenedData] = useState<any>(null);
+  const [, setFlattenedData] = useState<unknown>(null);
   const [isResultModalOpen, setIsResultModalOpen] = useState(false);
+  const executionCount = useRef(0);
+  const [modalKey, setModalKey] = useState(0);
   const latestResult = lastExecutionResult;
 
+  const hasNextPage = !!latestResult?.nextPageUrl;
+  const isLoading = isExecuting || isResuming;
+
   useEffect(() => {
-    if (latestResult?.responsePreview) {
+    if (
+      latestResult &&
+      typeof latestResult === "object" &&
+      "responsePreview" in latestResult
+    ) {
       setFlattenedData(flattenJson(latestResult.responsePreview));
     } else if (latestResult?.data) {
       setFlattenedData(flattenJson(latestResult.data));
@@ -114,7 +128,16 @@ export function ExecuteTab({
     }
   }, [latestResult]);
 
-  // Sincronizza stati con la configurazione solo quando cambia l'id (nuova configurazione)
+  // Gestione modale: chiudi su nuova esecuzione, forza remount su nuovi dati
+  useEffect(() => {
+    if (latestResult) {
+      executionCount.current += 1;
+      setModalKey(executionCount.current);
+    } else {
+      setIsResultModalOpen(false);
+    }
+  }, [latestResult]);
+
   useEffect(() => {
     setCustomHeaders(JSON.stringify(config.headers || {}, null, 2));
     setCustomBody(JSON.stringify(config.body || {}, null, 2));
@@ -136,31 +159,25 @@ export function ExecuteTab({
     );
     setCustomDataPath(config.dataPath || "");
     setUseCustomSelectedFields(false);
-    // Resetta anche page/limit quando si cambia configurazione
     setEasyPage("");
     setEasyLimit("");
-  }, [config.id]); // solo quando l'id cambia
-
-  
+  }, [config.id]);
 
   const handleExecute = async () => {
+    setIsResultModalOpen(false); // chiudi modal prima di eseguire
     let params: RuntimeParams = {};
 
     if (inputMode === "easy") {
       try {
-        // --- Gestione parametri base ---
-        if (customDataPath !== undefined) {
-          params.dataPath = customDataPath;
-        }
+        if (customDataPath !== undefined) params.dataPath = customDataPath;
+
         if (
           customHeaders &&
           customHeaders.trim() !== "" &&
           customHeaders !== "{}"
         ) {
           const parsed = JSON.parse(customHeaders);
-          if (Object.keys(parsed).length > 0) {
-            params.headers = parsed;
-          }
+          if (Object.keys(parsed).length > 0) params.headers = parsed;
         }
         if (
           customQueryParams &&
@@ -168,73 +185,53 @@ export function ExecuteTab({
           customQueryParams !== "{}"
         ) {
           const parsed = JSON.parse(customQueryParams);
-          if (Object.keys(parsed).length > 0) {
-            params.queryParams = parsed;
-          }
+          if (Object.keys(parsed).length > 0) params.queryParams = parsed;
         }
         if (config.method !== "GET" && customBody && customBody.trim() !== "") {
           const parsed = JSON.parse(customBody);
-          if (Object.keys(parsed).length > 0) {
-            params.body = parsed;
-          }
+          if (Object.keys(parsed).length > 0) params.body = parsed;
         }
         if (useCustomSelectedFields) {
           try {
             const parsed = JSON.parse(customSelectedFields);
-            if (Array.isArray(parsed)) {
-              params.selectedFields = parsed;
-            }
+            if (Array.isArray(parsed)) params.selectedFields = parsed;
           } catch {
-            // ignore
+            /* ignore */
           }
         } else if (config.selectedFields && config.selectedFields.length > 0) {
           params.selectedFields = config.selectedFields;
         }
 
-        // --- Gestione specifica di page/limit in base al metodo HTTP ---
         if (config.method === "POST") {
-          // Per POST: page e limit vanno nel body
-          let bodyObj = params.body ? { ...params.body } : {};
-          if (easyPage && easyPage.trim() !== "") {
+          const bodyObj = params.body ? { ...params.body } : {};
+          if (easyPage && easyPage.trim() !== "")
             bodyObj.page = parseInt(easyPage, 10);
-          }
-          if (easyLimit && easyLimit.trim() !== "") {
-            // Per Algolia si chiama hitsPerPage; se la tua API usa un nome diverso, modifica qui
+          if (easyLimit && easyLimit.trim() !== "")
             bodyObj.hitsPerPage = parseInt(easyLimit, 10);
-          }
-          if (Object.keys(bodyObj).length > 0) {
-            params.body = bodyObj;
-          }
-          // Rimuovi eventuali page/limit a livello radice
+          if (Object.keys(bodyObj).length > 0) params.body = bodyObj;
           delete params.page;
           delete params.limit;
         } else {
-          // Per GET: page e limit vanno come query parameters
-          if (easyPage && easyPage.trim() !== "") {
+          if (easyPage && easyPage.trim() !== "")
             params.page = parseInt(easyPage, 10);
-          }
-          if (easyLimit && easyLimit.trim() !== "") {
+          if (easyLimit && easyLimit.trim() !== "")
             params.limit = parseInt(easyLimit, 10);
-          }
         }
-      } catch (e) {
+      } catch {
         alert("Errore nel formato JSON di Headers, Body o Query Parameters.");
         return;
       }
     } else {
-      // Modalità raw
       try {
         params = JSON.parse(rawJsonParams);
-        if (config.dataPath && !params.dataPath) {
+        if (config.dataPath && !params.dataPath)
           params.dataPath = config.dataPath;
-        }
-      } catch (e) {
+      } catch {
         alert("Il JSON inserito nella modalità RAW non è valido.");
         return;
       }
     }
 
-    // Pulisce i parametri vuoti
     const cleanParams = Object.fromEntries(
       Object.entries(params).filter(([key, value]) => {
         if (key === "selectedFields" && Array.isArray(value)) return true;
@@ -243,7 +240,7 @@ export function ExecuteTab({
         if (
           typeof value === "object" &&
           !Array.isArray(value) &&
-          Object.keys(value).length === 0
+          Object.keys(value as object).length === 0
         )
           return false;
         if (
@@ -259,6 +256,11 @@ export function ExecuteTab({
     await onExecute(config.id, cleanParams);
   };
 
+  const handleResume = async () => {
+    const pages = easyLimit ? parseInt(easyLimit, 10) : undefined;
+    await onResume(config.id, pages && pages > 0 ? pages : undefined);
+  };
+
   const formatSelectedFields = () => {
     const fields = useCustomSelectedFields
       ? (() => {
@@ -270,9 +272,7 @@ export function ExecuteTab({
         })()
       : config.selectedFields || [];
 
-    if (!fields || fields.length === 0) {
-      return "Nessun campo selezionato";
-    }
+    if (!fields || fields.length === 0) return "Nessun campo selezionato";
 
     return (
       fields
@@ -339,15 +339,11 @@ export function ExecuteTab({
                 className="sr-only"
               />
               <div
-                className={`block w-10 h-5 rounded-full transition-colors ${
-                  useCustomSelectedFields ? "bg-indigo-600" : "bg-zinc-700"
-                }`}
-              ></div>
+                className={`block w-10 h-5 rounded-full transition-colors ${useCustomSelectedFields ? "bg-indigo-600" : "bg-zinc-700"}`}
+              />
               <div
-                className={`absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full transition-transform ${
-                  useCustomSelectedFields ? "transform translate-x-5" : ""
-                }`}
-              ></div>
+                className={`absolute left-0.5 top-0.5 bg-white w-4 h-4 rounded-full transition-transform ${useCustomSelectedFields ? "transform translate-x-5" : ""}`}
+              />
             </div>
             <span className="text-xs text-zinc-500">
               {useCustomSelectedFields ? "Custom" : "Default"}
@@ -385,19 +381,18 @@ export function ExecuteTab({
             const hiddenCount = allFields.length - visibleFields.length;
 
             return (
-              <div className=" mb-2">
+              <div className="mb-2">
                 {(isFieldsOpen ? allFields : visibleFields).map(
                   (field: string, index: number) => (
                     <Badge
                       key={index}
                       variant="outline"
-                      className="bg-zinc-800 text-zinc-300 font-mono text-xs whitespace-normal mr-2  mb-2 "
+                      className="bg-zinc-800 text-zinc-300 font-mono text-xs whitespace-normal mr-2 mb-2"
                     >
                       {field}
                     </Badge>
                   ),
                 )}
-
                 {hiddenCount > 0 && (
                   <button
                     type="button"
@@ -431,7 +426,10 @@ export function ExecuteTab({
         </div>
       </Card>
 
-      <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as any)}>
+      <Tabs
+        value={inputMode}
+        onValueChange={(v) => setInputMode(v as "easy" | "raw")}
+      >
         <TabsList className="grid w-full grid-cols-2 bg-zinc-900 border border-zinc-800">
           <TabsTrigger
             value="easy"
@@ -475,7 +473,6 @@ export function ExecuteTab({
                 Advanced Overrides (Headers, Body, Query, Data Path)
               </AccordionTrigger>
               <AccordionContent className="space-y-4 pt-2">
-                {/* Data Path Override */}
                 <div>
                   <Label className="text-xs text-zinc-400 mb-1 block">
                     Data Path Override (opzionale)
@@ -487,8 +484,6 @@ export function ExecuteTab({
                     className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white font-mono text-sm"
                   />
                 </div>
-
-                {/* Query Parameters */}
                 <div>
                   <Label className="text-xs text-zinc-400 mb-1 block">
                     Query Parameters (JSON)
@@ -497,11 +492,9 @@ export function ExecuteTab({
                     value={customQueryParams}
                     onChange={(e) => setCustomQueryParams(e.target.value)}
                     className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white font-mono text-sm min-h-[120px]"
-                    placeholder='{"param1": "value1", "param2": "value2"}'
+                    placeholder='{"param1": "value1"}'
                   />
                 </div>
-
-                {/* Headers */}
                 <div>
                   <Label className="text-xs text-zinc-400 mb-1 block">
                     Headers (JSON)
@@ -510,11 +503,9 @@ export function ExecuteTab({
                     value={customHeaders}
                     onChange={(e) => setCustomHeaders(e.target.value)}
                     className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white font-mono text-sm min-h-[120px]"
-                    placeholder='{"Content-Type": "application/json", "Authorization": "Bearer ..."}'
+                    placeholder='{"Authorization": "Bearer ..."}'
                   />
                 </div>
-
-                {/* Body */}
                 {config.method !== "GET" && (
                   <div>
                     <Label className="text-xs text-zinc-400 mb-1 block">
@@ -538,14 +529,7 @@ export function ExecuteTab({
             value={rawJsonParams}
             onChange={(e) => setRawJsonParams(e.target.value)}
             className="bg-zinc-900 border-zinc-800 focus:border-indigo-500 text-white font-mono text-sm min-h-[200px]"
-            placeholder={`{
-  "page": 1,
-  "limit": 100,
-  "headers": {...},
-  "queryParams": {...},
-  "selectedFields": [...],
-  "dataPath": "..."
-}`}
+            placeholder={`{\n  "page": 1,\n  "limit": 100,\n  "headers": {...},\n  "selectedFields": [...]\n}`}
           />
           <p className="text-xs text-zinc-500 mt-2">
             Includi <code>"selectedFields"</code> e <code>"dataPath"</code> per
@@ -554,22 +538,47 @@ export function ExecuteTab({
         </TabsContent>
       </Tabs>
 
-      <Button
-        onClick={handleExecute}
-        disabled={isExecuting}
-        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-12 gap-2"
-      >
-        {isExecuting ? (
-          <Loader2 className="animate-spin" />
-        ) : (
-          <Play className="h-4 w-4" />
-        )}
-        {isExecuting ? "Executing..." : "Run Extraction"}
-      </Button>
+      {/* Run + Resume buttons */}
+      <div className="flex gap-2">
+        <Button
+          onClick={handleExecute}
+          disabled={isLoading}
+          className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white h-12 gap-2"
+        >
+          {isExecuting ? (
+            <Loader2 className="animate-spin h-4 w-4" />
+          ) : (
+            <Play className="h-4 w-4" />
+          )}
+          {isExecuting ? "Executing..." : "Run Extraction"}
+        </Button>
 
-      {/* Last execution raw JSON */}
+        <Button
+          onClick={handleResume}
+          disabled={isLoading || !hasNextPage}
+          title={
+            hasNextPage
+              ? "Resume from where the last execution stopped"
+              : "No more pages — extraction is complete"
+          }
+          className={`h-12 gap-2 px-4 border transition-colors ${
+            hasNextPage
+              ? "bg-emerald-600 hover:bg-emerald-700 border-emerald-500 text-white"
+              : "bg-zinc-800 border-zinc-700 text-zinc-500 cursor-not-allowed"
+          }`}
+        >
+          {isResuming ? (
+            <Loader2 className="animate-spin h-4 w-4" />
+          ) : (
+            <RotateCcw className="h-4 w-4" />
+          )}
+          Resume
+        </Button>
+      </div>
+
+      {/* Result card */}
       {latestResult && (
-        <Card className="bg-zinc-900 border-zinc-800 p-3 mt-4">
+        <Card className="bg-zinc-900 border-zinc-800 p-3 mt-4 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-zinc-400">
               Execution completed
@@ -584,19 +593,51 @@ export function ExecuteTab({
               View Full Results
             </Button>
           </div>
-          <p className="text-xs text-zinc-500 mt-2">
+
+          {/* Pagination status */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {latestResult.meta?.pagesScraped !== undefined && (
+              <Badge
+                variant="outline"
+                className="text-zinc-400 border-zinc-700 text-xs"
+              >
+                {latestResult.meta.pagesScraped} page
+                {latestResult.meta.pagesScraped !== 1 ? "s" : ""} fetched
+              </Badge>
+            )}
+            {latestResult.meta?.totalItems !== undefined && (
+              <Badge
+                variant="outline"
+                className="text-zinc-400 border-zinc-700 text-xs"
+              >
+                {latestResult.meta.totalItems} items
+              </Badge>
+            )}
+            {hasNextPage ? (
+              <Badge className="bg-amber-600/20 text-amber-400 border-amber-600/40 text-xs">
+                More pages available — click Resume
+              </Badge>
+            ) : (
+              <Badge className="bg-emerald-600/20 text-emerald-400 border-emerald-600/40 text-xs">
+                Extraction complete
+              </Badge>
+            )}
+          </div>
+
+          <p className="text-xs text-zinc-500">
             Click the button to see the result in JSON, Markdown, or HTML.
           </p>
         </Card>
       )}
 
-      {/* Add the modal at the end of the component */}
       <ResultViewerModal
+        key={modalKey}
         isOpen={isResultModalOpen}
         onClose={() => setIsResultModalOpen(false)}
-        result={latestResult}
+        result={latestResult ?? null}
       />
-      {/* Info Box (opzionale) */}
+
+      {/* Info Box */}
       <Card className="bg-zinc-900/50 border border-zinc-800 p-3">
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-emerald-500"></div>

@@ -1,93 +1,103 @@
-import * as fs from 'fs';
-import * as path from 'path';
-import { ExecuteApiUseCase } from '../Api/ExecuteApiUseCase';
-import { FormatDataService } from '../../services/FormatDataService';
-import { IConfigRepository } from '../../../domain/ports/IConfigRepository';
+import * as fs from "fs";
+import * as path from "path";
+import { ExecuteApiUseCase } from "../Api/ExecuteApiUseCase";
+import { FormatDataService } from "../../services/FormatDataService";
+import { IConfigRepository } from "../../../domain/ports/IConfigRepository";
 
-export type ExportFormat = 'json' | 'markdown';
+export type ExportFormat = "json" | "markdown";
 
 export class DownloadAllUseCase {
-  private outputDir = path.join(process.cwd(), 'output', 'temp');
+  private outputDir = path.join(process.cwd(), "output", "temp");
 
   constructor(
     private configRepo: IConfigRepository,
     private executeUseCase: ExecuteApiUseCase,
-    private formatService: FormatDataService
+    private formatService: FormatDataService,
   ) {
     if (!fs.existsSync(this.outputDir)) {
       fs.mkdirSync(this.outputDir, { recursive: true });
     }
   }
 
-  async execute(configName: string, format: ExportFormat = 'json'): Promise<string> {
+  async execute(
+    configName: string,
+    format: ExportFormat = "json",
+  ): Promise<string> {
     const config = await this.configRepo.findByName(configName);
     if (!config) throw new Error(`Configurazione "${configName}" non trovata`);
 
     //  FIX 1: Mappiamo "markdown" su ".md" per avere un'estensione file standard
-    const extension = format === 'markdown' ? 'md' : 'json';
-    
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const fileName = `${configName.replace(/\s+/g, '_')}_${timestamp}.${extension}`;
+    const extension = format === "markdown" ? "md" : "json";
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const fileName = `${configName.replace(/\s+/g, "_")}_${timestamp}.${extension}`;
     const filePath = path.join(this.outputDir, fileName);
 
     // --- SETUP FILE ---
-    if (format === 'json') {
-      fs.writeFileSync(filePath, '['); 
+    if (format === "json") {
+      fs.writeFileSync(filePath, "[");
     } else {
-      fs.writeFileSync(filePath, ''); 
+      fs.writeFileSync(filePath, "");
     }
 
     // --- SETUP LOOP ---
     const pagConfig = config.pagination;
     const isPaginated = !!pagConfig;
-    
-    let pageIndex = 0; 
+
+    let pageIndex = 0;
     let hasMore = true;
     let isFirstBatch = true;
     let totalDownloaded = 0;
-
 
     while (hasMore) {
       // 1. Costruzione Parametri
       let runtimeParams: Record<string, unknown> = {};
 
       if (isPaginated && pagConfig) {
-        const paramValue = pagConfig.type === 'page' 
-          ? pageIndex + 1 
-          : pageIndex * pagConfig.defaultLimit;
+        const paramValue =
+          pagConfig.type === "page"
+            ? pageIndex + 1
+            : pageIndex * pagConfig.defaultLimit;
 
         runtimeParams = {
           [pagConfig.paramName]: paramValue,
-          limit: pagConfig.defaultLimit // Assicuriamo il limit
+          limit: pagConfig.defaultLimit, // Assicuriamo il limit
         };
       } else {
         runtimeParams = { limit: 0 };
       }
 
       // 2. Esecuzione
-      const result = await this.executeUseCase.execute(configName, runtimeParams);
-      const batchData = result.data as any[];
-
+      const result = await this.executeUseCase.execute(
+        configName,
+        runtimeParams,
+      );
+      const batchData = result.data ?? [];
       if (!batchData || batchData.length === 0) {
         hasMore = false;
         break;
       }
 
       // 3. Scrittura su File
-      if (format === 'markdown') {
+      if (format === "markdown") {
         if (isFirstBatch) {
           // FIX 2: Passiamo solo il primo elemento (batchData[0]) per creare l'header
-          const header = this.formatService.getMarkdownHeader(batchData[0], config.selectedFields);
+          const header = this.formatService.getMarkdownHeader(
+            batchData[0] as any,
+            config.selectedFields,
+          );
           fs.appendFileSync(filePath, `# Report: ${configName}\n\n${header}\n`);
         }
-        const rows = this.formatService.toMarkdown(batchData, config.selectedFields);
+        const rows = this.formatService.toMarkdown(
+          batchData as Record<string, unknown>[],
+          config.selectedFields,
+        );
         fs.appendFileSync(filePath, rows + "\n");
-      
-      } else if (format === 'json') {
-        const prefix = isFirstBatch ? '' : ',';
+      } else if (format === "json") {
+        const prefix = isFirstBatch ? "" : ",";
         const jsonString = JSON.stringify(batchData);
-        const content = jsonString.slice(1, -1); 
-        
+        const content = jsonString.slice(1, -1);
+
         if (content.length > 0) {
           fs.appendFileSync(filePath, prefix + content);
         }
@@ -110,8 +120,8 @@ export class DownloadAllUseCase {
     }
 
     // --- CHIUSURA FILE ---
-    if (format === 'json') {
-      fs.appendFileSync(filePath, ']');
+    if (format === "json") {
+      fs.appendFileSync(filePath, "]");
     }
 
     return filePath;

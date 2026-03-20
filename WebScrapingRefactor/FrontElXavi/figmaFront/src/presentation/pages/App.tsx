@@ -50,12 +50,14 @@ export default function App() {
   // --- API EXECUTION CONTROLLER ---
   const {
     runExecution: runApiExecution,
+    resumeExecution: resumeApiExecution,
     logs: apiLogs,
     isLoadingLogs: isApiLogsLoading,
     refreshLogs: refreshApiLogs,
     removeLog: removeApiLog,
     downloadLogs: downloadApiLogs,
     isExecuting: isApiExecuting,
+    isResuming: isApiResuming,
     lastResult: lastApiResult,
     error: apiExecutionError,
     clearError: clearApiExecutionError,
@@ -75,12 +77,14 @@ export default function App() {
   // --- SCRAPING EXECUTION CONTROLLER ---
   const {
     execute: executeScraping,
+    resume: resumeScraping,
     logs: scrapingLogs,
     isLoadingLogs: isScrapingLogsLoading,
     fetchLogs: fetchScrapingLogs,
     deleteLog: deleteScrapingLog,
     downloadLogs: downloadScrapingLogs,
     isExecuting: isScrapingExecuting,
+    isResuming: isScrapingResuming,
     lastResult: lastScrapingResult,
     error: scrapingExecutionError,
     clearError: clearScrapingExecutionError,
@@ -233,6 +237,32 @@ export default function App() {
       }
     },
     [saveApiConfig, saveScrapingConfig, fetchApiConfigs, fetchScrapingConfigs],
+  );
+
+  const handleApiResumeWithFeedback = useCallback(
+    async (configId: string, maxPages?: number) => {
+      if (!configId) return;
+      try {
+        await resumeApiExecution(configId, maxPages);
+        toast.success("Resume API completato!");
+      } catch (error) {
+        console.error("Errore durante il resume:", error);
+      }
+    },
+    [resumeApiExecution],
+  );
+
+  const handleScrapingResumeWithFeedback = useCallback(
+    async (configId: string, maxPages?: number) => {
+      if (!configId) return;
+      try {
+        await resumeScraping(configId, maxPages);
+        toast.success("Resume scraping completato!");
+      } catch (error) {
+        console.error("Errore durante il resume:", error);
+      }
+    },
+    [resumeScraping],
   );
 
   const handleApiConfigClick = useCallback(
@@ -705,7 +735,9 @@ export default function App() {
         onUpdate={handleUpdateApiConfig}
         onDelete={handleApiDeleteClick}
         onExecute={handleApiExecuteWithFeedback}
+        onResume={handleApiResumeWithFeedback}
         isExecuting={isApiExecuting}
+        isResuming={isApiResuming}
         logs={apiLogs}
         isLoadingLogs={isApiLogsLoading}
         onRefreshLogs={() => {
@@ -738,7 +770,9 @@ export default function App() {
         onUpdate={handleUpdateScrapingConfig}
         onDelete={handleScrapingDeleteClick}
         onExecute={handleScrapingExecuteWithFeedback}
+        onResume={handleScrapingResumeWithFeedback}
         isExecuting={isScrapingExecuting}
+        isResuming={isScrapingResuming}    
         logs={scrapingLogs}
         isLoadingLogs={isScrapingLogsLoading}
         onRefreshLogs={() => {

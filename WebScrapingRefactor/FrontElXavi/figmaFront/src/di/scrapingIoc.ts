@@ -26,16 +26,38 @@ const scrapingExecutionRepository = new ScrapingExecutionRepository(httpClient);
 const scrapingAnalysisRepository = new ScrapingAnalysisRepository(httpClient);
 
 // Export use cases
-export const getScrapingConfigsUseCase = new GetScrapingConfigsUseCase(scrapingConfigRepository);
-export const getScrapingConfigByIdUseCase = new GetScrapingConfigByIdUseCase(scrapingConfigRepository);
-export const saveScrapingConfigUseCase = new SaveScrapingConfigUseCase(scrapingConfigRepository);
-export const updateScrapingConfigUseCase = new UpdateScrapingConfigUseCase(scrapingConfigRepository);
-export const deleteScrapingConfigUseCase = new DeleteScrapingConfigUseCase(scrapingConfigRepository);
+export const getScrapingConfigsUseCase = new GetScrapingConfigsUseCase(
+  scrapingConfigRepository,
+);
+export const getScrapingConfigByIdUseCase = new GetScrapingConfigByIdUseCase(
+  scrapingConfigRepository,
+);
+export const saveScrapingConfigUseCase = new SaveScrapingConfigUseCase(
+  scrapingConfigRepository,
+);
+export const updateScrapingConfigUseCase = new UpdateScrapingConfigUseCase(
+  scrapingConfigRepository,
+);
+export const deleteScrapingConfigUseCase = new DeleteScrapingConfigUseCase(
+  scrapingConfigRepository,
+);
 
-export const executeScrapingByNameUseCase = new ExecuteScrapingByNameUseCase(scrapingExecutionRepository);
-export const fetchScrapingLogsUseCase = new FetchScrapingLogsUseCase(scrapingExecutionRepository);
-export const deleteScrapingExecutionUseCase = new DeleteScrapingExecutionUseCase(scrapingExecutionRepository);
-export const downloadScrapingLogsUseCase = new DownloadScrapingLogsUseCase(scrapingExecutionRepository);
+export const executeScrapingByNameUseCase = new ExecuteScrapingByNameUseCase(
+  scrapingExecutionRepository,
+);
+export const fetchScrapingLogsUseCase = new FetchScrapingLogsUseCase(
+  scrapingExecutionRepository,
+);
+export const deleteScrapingExecutionUseCase =
+  new DeleteScrapingExecutionUseCase(scrapingExecutionRepository);
+export const downloadScrapingLogsUseCase = new DownloadScrapingLogsUseCase(
+  scrapingExecutionRepository,
+);
 
-export const analyzeScrapingUseCase = new AnalyzeScrapingUseCase(scrapingAnalysisRepository);
-export const analyzeScrapingByIdUseCase = new AnalyzeScrapingByIdUseCase(scrapingAnalysisRepository);
+export const analyzeScrapingUseCase = new AnalyzeScrapingUseCase(
+  scrapingAnalysisRepository,
+);
+export const analyzeScrapingByIdUseCase = new AnalyzeScrapingByIdUseCase(
+  scrapingAnalysisRepository,
+);
+export { scrapingExecutionRepository };

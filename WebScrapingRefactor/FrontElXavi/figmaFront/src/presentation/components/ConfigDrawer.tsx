@@ -17,22 +17,26 @@ import { ConfigurationTab } from "./drawer/ConfigurationTab";
 import { ExecuteTab } from "./drawer/ExecuteTab";
 import { HistoryTab } from "./drawer/HistoryTab";
 
-
 interface ConfigDrawerProps {
   isOpen: boolean;
   config: ApiConfig | null;
   onClose: () => void;
   onUpdate: (config: ApiConfig) => Promise<void>;
-  onDelete: (config: ApiConfig) => void; // Modifica: ora riceve l'intero config
-  // Props per Execution (dal controller Execution)
-  onExecute: (configId: string, params?: any) => Promise<void>;
+  onDelete: (config: ApiConfig) => void;
+  // Execution
+  onExecute: (
+    configId: string,
+    params?: Record<string, unknown>,
+  ) => Promise<void>;
+  onResume: (configId: string, maxPages?: number) => Promise<void>;
   isExecuting: boolean;
+  isResuming: boolean;
   logs: ExecutionHistory[];
   isLoadingLogs: boolean;
   onRefreshLogs: () => void;
   onDeleteLog: (logId: string) => Promise<void>;
   onDownload: (format: "json" | "markdown") => void;
-  lastResult?: any;
+  lastResult?: Record<string, unknown>;
 }
 
 type TabType = "configuration" | "execute" | "history";
@@ -44,7 +48,9 @@ export function ConfigDrawer({
   onUpdate,
   onDelete,
   onExecute,
+  onResume,
   isExecuting,
+  isResuming,
   logs,
   isLoadingLogs,
   onRefreshLogs,
@@ -135,60 +141,60 @@ export function ConfigDrawer({
             </TabsList>
           </div>
 
-         {/* Tab Content Area */}
-<div className="flex-1 relative min-h-0">
+          {/* Tab Content Area */}
+          <div className="flex-1 relative min-h-0">
+            <TabsContent
+              value="configuration"
+              className="m-0 absolute inset-0 data-[state=inactive]:hidden"
+            >
+              <div className="absolute inset-0 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-transparent">
+                <div className="p-6 w-full min-w-0">
+                  <ConfigurationTab
+                    config={editedConfig}
+                    onUpdate={handleConfigUpdate}
+                    onDelete={onDelete}
+                  />
+                </div>
+              </div>
+            </TabsContent>
 
-  <TabsContent 
-    value="configuration" 
-    className="m-0 absolute inset-0 data-[state=inactive]:hidden"
-  >
-    <div className="absolute inset-0 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-transparent">
-      <div className="p-6 w-full min-w-0">
-        <ConfigurationTab
-          config={editedConfig}
-          onUpdate={handleConfigUpdate}
-          onDelete={onDelete} 
-        />
-      </div>
-    </div>
-  </TabsContent>
+            <TabsContent
+              value="execute"
+              className="m-0 absolute inset-0 data-[state=inactive]:hidden"
+            >
+              <div className="absolute inset-0 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-transparent">
+                <div className="p-6 w-full min-w-0">
+                  <ExecuteTab
+                    config={editedConfig}
+                    onUpdate={handleConfigUpdate}
+                    onExecute={onExecute}
+                    onResume={onResume}
+                    isExecuting={isExecuting}
+                    isResuming={isResuming}
+                    lastLogs={logs.slice(0, 3)}
+                    lastExecutionResult={lastResult}
+                  />
+                </div>
+              </div>
+            </TabsContent>
 
-  <TabsContent 
-    value="execute" 
-    className="m-0 absolute inset-0 data-[state=inactive]:hidden"
-  >
-    <div className="absolute inset-0 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-transparent">
-      <div className="p-6 w-full min-w-0">
-        <ExecuteTab
-          config={editedConfig}
-          onUpdate={handleConfigUpdate}
-          onExecute={onExecute}
-          isExecuting={isExecuting}
-          lastLogs={logs.slice(0, 3)}
-          lastExecutionResult={lastResult}
-        />
-      </div>
-    </div>
-  </TabsContent>
-
-  <TabsContent 
-    value="history" 
-    className="m-0 absolute inset-0 data-[state=inactive]:hidden"
-  >
-    <div className="absolute inset-0 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-transparent">
-      <div className="p-6 w-full min-w-0">
-        <HistoryTab
-          logs={logs}
-          isLoading={isLoadingLogs}
-          onRefresh={onRefreshLogs}
-          onDeleteLog={onDeleteLog}
-          onDownload={onDownload}
-        />
-      </div>
-    </div>
-  </TabsContent>
-
-</div>
+            <TabsContent
+              value="history"
+              className="m-0 absolute inset-0 data-[state=inactive]:hidden"
+            >
+              <div className="absolute inset-0 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-transparent">
+                <div className="p-6 w-full min-w-0">
+                  <HistoryTab
+                    logs={logs}
+                    isLoading={isLoadingLogs}
+                    onRefresh={onRefreshLogs}
+                    onDeleteLog={onDeleteLog}
+                    onDownload={onDownload}
+                  />
+                </div>
+              </div>
+            </TabsContent>
+          </div>
         </Tabs>
       </SheetContent>
     </Sheet>

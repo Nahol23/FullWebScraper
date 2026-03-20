@@ -1,19 +1,18 @@
-import { IScrapingPort} from "../../../domain/ports/IScrapingPort";
+import type { IScrapingPort } from "../../../domain/ports/IScrapingPort";
 import type { ScrapingConfig, ScrapingRuntimeParams } from "../../../domain/entities/ScrapingConfig";
+import type { IScrapingExecutionRepository } from "../../../domain/ports/ScrapingConfig/IScrapingExecutionRepository";
+import type { IScrapingConfigRepository } from "../../../domain/ports/ScrapingConfig/IScrapingConfigRepository";
 import { ConfigNotFoundError } from "../../../domain/errors/AppError";
-import { randomUUID } from "crypto";
-import { IScrapingExecutionRepository } from "../../../domain/ports/ScrapingConfig/IScrapingExecutionRepository";
-import { IScrapingConfigRepository } from "../../../domain/ports/ScrapingConfig/IScrapingConfigRepository";
 import { ScrapingDataNormalizer } from "../../../domain/services/ScrapingDataNormalizer";
-import { PaginationStrategyFactory } from "../../../domain/services/pagination/PaginationStrategyFactory";
+import { randomUUID } from "crypto";
 
 export interface ExecuteScrapingResult {
   data: Record<string, unknown>[];
+  /** null = scraping completato | stringa = URL per il resume */
+  nextPageUrl: string | null;
   meta: {
-    totalPages?: number;
-    currentPage?: number;
-    itemsPerPage?: number;
-    totalItems?: number;
+    pagesScraped: number;
+    totalItems: number;
   };
 }
 
@@ -26,7 +25,10 @@ export class ExecuteScrapingUseCase {
     private readonly scrapingAdapter: IScrapingPort,
   ) {}
 
-  async execute(configId: string, runtimeParams?: ScrapingRuntimeParams): Promise<ExecuteScrapingResult> {
+  async execute(
+    configId: string,
+    runtimeParams?: ScrapingRuntimeParams,
+  ): Promise<ExecuteScrapingResult> {
     const config = await this.scrapingConfigRepository.getById(configId);
     if (!config) {
       throw new ConfigNotFoundError(configId, "Scraping configuration");
@@ -48,6 +50,8 @@ export class ExecuteScrapingUseCase {
         resultCount: result.data.length,
         status: "success",
         duration: Date.now() - startTime,
+        nextPageUrl: result.nextPageUrl,
+        pagesScraped: result.meta.pagesScraped,
       });
 
       return result;
@@ -65,82 +69,87 @@ export class ExecuteScrapingUseCase {
         status: "error",
         errorMessage: message,
         duration: Date.now() - startTime,
+        nextPageUrl: null,
+        pagesScraped: 0,
       });
 
       throw error;
     }
   }
 
+  /**
+   * L'adapter gestisce interamente il loop di paginazione e il resume.
+   * Il use case chiama scrape() una sola volta con la config completa.
+   */
   private async runScraping(config: ScrapingConfig): Promise<ExecuteScrapingResult> {
-    const paginationStrategy = PaginationStrategyFactory.create(config.pagination);
-    const maxPages = config.pagination?.maxPages ?? 1;
+    const { items, nextPageUrl, pagesScraped } = await this.scrapingAdapter.scrape({
+      url: config.url,
+      method: config.method,
+      headers: config.headers,
+      body: config.body,
+      waitForSelector: config.waitForSelector,
+      rules: config.rules,
+      useJavaScript: !!(
+        config.waitForSelector || config.pagination?.type === "nextSelector"
+      ),
+      containerSelector: config.containerSelector,
+      pagination: config.pagination,
+    });
 
-    let allData: Record<string, unknown>[] = [];
-    let currentPage = 1;
-    let nextUrl: string | null = config.url;
-
-    while (nextUrl && currentPage <= maxPages) {
-      const options = {
-        url: nextUrl,
-        method: config.method,
-        headers: config.headers,
-        body: config.body,
-        waitForSelector: config.waitForSelector,
-        rules: config.rules,
-        useJavaScript: !!(config.waitForSelector || config.pagination?.type === "nextSelector"),
-        containerSelector: config.containerSelector,
-      };
-
-      const pageData = await this.scrapingAdapter.scrape(options);
-     
-      const items = this.normalizer.normalize(pageData, config.rules, config.containerSelector);
-      allData = allData.concat(items);
-
-      nextUrl = paginationStrategy ? await paginationStrategy.getNextUrl(nextUrl) : null;
-      currentPage++;
-    }
+    const data = this.normalizer.normalize(items, config.rules, config.containerSelector);
 
     return {
-      data: allData,
+      data,
+      nextPageUrl,
       meta: {
-        totalPages: currentPage - 1,
-        currentPage: 1,
-        itemsPerPage: allData.length,
-        totalItems: allData.length,
+        pagesScraped,
+        totalItems: data.length,
       },
     };
   }
 
-  private mergeRuntimeParams(config: ScrapingConfig, runtimeParams?: ScrapingRuntimeParams): ScrapingConfig {
+  /**
+   * Fonde la config salvata con i runtimeParams della singola esecuzione.
+   * startPage e resumeFromUrl vengono propagati nella pagination config
+   * in modo che ScrapingAdapter.resolveStartUrl() li legga correttamente.
+   */
+  private mergeRuntimeParams(
+    config: ScrapingConfig,
+    runtimeParams?: ScrapingRuntimeParams,
+  ): ScrapingConfig {
     if (!runtimeParams) return config;
 
     const maxPages = runtimeParams.maxPages ?? config.defaultRuntimeParams?.maxPages;
 
-    const mergedPagination: ScrapingConfig["pagination"] = config.pagination
+    const basePagination = config.pagination;
+    const mergedPagination: ScrapingConfig["pagination"] = basePagination
       ? {
-          type: config.pagination.type,
-          selector: config.pagination.selector,
-          paramName: config.pagination.paramName,
-          maxPages: maxPages ?? config.pagination.maxPages,
+          type: basePagination.type,
+          selector: basePagination.selector,
+          paramName: basePagination.paramName,
+          maxPages: maxPages ?? basePagination.maxPages,
+          // resume fields
+          startPage: runtimeParams.startPage,
+          resumeFromUrl: runtimeParams.resumeFromUrl,
         }
       : maxPages !== undefined
         ? { type: "urlParam", maxPages }
         : undefined;
 
     return {
-      id: config.id,
-      name: config.name,
-      url: config.url,
-      method: config.method,
-      headers: config.headers,
-      body: config.body,
-      dataPath: config.dataPath,
-      createdAt: config.createdAt,
-      updatedAt: config.updatedAt,
-      defaultRuntimeParams: config.defaultRuntimeParams,
-      waitForSelector: runtimeParams.waitForSelector ?? config.defaultRuntimeParams?.waitForSelector ?? config.waitForSelector,
-      rules: runtimeParams.rules ?? config.defaultRuntimeParams?.rules ?? config.rules,
-      containerSelector: runtimeParams.containerSelector ?? config.defaultRuntimeParams?.containerSelector ?? config.containerSelector,
+      ...config,
+      waitForSelector:
+        runtimeParams.waitForSelector ??
+        config.defaultRuntimeParams?.waitForSelector ??
+        config.waitForSelector,
+      rules:
+        runtimeParams.rules ??
+        config.defaultRuntimeParams?.rules ??
+        config.rules,
+      containerSelector:
+        runtimeParams.containerSelector ??
+        config.defaultRuntimeParams?.containerSelector ??
+        config.containerSelector,
       pagination: mergedPagination,
     };
   }
