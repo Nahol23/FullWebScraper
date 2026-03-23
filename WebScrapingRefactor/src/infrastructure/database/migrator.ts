@@ -22,6 +22,7 @@ import * as path from 'path'
 import { promises as fs } from 'fs'
 import { Kysely, Migrator, FileMigrationProvider } from 'kysely'
 import { Database } from './types'
+import { getAppRootDir } from '../utils/paths'
 
 export async function runMigrations(db: Kysely<Database>): Promise<void> {
   const migrator = new Migrator({
@@ -29,8 +30,7 @@ export async function runMigrations(db: Kysely<Database>): Promise<void> {
     provider: new FileMigrationProvider({
       fs,
       path,
-      // Docs: "This needs to be an absolute path."
-      migrationFolder: path.join(__dirname, 'migrations'),
+      migrationFolder: path.join(getAppRootDir(), 'migrations'),
     }),
   })
 

@@ -32,6 +32,17 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+
+    "externalBin": [
+      "binaries/data-manager-backend"
+    ],
+    "resources": {
+  "../../../bin/static": "static",
+  "../../../bin/migrations": "migrations",
+  "../../../bin/node_modules/better-sqlite3": "node_modules/better-sqlite3",
+  "../../../bin/node_modules/puppeteer": "node_modules/puppeteer",
+  "../../../bin/node_modules/@puppeteer": "node_modules/@puppeteer"
+}
   }
 }

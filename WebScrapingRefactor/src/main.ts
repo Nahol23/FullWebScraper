@@ -3,12 +3,14 @@ import Fastify from "fastify";
 import cors from "@fastify/cors";
 import swagger from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
+import path from "path";
 
 import { configRoutes } from "./presentation/http/routes/configRoute";
 import { scrapingRoutes } from "./presentation/http/routes/scrapingRoutes";
 import { errorHandler } from "./presentation/http/middleware/errorHandler";
 import {db} from "./infrastructure/database/database"
 import { runMigrations } from "./infrastructure/database/migrator";
+import { getAppRootDir } from "./infrastructure/utils/paths";
 
 export async function buildServer() {
   const server = Fastify({
@@ -43,6 +45,7 @@ export async function buildServer() {
   await server.register(swaggerUi as any, {
     routePrefix: "/docs",
     staticCSP: false,
+    baseDir: path.join(getAppRootDir(), 'static'),
   });
 
   // Registra le rotte esistenti per le configurazioni API
