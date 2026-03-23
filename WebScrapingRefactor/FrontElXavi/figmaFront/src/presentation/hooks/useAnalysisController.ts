@@ -17,16 +17,8 @@ export function useAnalysisController() {
       setIsAnalyzing(true);
       setError(null);
       try {
-        console.log(
-          "[useAnalysisController] Starting analysis with options:",
-          options,
-        );
+        
         const result = await analyzeApiUseCase.execute(options);
-        console.log("[useAnalysisController] Analysis result:", result);
-        console.log(
-          "[useAnalysisController] discoveredSchema:",
-          result?.discoveredSchema,
-        );
         setLastAnalysis(result);
         return result;
       } catch (err: any) {

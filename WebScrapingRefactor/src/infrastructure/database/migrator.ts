@@ -14,7 +14,7 @@
  *        migrateToLatest from multiple server instances simultaneously and
  *        the migrations are guaranteed to only be executed once."
  *
- * ⚠️  Non chiamare db.destroy() qui — il singleton db serve per tutta
+ *  ## Non chiamare db.destroy() qui — il singleton db serve per tutta
  *     la vita del server. destroy() va chiamato solo nello graceful shutdown.
  */
 

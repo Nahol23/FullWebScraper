@@ -6,4 +6,6 @@ export interface Execution {
   resultCount: number;
   status: "success" | "error";
   errorMessage ?: string;
+  nextPageUrl: string | null;
+  pagesScraped: number;
 }

@@ -20,7 +20,6 @@ export class CreateAnalysisUseCase {
     body?: any,
     headers?: Record<string, string>,
   ): Promise<Analysis> {
-    console.log("[CreateAnalysisUseCase] Starting with:", { url, method, body, headers });
     const rawResponse = (await this.apiPort.request({
       url,
       method,
@@ -28,14 +27,11 @@ export class CreateAnalysisUseCase {
       headers,
     })) as any;
 
-    console.log("[CreateAnalysisUseCase] Raw API response:", rawResponse);
 
     const dataPath = findFirstArrayPath(rawResponse) || "";
-    console.log("[CreateAnalysisUseCase] Extracted dataPath:", dataPath);
 
     // Ottieni tutti i campi dall'intera risposta
     const allFields = parseJsonFields(rawResponse);
-    console.log("[CreateAnalysisUseCase] Parsed fields (full):", allFields);
 
     // Calcola i campi suggeriti in base al dataPath
     let suggestedFields = allFields;
@@ -57,7 +53,6 @@ export class CreateAnalysisUseCase {
       }
     }
 
-    console.log("[CreateAnalysisUseCase] Suggested fields (relative):", suggestedFields);
 
     const analysis: Analysis = {
       id: crypto.randomUUID(),
@@ -74,7 +69,6 @@ export class CreateAnalysisUseCase {
       createdAt: new Date(),
     };
 
-    console.log("[CreateAnalysisUseCase] Created analysis object:", JSON.stringify(analysis, null, 2));
 
     await this.analysisRepo.save(analysis);
     return analysis;

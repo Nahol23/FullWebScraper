@@ -8,10 +8,13 @@ import type { GetScrapingConfigByNameUseCase } from "../../../application/usecas
 import type { UpdateScrapingConfigUseCase } from "../../../application/usecases/Scraping/UpdateScrapingConfigUseCase";
 import type { DeleteScrapingConfigUseCase } from "../../../application/usecases/Scraping/DeleteScrapingConfigUseCase";
 import type { AnalyzeScrapingUseCase } from "../../../application/usecases/Scraping/AnalyzeScrapingUsecase";
-import type { ScrapingConfig, ScrapingRuntimeParams } from "../../../domain/entities/ScrapingConfig";
+import type {
+  ScrapingConfig,
+  ScrapingRuntimeParams,
+} from "../../../domain/entities/ScrapingConfig";
 import type { IScrapingExecutionRepository } from "../../../domain/ports/ScrapingConfig/IScrapingExecutionRepository";
 import type { IScrapingAnalysisRepository } from "../../../domain/ports/ScrapingConfig/IScrapingAnalysisRepository";
-
+import { ResumeScrapingUseCase } from "../../../application/usecases/Scraping/ResumeScrapingUseCase";
 
 export interface ScrapingControllerDeps {
   executeScrapingUseCase: ExecuteScrapingUseCase;
@@ -23,9 +26,9 @@ export interface ScrapingControllerDeps {
   deleteUseCase: DeleteScrapingConfigUseCase;
   analyzeUseCase: AnalyzeScrapingUseCase;
   executionRepo: IScrapingExecutionRepository;
-  analysisRepo: IScrapingAnalysisRepository; 
+  analysisRepo: IScrapingAnalysisRepository;
+  resumeScrapingUseCase: ResumeScrapingUseCase;
 }
-
 
 export class ScrapingController {
   constructor(private readonly deps: ScrapingControllerDeps) {}
@@ -45,7 +48,9 @@ export class ScrapingController {
   ) => {
     const config = await this.deps.getByIdUseCase.execute(req.params.id);
     if (!config) {
-      return reply.status(404).send({ error: "Configurazione scraping non trovata" });
+      return reply
+        .status(404)
+        .send({ error: "Configurazione scraping non trovata" });
     }
     return reply.send(config);
   };
@@ -78,7 +83,9 @@ export class ScrapingController {
       ...req.body,
       updatedAt: new Date(),
     });
-    return reply.status(200).send({ message: "Configurazione scraping aggiornata" });
+    return reply
+      .status(200)
+      .send({ message: "Configurazione scraping aggiornata" });
   };
 
   delete = async (
@@ -103,7 +110,9 @@ export class ScrapingController {
       return reply.send(executions);
     } catch (error) {
       _req.log.error(error);
-      return reply.status(500).send({ error: "Errore nel recupero delle esecuzioni" });
+      return reply
+        .status(500)
+        .send({ error: "Errore nel recupero delle esecuzioni" });
     }
   };
 
@@ -123,7 +132,9 @@ export class ScrapingController {
       return reply.send(execution);
     } catch (error) {
       req.log.error(error);
-      return reply.status(500).send({ error: "Errore nel recupero dell'esecuzione" });
+      return reply
+        .status(500)
+        .send({ error: "Errore nel recupero dell'esecuzione" });
     }
   };
 
@@ -140,7 +151,10 @@ export class ScrapingController {
       if (!configId) {
         return reply.status(400).send({ error: "configId is required" });
       }
-      const result = await this.deps.executeScrapingUseCase.execute(configId, runtimeParams);
+      const result = await this.deps.executeScrapingUseCase.execute(
+        configId,
+        runtimeParams,
+      );
       return reply.status(201).send(result);
     } catch (error) {
       req.log.error(error);
@@ -168,11 +182,17 @@ export class ScrapingController {
         return reply.status(404).send({ error: "Configurazione non trovata" });
       }
 
-      const executions = await this.deps.executionRepo.findByConfigId(config.id, limit, offset);
+      const executions = await this.deps.executionRepo.findByConfigId(
+        config.id,
+        limit,
+        offset,
+      );
       return reply.send(executions);
     } catch (error) {
       req.log.error(error);
-      return reply.status(500).send({ error: "Errore nel recupero delle esecuzioni" });
+      return reply
+        .status(500)
+        .send({ error: "Errore nel recupero delle esecuzioni" });
     }
   };
 
@@ -196,11 +216,17 @@ export class ScrapingController {
         return reply.status(404).send({ error: "Configurazione non trovata" });
       }
 
-      const executions = await this.deps.executionRepo.findByConfigId(configId, limit, offset);
+      const executions = await this.deps.executionRepo.findByConfigId(
+        configId,
+        limit,
+        offset,
+      );
       return reply.send(executions);
     } catch (error) {
       req.log.error(error);
-      return reply.status(500).send({ error: "Errore nel recupero delle esecuzioni" });
+      return reply
+        .status(500)
+        .send({ error: "Errore nel recupero delle esecuzioni" });
     }
   };
 
@@ -217,7 +243,9 @@ export class ScrapingController {
       return reply.status(204).send();
     } catch (error) {
       req.log.error(error);
-      return reply.status(500).send({ error: "Errore nell'eliminazione dell'esecuzione" });
+      return reply
+        .status(500)
+        .send({ error: "Errore nell'eliminazione dell'esecuzione" });
     }
   };
 
@@ -225,7 +253,10 @@ export class ScrapingController {
    * POST /scraping/configs/:id/execute  (kept for backwards compat)
    */
   execute = async (
-    req: FastifyRequest<{ Params: { id: string }; Body: ScrapingRuntimeParams }>,
+    req: FastifyRequest<{
+      Params: { id: string };
+      Body: ScrapingRuntimeParams;
+    }>,
     reply: FastifyReply,
   ) => {
     try {
@@ -244,16 +275,53 @@ export class ScrapingController {
    * POST /scraping/configs/by-name/:configName/execute  (kept for backwards compat)
    */
   executeByName = async (
-    req: FastifyRequest<{ Params: { configName: string }; Body: ScrapingRuntimeParams }>,
+    req: FastifyRequest<{
+      Params: { configName: string };
+      Body: ScrapingRuntimeParams;
+    }>,
     reply: FastifyReply,
   ) => {
     try {
-      const config = await this.deps.getByNameUseCase.execute(req.params.configName);
+      const config = await this.deps.getByNameUseCase.execute(
+        req.params.configName,
+      );
       if (!config) {
         return reply.status(404).send({ error: "Configurazione non trovata" });
       }
-      const result = await this.deps.executeScrapingUseCase.execute(config.id, req.body);
+      const result = await this.deps.executeScrapingUseCase.execute(
+        config.id,
+        req.body,
+      );
       return reply.send(result);
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: (error as Error).message });
+    }
+  };
+  resumeExecution = async (
+    req: FastifyRequest<{
+      Params: { configId: string };
+      Body: { maxPages?: number };
+    }>,
+    reply: FastifyReply,
+  ) => {
+    try {
+      const result = await this.deps.resumeScrapingUseCase.execute(
+        req.params.configId,
+        req.body?.maxPages,
+      );
+
+      if (result.alreadyComplete) {
+        // FIX: manda struttura completa — il frontend legge `data` e `nextPageUrl`
+        return reply.status(200).send({
+          alreadyComplete: true,
+          data: [],
+          nextPageUrl: null,
+          meta: { pagesScraped: 0, totalItems: 0 },
+        });
+      }
+
+      return reply.status(200).send(result);
     } catch (error) {
       req.log.error(error);
       return reply.status(500).send({ error: (error as Error).message });
@@ -274,7 +342,9 @@ export class ScrapingController {
       return reply.send(analyses);
     } catch (error) {
       _req.log.error(error);
-      return reply.status(500).send({ error: "Errore nel recupero delle analisi" });
+      return reply
+        .status(500)
+        .send({ error: "Errore nel recupero delle analisi" });
     }
   };
 
@@ -294,7 +364,9 @@ export class ScrapingController {
       return reply.send(analysis);
     } catch (error) {
       req.log.error(error);
-      return reply.status(500).send({ error: "Errore nel recupero dell'analisi" });
+      return reply
+        .status(500)
+        .send({ error: "Errore nel recupero dell'analisi" });
     }
   };
 
@@ -341,7 +413,9 @@ export class ScrapingController {
       return reply.status(204).send();
     } catch (error) {
       req.log.error(error);
-      return reply.status(500).send({ error: "Errore nell'eliminazione dell'analisi" });
+      return reply
+        .status(500)
+        .send({ error: "Errore nell'eliminazione dell'analisi" });
     }
   };
 
@@ -393,7 +467,9 @@ export class ScrapingController {
         return reply.status(404).send({ error: "Configurazione non trovata" });
       }
 
-      const executions = await this.deps.executionRepo.findByConfigId(config.id);
+      const executions = await this.deps.executionRepo.findByConfigId(
+        config.id,
+      );
 
       let content: string;
       let contentType: string;
@@ -414,7 +490,9 @@ export class ScrapingController {
       return reply.send(content);
     } catch (error) {
       request.log.error(error);
-      return reply.status(500).send({ error: "Errore nella generazione del file" });
+      return reply
+        .status(500)
+        .send({ error: "Errore nella generazione del file" });
     }
   };
 

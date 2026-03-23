@@ -10,12 +10,17 @@ import {
 import { Button } from "./ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { FileJson, FileText, FileCode } from "lucide-react";
-import type { ExecutionResult } from "../../domain/entities/ExecutionResult";
+//import type { ExecutionResult } from "../../domain/entities/ExecutionResult";
 
 interface ResultViewerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  result: ExecutionResult | null;
+  result: {
+    data?: unknown;
+    contentType?: string;
+    nextPageUrl?: string | null;
+    meta?: { pagesScraped?: number; totalItems?: number };
+  } | null;
 }
 function safeMarkdownCell(value: any): string {
   if (value === null || value === undefined) return '';

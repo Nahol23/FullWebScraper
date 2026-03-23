@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 import { ApiConfig } from "../../../domain/entities/ApiConfig";
 import { ExecuteApiUseCase } from "../../../application/usecases/Api/ExecuteApiUseCase";
+import { ResumeApiUseCase } from "../../../application/usecases/Api/ResumeApiUseCase";
 import * as fs from "fs";
 
 import { UpdateConfigUseCase } from "../../../application/usecases/Configs/UpdateConfigUseCase";
@@ -30,6 +31,7 @@ export class ConfigController {
     private saveConfigUseCase: SaveConfigUseCase,
     private deleteConfigUseCase: DeleteConfigUseCase,
     private executeApiUseCase: ExecuteApiUseCase,
+    private resumeApiUseCase: ResumeApiUseCase,
     private createAnalysisUseCase: CreateAnalysisUseCase,
     private getAllAnalysesUseCase: GetAllAnalysesUseCase,
     private getAllExecutionsUseCase: GetAllExecutionsUseCase,
@@ -37,6 +39,8 @@ export class ConfigController {
     private deleteExecutionUsecase: DeleteExecutionUseCase,
     private downloadAllUseCase: DownloadAllUseCase,
   ) {}
+
+  // ── CONFIGS CRUD ───────────────────────────────────────────────────────────
 
   getAll = async (_req: FastifyRequest, reply: FastifyReply) => {
     const configs = await this.getAllConfigsUseCase.execute();
@@ -54,7 +58,6 @@ export class ConfigController {
     return reply.send(config);
   };
 
-  // Recupero per nome (mantenuto per compatibilità)
   getOne = async (
     req: FastifyRequest<{ Params: { name: string } }>,
     reply: FastifyReply,
@@ -70,10 +73,7 @@ export class ConfigController {
     req: FastifyRequest<{ Body: ApiConfig }>,
     reply: FastifyReply,
   ) => {
-    const config = {
-      ...req.body,
-      id: randomUUID(),
-    };
+    const config = { ...req.body, id: randomUUID() };
     await this.saveConfigUseCase.execute(config);
     return reply.status(201).send(config);
   };
@@ -83,11 +83,8 @@ export class ConfigController {
     reply: FastifyReply,
   ) => {
     const { id } = req.params;
-    //const updates = req.body;
     await this.updateConfigUseCase.execute(id, req.body);
-    return reply
-      .status(200)
-      .send({ message: "Configurazione aggiornata con successo" });
+    return reply.status(200).send({ message: "Configurazione aggiornata con successo" });
   };
 
   delete = async (
@@ -99,78 +96,46 @@ export class ConfigController {
     return reply.status(204).send();
   };
 
-  getAllAnalyses = async (request: FastifyRequest, reply: FastifyReply) => {
+  // ── ANALYSIS ───────────────────────────────────────────────────────────────
+
+  getAllAnalyses = async (_req: FastifyRequest, reply: FastifyReply) => {
     const analyses = await this.getAllAnalysesUseCase.execute();
     return reply.status(200).send(analyses);
   };
 
-  getAllExecutions = async (request: FastifyRequest, reply: FastifyReply) => {
+  analyze = async (
+  request: FastifyRequest<{
+    Body: { url: string; method: "GET" | "POST"; body?: unknown; headers?: Record<string, string> };
+  }>,
+  reply: FastifyReply,
+) => {
+  const { url, method, body, headers } = request.body;
+  const result = await this.createAnalysisUseCase.execute(url, method, body, headers);
+  const plainResult = JSON.parse(JSON.stringify(result));
+  reply.status(200).send(plainResult);
+  return;
+};
+
+  // ── EXECUTIONS ─────────────────────────────────────────────────────────────
+
+  getAllExecutions = async (_req: FastifyRequest, reply: FastifyReply) => {
     const executions = await this.getAllExecutionsUseCase.execute();
     return reply.status(200).send(executions);
   };
-  patchSelectedFields = async (req: any, reply: any) => {
-    const { name } = req.params;
-    const { selectedFields } = req.body;
 
-    await this.updateConfigUseCase.execute(name, { selectedFields });
-
-    return reply.status(200).send({ message: "selectedFields aggiornati" });
-  };
-
-  patchPagination = async (req: any, reply: any) => {
-    const { name } = req.params;
-    const updates = req.body;
-
-    await this.updateConfigUseCase.execute(name, updates);
-
-    return reply.status(200).send({ message: "Paginazione aggiornata" });
-  };
-
-  analyze = async (
-    request: FastifyRequest<{
-      Body: { url: string; method: "GET" | "POST"; body?: any; headers?: any };
-    }>,
+  getExecutionsByConfig = async (
+    req: FastifyRequest<{ Params: { configId: string } }>,
     reply: FastifyReply,
   ) => {
-    console.log(
-      "[ConfigController.analyze] Body ricevuto:",
-      JSON.stringify(request.body, null, 2),
-    );
-    const { url, method, body, headers } = request.body;
-    console.log("[ConfigController.analyze] Params extracted:", {
-      url,
-      method,
-      body,
-      headers,
-    });
-    const result = await this.createAnalysisUseCase.execute(
-      url,
-      method,
-      body,
-      headers,
-    );
-    console.log(
-      "[ConfigController.analyze] Result from use case:",
-      JSON.stringify(result, null, 2),
-    );
-    const plainResult = JSON.parse(JSON.stringify(result));
-    console.log(
-      "[ConfigController.analyze] Converted to plain object:",
-      JSON.stringify(plainResult, null, 2),
-    );
-    console.log(
-      "[ConfigController.analyze] About to send response with status 200",
-    );
-    reply.status(200).send(plainResult);
-    console.log("[ConfigController.analyze] Response sent");
-    return;
+    const { configId } = req.params;
+    const results = await this.getAllExecutionByconfigUsecase.execute(configId);
+    return reply.status(200).send(results);
   };
-
 
   execute = async (
     request: FastifyRequest<{
       Params: { name: string };
-      Body: Record<string, any>;
+      Body: Record<string, unknown>;
     }>,
     reply: FastifyReply,
   ) => {
@@ -181,24 +146,43 @@ export class ConfigController {
       return reply.status(200).send(result);
     } catch (error) {
       request.log.error(
-        {
-          err: error,
-          params: request.params,
-          body: request.body,
-        },
+        { err: error, params: request.params, body: request.body },
         "[ConfigController.execute] Errore durante execute",
       );
       throw error;
     }
   };
-  getExecutionsByConfig = async (
-    req: FastifyRequest<{ Params: { configId: string } }>,
+
+  /**
+   * POST /executions/resume/:configId
+   * Reads nextPageUrl from the last execution automatically and resumes from there.
+   * Returns { alreadyComplete: true } if scraping is already finished.
+   */
+  resumeExecution = async (
+    req: FastifyRequest<{ Params: { configId: string }; Body: { maxPages?: number } }>,
     reply: FastifyReply,
   ) => {
-    const { configId } = req.params;
-    const results = await this.getAllExecutionByconfigUsecase.execute(configId);
-    return reply.status(200).send(results);
+    try {
+      const result = await this.resumeApiUseCase.execute(
+        req.params.configId,
+        req.body?.maxPages,
+      );
+
+      if (result.alreadyComplete) {
+        return reply.status(200).send({
+          message: "Scraping già completato",
+          alreadyComplete: true,
+          nextPageUrl: null,
+        });
+      }
+
+      return reply.status(200).send(result);
+    } catch (error) {
+      req.log.error(error);
+      return reply.status(500).send({ error: (error as Error).message });
+    }
   };
+
   deleteExecution = async (
     req: FastifyRequest<{ Params: { configId: string; executionId: string } }>,
     reply: FastifyReply,
@@ -207,6 +191,23 @@ export class ConfigController {
     await this.deleteExecutionUsecase.execute(executionId);
     return reply.status(204).send();
   };
+
+  // ── PATCH (legacy) ─────────────────────────────────────────────────────────
+
+  patchSelectedFields = async (req: FastifyRequest<{ Params: { name: string }; Body: { selectedFields: string[] } }>, reply: FastifyReply) => {
+    const { name } = req.params;
+    const { selectedFields } = req.body;
+    await this.updateConfigUseCase.execute(name, { selectedFields });
+    return reply.status(200).send({ message: "selectedFields aggiornati" });
+  };
+
+  patchPagination = async (req: FastifyRequest<{ Params: { name: string }; Body: Record<string, unknown> }>, reply: FastifyReply) => {
+    const { name } = req.params;
+    await this.updateConfigUseCase.execute(name, req.body);
+    return reply.status(200).send({ message: "Paginazione aggiornata" });
+  };
+
+  // ── DOWNLOAD ───────────────────────────────────────────────────────────────
 
   download = async (
     req: FastifyRequest<{
@@ -219,32 +220,21 @@ export class ConfigController {
     const format = req.query.format || "json";
 
     try {
-      // 1. Qui riceviamo il PERCORSO (path) del file, non il contenuto
-      const filePath = await this.downloadAllUseCase.execute(
-        configName,
-        format,
-      );
+      const filePath = await this.downloadAllUseCase.execute(configName, format);
 
       const safeFileName = configName.replace(/[^a-zA-Z0-9-_]/g, "_");
-      const extension = format === "markdown" ? "md" : "json";
-      const contentType =
-        format === "markdown" ? "text/markdown" : "application/json";
+      const extension    = format === "markdown" ? "md" : "json";
+      const contentType  = format === "markdown" ? "text/markdown" : "application/json";
 
-      // 2. Impostiamo gli header corretti
       reply.header("Content-Type", contentType);
-      reply.header(
-        "Content-Disposition",
-        `attachment; filename="${safeFileName}.${extension}"`,
-      );
+      reply.header("Content-Disposition", `attachment; filename="${safeFileName}.${extension}"`);
 
       const stream = fs.createReadStream(filePath);
 
       stream.on("close", () => {
         fs.unlink(filePath, (err) => {
           if (err) {
-            req.log.error(
-              `Errore cancellazione file temp ${filePath}: ${err.message}`,
-            );
+            req.log.error(`Errore cancellazione file temp ${filePath}: ${err.message}`);
           } else {
             req.log.info(`File temporaneo cancellato: ${filePath}`);
           }
