@@ -1,5 +1,7 @@
 use tauri_plugin_shell::ShellExt;
-use tauri_plugin_shell::process::CommandEvent;
+use tauri_plugin_shell::process::{CommandChild, CommandEvent};
+use std::sync::Mutex;
+use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -21,6 +23,9 @@ pub fn run() {
                 .expect(" ERRORE: Impossibile avviare il processo backend");
 
             println!(" 4. PROCESSO AVVIATO CON SUCCESSO! PID: {} - In ascolto dei log...", child.pid());
+
+            // Salva il child dentro un Option per poterlo estrarre e killare alla chiusura
+            app.manage(std::sync::Mutex::new(Some(child)));
 
             tauri::async_runtime::spawn(async move {
                 while let Some(event) = rx.recv().await {
@@ -44,6 +49,20 @@ pub fn run() {
             });
                 
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Destroyed = event {
+                // Cerchiamo lo stato con Option
+                if let Some(child_state) = window.app_handle().try_state::<std::sync::Mutex<Option<tauri_plugin_shell::process::CommandChild>>>() {
+                    if let Ok(mut guard) = child_state.lock() {
+                        // .take() estrae il valore e lascia None al suo posto!
+                        if let Some(child) = guard.take() {
+                            let _ = child.kill();
+                            println!(" SIDECAR KILLATO ALLA CHIUSURA DELLA FINESTRA");
+                        }
+                    }
+                }
+            }
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
