@@ -759,7 +759,7 @@ export default function App() {
             toast.info(`Download ${format.toUpperCase()} iniziato`);
           }
         }}
-        lastResult={lastApiResult}
+        lastResult={lastApiResult ?? undefined}
       />
 
       {/* Scraping Drawer */}
@@ -772,7 +772,7 @@ export default function App() {
         onExecute={handleScrapingExecuteWithFeedback}
         onResume={handleScrapingResumeWithFeedback}
         isExecuting={isScrapingExecuting}
-        isResuming={isScrapingResuming}    
+        isResuming={isScrapingResuming}
         logs={scrapingLogs}
         isLoadingLogs={isScrapingLogsLoading}
         onRefreshLogs={() => {
@@ -796,7 +796,11 @@ export default function App() {
             toast.info(`Download ${format.toUpperCase()} iniziato`);
           }
         }}
-        lastResult={lastScrapingResult}
+        lastResult={
+          (lastScrapingResult ?? undefined) as
+            | Record<string, unknown>
+            | undefined
+        }
       />
 
       {/* Confirm delete — API */}
