@@ -443,6 +443,7 @@ export default function App() {
     <div className="dark min-h-screen bg-zinc-950 text-white font-['Inter'] selection:bg-indigo-500/30">
       <Toaster
         position="top-right"
+        visibleToasts={1}
         toastOptions={{
           className: "bg-zinc-900 text-white border border-zinc-800",
           duration: 4000,
@@ -759,7 +760,7 @@ export default function App() {
             toast.info(`Download ${format.toUpperCase()} iniziato`);
           }
         }}
-        lastResult={lastApiResult}
+        lastResult={lastApiResult ?? undefined}
       />
 
       {/* Scraping Drawer */}
@@ -772,7 +773,7 @@ export default function App() {
         onExecute={handleScrapingExecuteWithFeedback}
         onResume={handleScrapingResumeWithFeedback}
         isExecuting={isScrapingExecuting}
-        isResuming={isScrapingResuming}    
+        isResuming={isScrapingResuming}
         logs={scrapingLogs}
         isLoadingLogs={isScrapingLogsLoading}
         onRefreshLogs={() => {
@@ -796,7 +797,11 @@ export default function App() {
             toast.info(`Download ${format.toUpperCase()} iniziato`);
           }
         }}
-        lastResult={lastScrapingResult}
+        lastResult={
+          (lastScrapingResult ?? undefined) as
+            | Record<string, unknown>
+            | undefined
+        }
       />
 
       {/* Confirm delete — API */}
