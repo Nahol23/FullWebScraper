@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { FetchLogsUseCase } from "../../../application/usecases/api/FetchLogsUseCase";
-import type { IApiExecutionRepository } from "../../../domain/ports/IApiExecutionRepository";
-import type { ExecutionHistory } from "../../../domain/entities/ApiConfig";
+import { FetchLogsUseCase } from "../../../../application/usecases/api/FetchLogsUseCase";
+import type { IApiExecutionRepository } from "../../../../domain/ports/IApiExecutionRepository";
+import type { ExecutionHistory } from "../../../../domain/entities/ApiConfig";
 
 describe("FetchLogsUseCase", () => {
   let mockRepo: IApiExecutionRepository;

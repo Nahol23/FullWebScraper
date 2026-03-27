@@ -20,7 +20,7 @@ export class UpdateScrapingConfigUseCase {
     }
     const updated = { ...existing, ...updates };
     this.validateConfig(updated);
-    await this.scrapingConfigRepository.update(id, updates);
+    await this.scrapingConfigRepository.update(id, updated);
     return updated;
   }
 

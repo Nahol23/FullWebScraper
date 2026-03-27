@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { AnalyzeApiUseCase } from "../../../application/usecases/api/AnalyzeApiUseCase";
-import type { IAnalysisRepository } from "../../../domain/ports/IAnalysisRepository";
-import type { Analysis } from "../../../domain/entities/Analysis";
+import { AnalyzeApiUseCase } from "../../../../application/usecases/api/AnalyzeApiUseCase";
+import type { IAnalysisRepository } from "../../../../domain/ports/IAnalysisRepository";
+import type { Analysis } from "../../../../domain/entities/Analysis";
 
 describe("AnalyzeApiUseCase", () => {
   let mockRepo: IAnalysisRepository;

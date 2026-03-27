@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { DeleteConfigUseCase } from "../../../application/usecases/api/DeleteConfigUseCase";
-import type { IConfigRepository } from "../../../domain/ports/IConfigRepository";
-import { ConfigNotFoundError } from "../../../domain/errors/AppError";
-import type { ApiConfig } from "../../../domain/entities/ApiConfig";
+import { DeleteConfigUseCase } from "../../../../application/usecases/api/DeleteConfigUseCase";
+import type { IConfigRepository } from "../../../../domain/ports/IConfigRepository";
+import { ConfigNotFoundError } from "../../../../domain/errors/AppError";
+import type { ApiConfig } from "../../../../domain/entities/ApiConfig";
 
 describe("DeleteConfigUseCase", () => {
   let mockRepo: IConfigRepository;

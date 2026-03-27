@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { ExecuteApiUseCase } from "../../../application/usecases/api/ExecuteApiUseCase";
-import type { IApiExecutionRepository } from "../../../domain/ports/IApiExecutionRepository";
-import type { IConfigRepository } from "../../../domain/ports/IConfigRepository";
-import { ConfigNotFoundError } from "../../../domain/errors/AppError";
-import type { ApiConfig } from "../../../domain/entities/ApiConfig";
-import type { RuntimeParams } from "../../../domain/entities/RuntimeParams";
+import { ExecuteApiUseCase } from "../../../../application/usecases/api/ExecuteApiUseCase";
+import type { IApiExecutionRepository } from "../../../../domain/ports/IApiExecutionRepository";
+import type { IConfigRepository } from "../../../../domain/ports/IConfigRepository";
+import { ConfigNotFoundError } from "../../../../domain/errors/AppError";
+import type { ApiConfig } from "../../../../domain/entities/ApiConfig";
+import type { RuntimeParams } from "../../../../domain/entities/RuntimeParams";
 
 describe("ExecuteApiUseCase", () => {
   let mockExecutionRepo: IApiExecutionRepository;
