@@ -104,3 +104,7 @@ function inferType(value: string): "string" | "number" | "boolean" {
   if (value.trim() !== "" && !isNaN(Number(value))) return "number";
   return "string";
 }
+
+export function parseJsonFields(parseJsonFields: any) {
+    throw new Error('Function not implemented.');
+}
