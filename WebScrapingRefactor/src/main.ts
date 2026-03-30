@@ -1,3 +1,30 @@
+
+import { createRequire } from "node:module";
+
+try {
+  // 1. Sicurezza: Forza in produzione per salvare db e log in %APPDATA%
+  if (process.execPath.includes('data-manager-backend')) {
+    if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
+      process.env.NODE_ENV = 'production';
+      console.log('[SEA] NODE_ENV forzato a production');
+    }
+  }
+
+  
+  // 2. Sblocco moduli nativi
+  const sea = require("node:sea");
+  if (sea.isSea()) {
+    // Sblocca la lettura dei node_modules esterni copiati da Tauri
+    // Usiamo process.execPath così Node sa di dover cercare la cartella node_modules 
+    // esattamente accanto al nostro file .exe!
+    // @ts-ignore
+    global.require = createRequire(process.execPath);
+    console.log('[SEA] ✓ File-based require attivato');
+  }
+} catch (err) {
+  // Ignora in sviluppo
+}
+
 import "dotenv/config";
 import Fastify from "fastify";
 import cors from "@fastify/cors";

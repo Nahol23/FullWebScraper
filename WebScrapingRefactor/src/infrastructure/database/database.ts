@@ -18,7 +18,7 @@ function resolveDatabasePath(): string {
 
   // Se l'app sta girando dentro l'eseguibile compilato (o forziamo la produzione)
   // Usiamo la cartella AppData di Windows o la Home del Mac/Linux
-  if (env === "production" || process.execPath.includes("data-manager-backend")) {
+  if (process.env.NODE_ENV === "production" || process.execPath.includes("data-manager-backend")) {
     if (process.platform === 'win32') {
       baseDir = path.join(process.env.APPDATA || os.homedir(), 'data-manager', 'data');
     } else if (process.platform === 'darwin') {

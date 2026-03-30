@@ -12,9 +12,13 @@ pub fn run() {
         .setup(|app| {
             println!(" 2. CERCO LA CONFIGURAZIONE DEL SIDECAR...");
             
+            let resource_dir = app.path().resource_dir().expect("Failed to get resource dir");
+            let node_modules_path = resource_dir.join("node_modules");
+            
             let sidecar_command = app.shell()
                 .sidecar("data-manager-backend")
-                .expect(" ERRORE: Sidecar non trovato nella configurazione!");
+                .expect(" ERRORE: Sidecar non trovato nella configurazione!")
+                .env("NODE_PATH", node_modules_path.to_string_lossy().to_string());
                 
             println!(" 3. COMANDO SIDECAR TROVATO! Provo ad avviarlo...");
 
