@@ -3,6 +3,7 @@ import { Kysely, SqliteDialect } from "kysely";
 import SQLite from "better-sqlite3";
 import path from "path";
 import fs from "fs";
+import os from "os"; 
 
 function resolveDatabasePath(): string {
   const env = process.env["NODE_ENV"] ?? "development";
@@ -12,7 +13,25 @@ function resolveDatabasePath(): string {
   }
 
   const fileName = env === "production" ? "prod.db" : "dev.db";
-  const dbPath = path.resolve(process.cwd(), "data", fileName);
+  
+  let baseDir: string;
+
+  // Se l'app sta girando dentro l'eseguibile compilato (o forziamo la produzione)
+  // Usiamo la cartella AppData di Windows o la Home del Mac/Linux
+  if (env === "production" || process.execPath.includes("data-manager-backend")) {
+    if (process.platform === 'win32') {
+      baseDir = path.join(process.env.APPDATA || os.homedir(), 'data-manager', 'data');
+    } else if (process.platform === 'darwin') {
+      baseDir = path.join(os.homedir(), 'Library', 'Application Support', 'data-manager', 'data');
+    } else {
+      baseDir = path.join(os.homedir(), '.data-manager', 'data');
+    }
+  } else {
+    // In fase di sviluppo, salviamo normalmente nella cartella del progetto
+    baseDir = path.join(process.cwd(), "data");
+  }
+
+  const dbPath = path.resolve(baseDir, fileName);
 
   const dir = path.dirname(dbPath);
   fs.mkdirSync(dir, { recursive: true });

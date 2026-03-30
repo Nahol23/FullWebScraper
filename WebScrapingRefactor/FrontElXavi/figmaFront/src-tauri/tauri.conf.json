@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "data-manager",
   "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "identifier": "com.datamanager.dev",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:5173",
@@ -38,11 +38,12 @@
       "binaries/data-manager-backend"
     ],
     "resources": {
-  "../../../bin/static": "static",
-  "../../../bin/migrations": "migrations",
-  "../../../bin/node_modules/better-sqlite3": "node_modules/better-sqlite3",
-  "../../../bin/node_modules/puppeteer": "node_modules/puppeteer",
-  "../../../bin/node_modules/@puppeteer": "node_modules/@puppeteer"
-}
+           "../../../node_modules/better-sqlite3": "node_modules/better-sqlite3",
+            "../../../node_modules/puppeteer": "node_modules/puppeteer",
+            "../../../bin/node_modules/@puppeteer": "node_modules/@puppeteer",
+            "../../../bin/node_modules/bindings": "node_modules/bindings"
+            
+            
+          }
   }
 }

@@ -7,6 +7,6 @@ await build({
   outfile: 'bin/bundle.js',      // Sostituisce --outfile
   external: ['better-sqlite3', 'puppeteer'], // Sostituisce i due --external
   banner: {
-    js: "const { createRequire } = require('node:module'); require = createRequire(__filename);"
+    js: "const { createRequire } = require('node:module'); require = createRequire(process.execPath);"
   }
 });
