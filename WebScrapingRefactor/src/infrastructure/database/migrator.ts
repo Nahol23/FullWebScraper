@@ -1,18 +1,8 @@
-/**
- * migrator.ts
- *
- * Esegue tutte le migrations pendenti tramite un MigrationProvider inline.
- * Le migrations sono importate staticamente, quindi funziona correttamente
- * sia in sviluppo che nel bundle SEA (Node.js Single Executable Application)
- * dove il filesystem virtuale non supporta fs.readdir di FileMigrationProvider.
- *
- * ## Non chiamare db.destroy() qui — il singleton db serve per tutta
- *    la vita del server. destroy() va chiamato solo nello graceful shutdown.
- */
 import { Kysely, Migrator, MigrationProvider, Migration } from "kysely";
 import { Database } from "./types";
 import { allMigrations } from "./migrations/index";
 
+// Tieni la tua classe Inline: è quella salva-vita per il bundle SEA!
 class InlineMigrationProvider implements MigrationProvider {
   async getMigrations(): Promise<Record<string, Migration>> {
     return allMigrations;
@@ -22,7 +12,7 @@ class InlineMigrationProvider implements MigrationProvider {
 export async function runMigrations(db: Kysely<Database>): Promise<void> {
   const migrator = new Migrator({
     db,
-    provider: new InlineMigrationProvider(),
+    provider: new InlineMigrationProvider(), 
   });
 
   const { error, results } = await migrator.migrateToLatest();

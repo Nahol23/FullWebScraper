@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { UpdateConfigUseCase } from "../../../application/usecases/api/UpdateConfigUseCase";
-import type { IConfigRepository } from "../../../domain/ports/IConfigRepository";
+import { UpdateConfigUseCase } from "../../../../application/usecases/api/UpdateConfigUseCase";
+import type { IConfigRepository } from "../../../../domain/ports/IConfigRepository";
 import {
   ConfigNotFoundError,
   ValidationError,
-} from "../../../domain/errors/AppError";
-import type { ApiConfig } from "../../../domain/entities/ApiConfig";
+} from "../../../../domain/errors/AppError";
+import type { ApiConfig } from "../../../../domain/entities/ApiConfig";
 
 describe("UpdateConfigUseCase", () => {
   let mockRepo: IConfigRepository;

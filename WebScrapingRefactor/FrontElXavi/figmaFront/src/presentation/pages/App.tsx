@@ -440,7 +440,7 @@ export default function App() {
   }
 
   return (
-    <div className="dark min-h-screen bg-zinc-950 text-white font-['Inter'] selection:bg-indigo-500/30">
+    <div className="dark min-h-screen bg-zinc-950 text-white font-['Inter'] selection:bg-indigo-500/30 flex flex-col">
       <Toaster
         position="top-right"
         toastOptions={{
@@ -449,7 +449,7 @@ export default function App() {
         }}
       />
 
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto flex-1 flex flex-col w-full">
         <TopBar
           searchQuery={searchQuery}
           onSearchChange={(val) => {
@@ -488,7 +488,7 @@ export default function App() {
           </div>
         </div>
 
-        <main className="px-6 pb-12">
+        <main className="px-6 pb-12 flex flex-col flex-1">
           {/* Header */}
           <div className="mb-8 pt-8 border-b border-zinc-900 pb-8">
             <div className="flex items-center justify-between">
@@ -589,7 +589,7 @@ export default function App() {
             ? paginatedApiConfigs
             : paginatedScrapingConfigs
           ).length === 0 ? (
-            <div className="text-center py-32 border-2 border-dashed border-zinc-900 rounded-3xl bg-zinc-900/20">
+            <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-zinc-900 rounded-3xl bg-zinc-900/20">
               <div className="bg-zinc-900 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-zinc-800">
                 <svg
                   className="text-zinc-600"
@@ -622,7 +622,8 @@ export default function App() {
               )}
             </div>
           ) : (
-            <>
+            // ← div invece di fragment, flex-col per spingere pagination in fondo
+            <div className="flex flex-col flex-1">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {configType === "api"
                   ? paginatedApiConfigs.map((config) => (
@@ -643,8 +644,8 @@ export default function App() {
                     ))}
               </div>
 
-              {/* Pagination */}
-              <div className="mt-12 flex items-center justify-between bg-zinc-900/30 p-4 rounded-2xl border border-zinc-900">
+              {/* Pagination — mt-auto la spinge sempre in fondo */}
+              <div className="mt-auto pt-12 flex items-center justify-between bg-zinc-900/30 p-4 rounded-2xl border border-zinc-900">
                 <div className="flex items-center gap-4 text-sm">
                   <span className="text-zinc-500">Righe per pagina:</span>
                   <select
@@ -715,7 +716,7 @@ export default function App() {
                   </div>
                 </div>
               </div>
-            </>
+            </div>
           )}
         </main>
       </div>
@@ -759,7 +760,7 @@ export default function App() {
             toast.info(`Download ${format.toUpperCase()} iniziato`);
           }
         }}
-        lastResult={lastApiResult}
+        lastResult={lastApiResult ?? undefined}
       />
 
       {/* Scraping Drawer */}
@@ -772,7 +773,7 @@ export default function App() {
         onExecute={handleScrapingExecuteWithFeedback}
         onResume={handleScrapingResumeWithFeedback}
         isExecuting={isScrapingExecuting}
-        isResuming={isScrapingResuming}    
+        isResuming={isScrapingResuming}
         logs={scrapingLogs}
         isLoadingLogs={isScrapingLogsLoading}
         onRefreshLogs={() => {
@@ -796,7 +797,11 @@ export default function App() {
             toast.info(`Download ${format.toUpperCase()} iniziato`);
           }
         }}
-        lastResult={lastScrapingResult}
+        lastResult={
+          (lastScrapingResult ?? undefined) as
+            | Record<string, unknown>
+            | undefined
+        }
       />
 
       {/* Confirm delete — API */}

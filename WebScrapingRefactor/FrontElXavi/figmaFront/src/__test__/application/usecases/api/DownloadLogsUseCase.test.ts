@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { DownloadLogsUseCase } from "../../../application/usecases/api/DownloadLogsUseCase";
-import type { IApiExecutionRepository } from "../../../domain/ports/IApiExecutionRepository";
+import { DownloadLogsUseCase } from "../../../../application/usecases/api/DownloadLogsUseCase";
+import type { IApiExecutionRepository } from "../../../../domain/ports/IApiExecutionRepository";
 
 describe("DownloadLogsUseCase", () => {
   let mockRepo: IApiExecutionRepository;

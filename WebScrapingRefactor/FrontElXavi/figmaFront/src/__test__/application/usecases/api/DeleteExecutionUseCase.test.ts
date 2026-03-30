@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { DeleteExecutionUseCase } from "../../../application/usecases/api/DeleteExecutionUseCase";
-import type { IApiExecutionRepository } from "../../../domain/ports/IApiExecutionRepository";
+import { DeleteExecutionUseCase } from "../../../../application/usecases/api/DeleteExecutionUseCase";
+import type { IApiExecutionRepository } from "../../../../domain/ports/IApiExecutionRepository";
 
 describe("DeleteExecutionUseCase", () => {
   let mockRepo: IApiExecutionRepository;

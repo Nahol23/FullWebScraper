@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { SaveConfigUseCase } from "../../../application/usecases/api/SaveConfigUseCase";
-import type { IConfigRepository } from "../../../domain/ports/IConfigRepository";
-import { ValidationError } from "../../../domain/errors/AppError";
-import type { ApiConfig } from "../../../domain/entities/ApiConfig";
+import { SaveConfigUseCase } from "../../../../application/usecases/api/SaveConfigUseCase";
+import type { IConfigRepository } from "../../../../domain/ports/IConfigRepository";
+import { ValidationError } from "../../../../domain/errors/AppError";
+import type { ApiConfig } from "../../../../domain/entities/ApiConfig";
 
 describe("SaveConfigUseCase", () => {
   let mockRepo: IConfigRepository;
