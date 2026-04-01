@@ -11,4 +11,5 @@ export interface ScrapingExecution {
   duration?: number;
   nextPageUrl: string | null;
   pagesScraped: number;
+  totalItems?: number;
 }

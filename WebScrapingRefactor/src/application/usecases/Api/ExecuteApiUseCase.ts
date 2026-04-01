@@ -146,12 +146,12 @@ export class ExecuteApiUseCase {
       let pagesScraped = 1;
       let alreadyExtracted = false;
 
+      const startTime = Date.now(); // ← timing start
+
       try {
         const isPost = config.method.toUpperCase() === "POST";
         const body = finalBody as Record<string, unknown> | undefined;
 
-        // Auto-detect paginazione body:
-        // Se il config body originale contiene "page" gestiamo paginazione POST
         const configBodyHasPage =
           config.body !== null &&
           typeof config.body === "object" &&
@@ -164,7 +164,6 @@ export class ExecuteApiUseCase {
           ("page" in body || configBodyHasPage);
 
         if (bodyHasPage) {
-          // Assicura che page sia nel body finale
           if (body && !("page" in body) && configBodyHasPage) {
             (body as Record<string, unknown>).page = (
               config.body as Record<string, unknown>
@@ -212,6 +211,8 @@ export class ExecuteApiUseCase {
         errorMessage = (error as Error).message;
         throw error;
       } finally {
+        const duration = Date.now() - startTime; // ← duration calcolata
+
         const execution: Execution = {
           id: randomUUID(),
           configId: config.id,
@@ -222,6 +223,7 @@ export class ExecuteApiUseCase {
           errorMessage,
           nextPageUrl,
           pagesScraped,
+          duration, // ← salvata
         };
 
         if (status === "success" && responseData) {
@@ -238,21 +240,18 @@ export class ExecuteApiUseCase {
 
       // ── Trasformazioni + risposta sempre strutturata ──────────────────────
 
-      // Se dataPath già applicato internamente usa responseData direttamente
       let targetArray = alreadyExtracted
         ? Array.isArray(responseData)
           ? responseData
           : [responseData]
         : this.extractArray(responseData, effectiveDataPath);
 
-      // Applica limit
       targetArray = this.applyLimitSafety(
         targetArray,
         runtimeParams?.limit,
         config.pagination?.defaultLimit,
       );
 
-      // Applica filter
       if (config.filter?.field && config.filter?.value !== undefined) {
         targetArray = this.applyFilter(
           targetArray,
@@ -260,7 +259,6 @@ export class ExecuteApiUseCase {
         );
       }
 
-      // Applica selectedFields
       if (effectiveSelectedFields && effectiveSelectedFields.length > 0) {
         targetArray = this.selectFields(targetArray, effectiveSelectedFields);
       }
@@ -270,7 +268,6 @@ export class ExecuteApiUseCase {
           item !== null && typeof item === "object" && !Array.isArray(item),
       );
 
-      // SEMPRE struttura uniforme — il frontend può sempre leggere nextPageUrl
       return {
         data: targetArray,
         nextPageUrl,

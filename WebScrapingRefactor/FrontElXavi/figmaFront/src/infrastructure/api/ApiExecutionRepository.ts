@@ -5,6 +5,36 @@ import type { IApiExecutionRepository } from "../../domain/ports/IApiExecutionRe
 import { ApiExecutionError } from "../../domain/errors/AppError";
 import { HttpClient } from "../http/httpClient";
 
+// Shape grezza che arriva dal backend per ogni execution
+interface RawExecution {
+  id: string;
+  config_id?: string;
+  timestamp: string;
+  status: "success" | "error" | number;
+  duration?: number;
+  result_count?: number;
+  recordsExtracted?: number;
+  pages_scraped?: number;
+  pagesScraped?: number;
+  next_page_url?: string | null;
+  nextPageUrl?: string | null;
+  error_message?: string;
+  errorMessage?: string;
+}
+
+function mapRawToExecutionHistory(raw: RawExecution): ExecutionHistory {
+  return {
+    id:               raw.id,
+    timestamp:        raw.timestamp,
+    status:           raw.status,
+    duration:         raw.duration,
+    recordsExtracted: raw.result_count ?? raw.recordsExtracted,
+    pagesScraped:     raw.pages_scraped ?? raw.pagesScraped,
+    nextPageUrl:      raw.next_page_url ?? raw.nextPageUrl ?? null,
+    errorMessage:     raw.error_message ?? raw.errorMessage,
+  };
+}
+
 export class ApiExecutionRepository implements IApiExecutionRepository {
   constructor(private readonly httpClient: HttpClient) {}
 
@@ -65,11 +95,6 @@ export class ApiExecutionRepository implements IApiExecutionRepository {
     }
   }
 
-  /**
-   * Resumes API execution from where the last run stopped.
-   * Backend: POST /executions/resume/:configId
-   * The backend reads nextPageUrl from the last execution automatically.
-   */
   async resume(configId: string, maxPages?: number): Promise<ExecutionResult> {
     if (!configId) throw new Error("configId is required");
     try {
@@ -98,11 +123,11 @@ export class ApiExecutionRepository implements IApiExecutionRepository {
 
   async getLogsByConfig(configId: string, limit: number = 50): Promise<ExecutionHistory[]> {
     try {
-      const response = await this.httpClient.get<ExecutionHistory[]>(
+      const response = await this.httpClient.get<RawExecution[]>(
         `/executions/${configId}`,
         { params: { limit } },
       );
-      return response.data;
+      return response.data.map(mapRawToExecutionHistory);
     } catch (error: unknown) {
       const e = error as { response?: { status?: number } };
       throw new ApiExecutionError("Errore nel recupero della cronologia esecuzioni", e.response?.status);
