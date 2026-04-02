@@ -11,6 +11,7 @@ export interface ScrapingExecution {
   status: "success" | "error";
   errorMessage?: string;
   duration: number;
+  totalItems: number | null;
   nextPageUrl: string | null;
   pagesScraped: number;
 }

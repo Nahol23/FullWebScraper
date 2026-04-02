@@ -1,5 +1,8 @@
 import type { IScrapingPort } from "../../../domain/ports/IScrapingPort";
-import type { ScrapingConfig, ScrapingRuntimeParams } from "../../../domain/entities/ScrapingConfig";
+import type {
+  ScrapingConfig,
+  ScrapingRuntimeParams,
+} from "../../../domain/entities/ScrapingConfig";
 import type { IScrapingExecutionRepository } from "../../../domain/ports/ScrapingConfig/IScrapingExecutionRepository";
 import type { IScrapingConfigRepository } from "../../../domain/ports/ScrapingConfig/IScrapingConfigRepository";
 import { ConfigNotFoundError } from "../../../domain/errors/AppError";
@@ -50,6 +53,7 @@ export class ExecuteScrapingUseCase {
         resultCount: result.data.length,
         status: "success",
         duration: Date.now() - startTime,
+        totalItems: 0,
         nextPageUrl: result.nextPageUrl,
         pagesScraped: result.meta.pagesScraped,
       });
@@ -69,6 +73,7 @@ export class ExecuteScrapingUseCase {
         status: "error",
         errorMessage: message,
         duration: Date.now() - startTime,
+        totalItems: 0,
         nextPageUrl: null,
         pagesScraped: 0,
       });
@@ -81,22 +86,29 @@ export class ExecuteScrapingUseCase {
    * L'adapter gestisce interamente il loop di paginazione e il resume.
    * Il use case chiama scrape() una sola volta con la config completa.
    */
-  private async runScraping(config: ScrapingConfig): Promise<ExecuteScrapingResult> {
-    const { items, nextPageUrl, pagesScraped } = await this.scrapingAdapter.scrape({
-      url: config.url,
-      method: config.method,
-      headers: config.headers,
-      body: config.body,
-      waitForSelector: config.waitForSelector,
-      rules: config.rules,
-      useJavaScript: !!(
-        config.waitForSelector || config.pagination?.type === "nextSelector"
-      ),
-      containerSelector: config.containerSelector,
-      pagination: config.pagination,
-    });
+  private async runScraping(
+    config: ScrapingConfig,
+  ): Promise<ExecuteScrapingResult> {
+    const { items, nextPageUrl, pagesScraped } =
+      await this.scrapingAdapter.scrape({
+        url: config.url,
+        method: config.method,
+        headers: config.headers,
+        body: config.body,
+        waitForSelector: config.waitForSelector,
+        rules: config.rules,
+        useJavaScript: !!(
+          config.waitForSelector || config.pagination?.type === "nextSelector"
+        ),
+        containerSelector: config.containerSelector,
+        pagination: config.pagination,
+      });
 
-    const data = this.normalizer.normalize(items, config.rules, config.containerSelector);
+    const data = this.normalizer.normalize(
+      items,
+      config.rules,
+      config.containerSelector,
+    );
 
     return {
       data,
@@ -119,7 +131,8 @@ export class ExecuteScrapingUseCase {
   ): ScrapingConfig {
     if (!runtimeParams) return config;
 
-    const maxPages = runtimeParams.maxPages ?? config.defaultRuntimeParams?.maxPages;
+    const maxPages =
+      runtimeParams.maxPages ?? config.defaultRuntimeParams?.maxPages;
 
     const basePagination = config.pagination;
     const mergedPagination: ScrapingConfig["pagination"] = basePagination

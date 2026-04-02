@@ -23,10 +23,6 @@ export function ScrapingHistoryTab({
   );
 
   // Funzione interna per formattare la durata evitando i ms sopra il secondo
-  const formatDuration = (ms: number) => {
-    if (ms < 1000) return `${ms}ms`;
-    return `${(ms / 1000).toFixed(1)}s`;
-  };
 
   return (
     <div className="space-y-6">
@@ -92,10 +88,10 @@ export function ScrapingHistoryTab({
                   </span>
                   <span className="text-zinc-600 text-xs">•</span>
                   <span className="text-[11px] text-zinc-500 font-mono">
-                    {new Date(log.timestamp).toLocaleTimeString()}
+                    {new Date(log.timestamp).toLocaleString()}
                   </span>
 
-                  {log.duration != null && (
+                  {/* {log.duration != null && (
                     <>
                       <span className="text-zinc-600 text-xs">•</span>
                       <Badge
@@ -105,16 +101,16 @@ export function ScrapingHistoryTab({
                         {formatDuration(log.duration)}
                       </Badge>
                     </>
-                  )}
+                  )} */}
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap mt-2">
-                  {log.totalItems != null && (
+                  {(log.totalItems ?? log.resultCount) != null && (
                     <Badge
                       variant="outline"
                       className="text-zinc-400 border-zinc-700 text-xs"
                     >
-                      {log.totalItems} items extracted
+                      {log.totalItems ?? log.resultCount} items extracted
                     </Badge>
                   )}
                   {log.pagesScraped != null && (

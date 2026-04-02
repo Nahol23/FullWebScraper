@@ -135,12 +135,12 @@ export function HistoryTab({
 
                   <div className="flex items-center gap-2 flex-wrap mt-2">
                     {/* Campo items aggiunto qui */}
-                    {log.totalItems != null && (
+                    {log.recordsExtracted != null && (
                       <Badge
                         variant="outline"
                         className="text-zinc-400 border-zinc-700 text-xs"
                       >
-                        {log.totalItems} items extracted
+                        {log.recordsExtracted} items extracted
                       </Badge>
                     )}
 
