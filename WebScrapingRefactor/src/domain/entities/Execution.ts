@@ -1,11 +1,12 @@
 export interface Execution {
   id: string;
-  configId: string; 
+  configId: string;
   timestamp: Date;
   parametersUsed: Record<string, any>;
   resultCount: number;
   status: "success" | "error";
-  errorMessage ?: string;
+  errorMessage?: string;
   nextPageUrl: string | null;
   pagesScraped: number;
+  duration?: number;
 }

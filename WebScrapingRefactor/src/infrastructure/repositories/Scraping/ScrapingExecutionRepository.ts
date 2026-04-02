@@ -85,7 +85,8 @@ export class ScrapingExecutionRepository implements IScrapingExecutionRepository
       resultCount:  row.result_count,
       status:       row.status as "success" | "error",
       errorMessage: row.error_message ?? undefined,
-      duration:     row.duration ?? 0,
+      duration:     row.duration ?? undefined,
+      totalItems:   row.result_count ?? undefined,
       nextPageUrl:  row.next_page_url ?? null,
       pagesScraped: row.pages_scraped ?? 0,
     };

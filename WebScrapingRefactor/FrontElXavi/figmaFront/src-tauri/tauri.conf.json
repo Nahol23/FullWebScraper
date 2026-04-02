@@ -34,16 +34,12 @@
       "icons/icon.ico"
     ],
 
-    "externalBin": [
-      "binaries/data-manager-backend"
-    ],
+    "externalBin": ["binaries/data-manager-backend"],
     "resources": {
-      "../../../bin/static":                              "static",
-      "../../../bin/migrations":                          "migrations",
-      "../../../bin/node_modules":                        "node_modules"
-
-            
-            
-          }
+      "../../../bin/bundle.js": "bundle.js",
+      "../../../bin/static": "static",
+      "../../../bin/migrations": "migrations",
+      "../../../bin/node_modules": "node_modules"
+    }
   }
 }
