@@ -3,6 +3,49 @@ import type { ScrapingExecution } from "../../domain/entities/ScrapingExecution"
 import { HttpClient } from "../http/httpClient";
 import { ApiExecutionError } from "../../domain/errors/AppError";
 
+interface RawScrapingExecution {
+  id: string;
+  config_id?: string;
+  configId?: string;
+  timestamp: string;
+  status: "success" | "error";
+  duration?: number;
+  total_items?: number;
+  totalItems?: number;
+  pages_scraped?: number;
+  pagesScraped?: number;
+  next_page_url?: string | null;
+  nextPageUrl?: string | null;
+  error_message?: string;
+  errorMessage?: string;
+  url?: string;
+  rules_used?: unknown[];
+  rulesUsed?: unknown[];
+  result?: unknown;
+  result_count?: number;
+  resultCount?: number;
+}
+
+function mapRawToScrapingExecution(
+  raw: RawScrapingExecution,
+): ScrapingExecution {
+  return {
+    id: raw.id,
+    configId: raw.config_id ?? raw.configId ?? "",
+    timestamp: new Date(raw.timestamp),
+    status: raw.status,
+    url: raw.url ?? "",
+    rulesUsed: raw.rules_used ?? raw.rulesUsed ?? [],
+    result: raw.result ?? null,
+    resultCount: raw.result_count ?? raw.resultCount ?? 0,
+    duration: raw.duration,
+    totalItems:
+      raw.total_items ?? raw.totalItems ?? raw.result_count ?? raw.resultCount,
+    pagesScraped: raw.pages_scraped ?? raw.pagesScraped ?? 0,
+    nextPageUrl: raw.next_page_url ?? raw.nextPageUrl ?? null,
+    errorMessage: raw.error_message ?? raw.errorMessage,
+  };
+}
 export class ScrapingExecutionRepository implements IScrapingExecutionRepository {
   constructor(private readonly httpClient: HttpClient) {}
 
@@ -22,7 +65,9 @@ export class ScrapingExecutionRepository implements IScrapingExecutionRepository
       );
       return response.data;
     } catch (error: unknown) {
-      const e = error as { response?: { data?: { message?: string }; status?: number } };
+      const e = error as {
+        response?: { data?: { message?: string }; status?: number };
+      };
       throw new ApiExecutionError(
         e.response?.data?.message ?? "Errore nell'esecuzione dello scraping",
         e.response?.status,
@@ -36,7 +81,10 @@ export class ScrapingExecutionRepository implements IScrapingExecutionRepository
    * Backend: POST /scraping/executions/resume/:configId
    * The backend reads nextPageUrl from the last execution automatically.
    */
-  async resume(configId: string, maxPages?: number): Promise<ScrapingExecution> {
+  async resume(
+    configId: string,
+    maxPages?: number,
+  ): Promise<ScrapingExecution> {
     if (!configId) throw new Error("configId is required");
     try {
       const response = await this.httpClient.post<ScrapingExecution>(
@@ -45,7 +93,9 @@ export class ScrapingExecutionRepository implements IScrapingExecutionRepository
       );
       return response.data;
     } catch (error: unknown) {
-      const e = error as { response?: { data?: { message?: string }; status?: number } };
+      const e = error as {
+        response?: { data?: { message?: string }; status?: number };
+      };
       throw new ApiExecutionError(
         e.response?.data?.message ?? "Errore nel resume dello scraping",
         e.response?.status,
@@ -63,13 +113,15 @@ export class ScrapingExecutionRepository implements IScrapingExecutionRepository
     limit: number = 50,
   ): Promise<ScrapingExecution[]> {
     try {
-      const response = await this.httpClient.get<ScrapingExecution[]>(
+      const response = await this.httpClient.get<RawScrapingExecution[]>(
         `/scraping/executions/by-name/${configName}`,
         { params: { limit } },
       );
-      return response.data;
+      return response.data.map(mapRawToScrapingExecution);
     } catch (error: unknown) {
-      const e = error as { response?: { data?: { message?: string }; status?: number } };
+      const e = error as {
+        response?: { data?: { message?: string }; status?: number };
+      };
       throw new ApiExecutionError(
         e.response?.data?.message ?? "Errore nel recupero dei log",
         e.response?.status,
@@ -85,7 +137,9 @@ export class ScrapingExecutionRepository implements IScrapingExecutionRepository
     try {
       await this.httpClient.delete(`/scraping/executions/${executionId}`);
     } catch (error: unknown) {
-      const e = error as { response?: { data?: { message?: string }; status?: number } };
+      const e = error as {
+        response?: { data?: { message?: string }; status?: number };
+      };
       throw new ApiExecutionError(
         e.response?.data?.message ?? "Errore nell'eliminazione del log",
         e.response?.status,
@@ -97,7 +151,10 @@ export class ScrapingExecutionRepository implements IScrapingExecutionRepository
    * Downloads all execution logs for a config as JSON or Markdown.
    * Backend: GET /scraping/download/:configName?format=json|markdown
    */
-  async downloadLogs(configName: string, format: "json" | "markdown"): Promise<Blob> {
+  async downloadLogs(
+    configName: string,
+    format: "json" | "markdown",
+  ): Promise<Blob> {
     try {
       const response = await this.httpClient.get(
         `/scraping/download/${configName}`,
@@ -105,7 +162,9 @@ export class ScrapingExecutionRepository implements IScrapingExecutionRepository
       );
       return response.data as Blob;
     } catch (error: unknown) {
-      const e = error as { response?: { data?: { message?: string }; status?: number } };
+      const e = error as {
+        response?: { data?: { message?: string }; status?: number };
+      };
       throw new ApiExecutionError(
         e.response?.data?.message ?? "Errore nel download dei log",
         e.response?.status,

@@ -1,4 +1,3 @@
-// src/presentation/components/drawer/ConfigurationTab.tsx
 import { useState, useEffect } from "react";
 import { Trash2, Plus, X } from "lucide-react";
 import { Button } from "../../components/ui/button";
@@ -52,7 +51,7 @@ export function ConfigurationTab({
       type: "offset",
       paramName: "offset",
       limitParam: "limit",
-      defaultLimit: 50,
+      defaultLimit: 10,
     },
   );
 
@@ -242,13 +241,17 @@ export function ConfigurationTab({
             <div key={index} className="flex gap-2">
               <Input
                 value={param.key}
-                onChange={(e) => handleQueryParamChange(index, "key", e.target.value)}
+                onChange={(e) =>
+                  handleQueryParamChange(index, "key", e.target.value)
+                }
                 placeholder="Parameter name"
                 className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
               />
               <Input
                 value={param.value}
-                onChange={(e) => handleQueryParamChange(index, "value", e.target.value)}
+                onChange={(e) =>
+                  handleQueryParamChange(index, "value", e.target.value)
+                }
                 placeholder="Parameter value"
                 className="flex-1 bg-zinc-900 border-zinc-800 text-white font-mono text-sm"
               />

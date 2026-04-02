@@ -13,11 +13,14 @@ export interface PaginationConfig {
 export interface ExecutionHistory {
   id: string;
   timestamp: string;
-  status: number;
-  duration: number;
+  status: number | "success" | "error"; // numero HTTP o stringa dal backend
+  duration?: number;
   recordsExtracted?: number;
+  pagesScraped?: number;
+  totalItems?: number;
+  nextPageUrl?: string | null;
   errorMessage?: string;
-  responsePreview?: any;
+  responsePreview?: unknown;
   data?: string;
 }
 
@@ -29,14 +32,13 @@ export interface ApiConfig {
   method: "GET" | "POST";
   queryParams?: ApiParam[];
   headers?: Record<string, string>;
-  body?: any;
+  body?: unknown;
   dataPath?: string;
   pagination?: PaginationConfig;
   filter?: {
     field: string;
-    value: any;
+    value: unknown;
   };
   selectedFields?: string[];
-  // Mantieni executionHistory solo lato frontend se serve per UI
   executionHistory?: ExecutionHistory[];
 }

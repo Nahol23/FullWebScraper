@@ -5,6 +5,38 @@ import type { IApiExecutionRepository } from "../../domain/ports/IApiExecutionRe
 import { ApiExecutionError } from "../../domain/errors/AppError";
 import { HttpClient } from "../http/httpClient";
 
+// Shape grezza che arriva dal backend per ogni execution
+interface RawExecution {
+  id: string;
+  config_id?: string;
+  timestamp: string;
+  status: "success" | "error" | number;
+  duration?: number;
+  result_count?: number;
+  resultCount?: number;
+  recordsExtracted?: number;
+  pages_scraped?: number;
+  pagesScraped?: number;
+  next_page_url?: string | null;
+  nextPageUrl?: string | null;
+  error_message?: string;
+  errorMessage?: string;
+}
+
+function mapRawToExecutionHistory(raw: RawExecution): ExecutionHistory {
+  return {
+    id: raw.id,
+    timestamp: raw.timestamp,
+    status: raw.status,
+    duration: raw.duration,
+    recordsExtracted:
+      raw.result_count ?? raw.resultCount ?? raw.recordsExtracted,
+    pagesScraped: raw.pages_scraped ?? raw.pagesScraped,
+    nextPageUrl: raw.next_page_url ?? raw.nextPageUrl ?? null,
+    errorMessage: raw.error_message ?? raw.errorMessage,
+  };
+}
+
 export class ApiExecutionRepository implements IApiExecutionRepository {
   constructor(private readonly httpClient: HttpClient) {}
 
@@ -16,7 +48,9 @@ export class ApiExecutionRepository implements IApiExecutionRepository {
       );
 
       const { data } = response;
-      const contentType = response.headers["content-type"] as string | undefined;
+      const contentType = response.headers["content-type"] as
+        | string
+        | undefined;
 
       if (!data) throw new ApiExecutionError("Nessun dato ricevuto dal server");
 
@@ -44,19 +78,32 @@ export class ApiExecutionRepository implements IApiExecutionRepository {
           data: data.data,
           contentType,
           nextPageUrl: (data.nextPageUrl as string | null) ?? null,
-          pagesScraped: (data.meta as { pagesScraped?: number })?.pagesScraped ?? 1,
+          pagesScraped:
+            (data.meta as { pagesScraped?: number })?.pagesScraped ?? 1,
         } satisfies ExecutionResult;
       }
 
       // CASO 3: Array grezzo
       if (Array.isArray(data)) {
-        return { status: response.status, statusText: response.statusText, duration: 0, data };
+        return {
+          status: response.status,
+          statusText: response.statusText,
+          duration: 0,
+          data,
+        };
       }
 
       // CASO 4: Oggetto qualsiasi
-      return { status: response.status, statusText: response.statusText, duration: 0, data };
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        duration: 0,
+        data,
+      };
     } catch (error: unknown) {
-      const e = error as { response?: { data?: { message?: string }; status?: number } };
+      const e = error as {
+        response?: { data?: { message?: string }; status?: number };
+      };
       throw new ApiExecutionError(
         e.response?.data?.message ?? "Errore nell'esecuzione dell'API",
         e.response?.status,
@@ -65,11 +112,6 @@ export class ApiExecutionRepository implements IApiExecutionRepository {
     }
   }
 
-  /**
-   * Resumes API execution from where the last run stopped.
-   * Backend: POST /executions/resume/:configId
-   * The backend reads nextPageUrl from the last execution automatically.
-   */
   async resume(configId: string, maxPages?: number): Promise<ExecutionResult> {
     if (!configId) throw new Error("configId is required");
     try {
@@ -83,11 +125,16 @@ export class ApiExecutionRepository implements IApiExecutionRepository {
         statusText: response.statusText,
         duration: 0,
         data: (data as { data?: unknown }).data ?? data,
-        nextPageUrl: (data as { nextPageUrl?: string | null }).nextPageUrl ?? null,
-        pagesScraped: (data as { meta?: { pagesScraped?: number } }).meta?.pagesScraped ?? 0,
+        nextPageUrl:
+          (data as { nextPageUrl?: string | null }).nextPageUrl ?? null,
+        pagesScraped:
+          (data as { meta?: { pagesScraped?: number } }).meta?.pagesScraped ??
+          0,
       } satisfies ExecutionResult;
     } catch (error: unknown) {
-      const e = error as { response?: { data?: { message?: string }; status?: number } };
+      const e = error as {
+        response?: { data?: { message?: string }; status?: number };
+      };
       throw new ApiExecutionError(
         e.response?.data?.message ?? "Errore nel resume dell'API",
         e.response?.status,
@@ -96,16 +143,22 @@ export class ApiExecutionRepository implements IApiExecutionRepository {
     }
   }
 
-  async getLogsByConfig(configId: string, limit: number = 50): Promise<ExecutionHistory[]> {
+  async getLogsByConfig(
+    configId: string,
+    limit: number = 50,
+  ): Promise<ExecutionHistory[]> {
     try {
-      const response = await this.httpClient.get<ExecutionHistory[]>(
+      const response = await this.httpClient.get<RawExecution[]>(
         `/executions/${configId}`,
         { params: { limit } },
       );
-      return response.data;
+      return response.data.map(mapRawToExecutionHistory);
     } catch (error: unknown) {
       const e = error as { response?: { status?: number } };
-      throw new ApiExecutionError("Errore nel recupero della cronologia esecuzioni", e.response?.status);
+      throw new ApiExecutionError(
+        "Errore nel recupero della cronologia esecuzioni",
+        e.response?.status,
+      );
     }
   }
 
@@ -114,7 +167,10 @@ export class ApiExecutionRepository implements IApiExecutionRepository {
       await this.httpClient.delete(`/executions/${configId}/${executionId}`);
     } catch (error: unknown) {
       const e = error as { response?: { status?: number } };
-      throw new ApiExecutionError("Errore durante l'eliminazione del log", e.response?.status);
+      throw new ApiExecutionError(
+        "Errore durante l'eliminazione del log",
+        e.response?.status,
+      );
     }
   }
 
@@ -127,7 +183,10 @@ export class ApiExecutionRepository implements IApiExecutionRepository {
       return response.data as Blob;
     } catch (error: unknown) {
       const e = error as { response?: { status?: number } };
-      throw new ApiExecutionError("Errore durante la generazione del file di download", e.response?.status);
+      throw new ApiExecutionError(
+        "Errore durante la generazione del file di download",
+        e.response?.status,
+      );
     }
   }
 }

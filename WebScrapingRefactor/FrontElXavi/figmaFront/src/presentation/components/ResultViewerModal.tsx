@@ -1,4 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
+import { downloadFile } from "../utils/downloadFile";
+
 import {
   Dialog,
   DialogContent,
@@ -8,9 +10,7 @@ import {
   DialogFooter,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { FileJson, FileText, FileCode } from "lucide-react";
-//import type { ExecutionResult } from "../../domain/entities/ExecutionResult";
+import { Download, Copy } from "lucide-react";
 
 interface ResultViewerModalProps {
   isOpen: boolean;
@@ -22,22 +22,19 @@ interface ResultViewerModalProps {
     meta?: { pagesScraped?: number; totalItems?: number };
   } | null;
 }
+
 function safeMarkdownCell(value: any): string {
   if (value === null || value === undefined) return '';
   if (typeof value === 'object') {
-    // Serializza oggetti/array in JSON compatto
     return JSON.stringify(value).replace(/\|/g, '\\|').replace(/\n/g, ' ');
   }
-  // Per stringhe e primitivi, escape delle pipe
   return String(value).replace(/\|/g, '\\|').replace(/\n/g, ' ');
 }
 
-// Helper: convert JSON to Markdown table if possible
 function jsonToMarkdownTable(data: any): string {
   if (!data) return 'No data';
   if (typeof data !== 'object') return String(data);
 
-  // Caso array di oggetti
   if (
     Array.isArray(data) &&
     data.length > 0 &&
@@ -58,20 +55,16 @@ function jsonToMarkdownTable(data: any): string {
     return `${headerRow}\n${separator}\n${bodyRows}`;
   }
 
-  // Se è un array ma non di oggetti, o un oggetto singolo, mostra come blocco di codice
   return '```json\n' + JSON.stringify(data, null, 2) + '\n```';
 }
+
 export function ResultViewerModal({
   isOpen,
   onClose,
   result,
 }: ResultViewerModalProps) {
-  const [activeTab, setActiveTab] = useState<"json" | "markdown" | "html">(
-    "json",
-  );
-  const [selectedFormat, setSelectedFormat] = useState<
-    "json" | "markdown" | "html"
-  >("json");
+  // Rinominato in "activeFormat" per riflettere l'assenza di Tabs
+  const [activeFormat, setActiveFormat] = useState<"json" | "markdown" | "html">("json");
 
   const data = result?.data;
   const contentType = result?.contentType || "";
@@ -84,53 +77,34 @@ export function ResultViewerModal({
     typeof data === "object" ? JSON.stringify(data, null, 2) : String(data ?? "");
   const markdownTable = useMemo(() => jsonToMarkdownTable(data), [data]);
 
-  // Sync the select with the visible preview tab so preview updates when format changes
-  useEffect(() => {
-    setActiveTab(selectedFormat);
-  }, [selectedFormat]);
-
   if (!result) return null;
 
-  const handleDownload = (format: "json" | "markdown" | "html") => {
-    let content = "";
-    let mime = "";
-    let ext = "";
-
-    if (format === "json") {
-      content = jsonString;
-      mime = "application/json";
-      ext = "json";
-    } else if (format === "markdown") {
-      content = markdownTable;
-      mime = "text/markdown";
-      ext = "md";
-    } else {
-      // html
-      content =
-        isHtml && typeof data === "string" ? data : `<pre>${jsonString}</pre>`;
-      mime = "text/html";
-      ext = "html";
-    }
-
-    const blob = new Blob([content], { type: mime });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `execution-result.${ext}`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const contentMap: Record<"json" | "markdown" | "html", { content: string; mime: string; ext: string }> = {
+    json: { content: jsonString, mime: "application/json", ext: "json" },
+    markdown: { content: markdownTable, mime: "text/markdown", ext: "md" },
+    html: {
+      content: isHtml && typeof data === "string" ? data : `<pre>${jsonString}</pre>`,
+      mime: "text/html",
+      ext: "html",
+    },
   };
 
-  const handleDownloadSelected = () => handleDownload(selectedFormat);
+  const handleDownload = async () => {
+  try {
+    const { content, ext } = contentMap[activeFormat];
+    await downloadFile(content, `execution-result.${ext}`, ext);
+    console.log("Download completato con successo!");
+    
+  } catch (error) {
+    console.error("Errore irreversibile durante il salvataggio del file:", error);
+    
+  }
+};
 
   const handleCopy = async () => {
     try {
-      if (activeTab === "json") await navigator.clipboard.writeText(jsonString);
-      else if (activeTab === "markdown")
-        await navigator.clipboard.writeText(markdownTable);
-      else if (isHtml && typeof data === "string")
-        await navigator.clipboard.writeText(data);
-      else await navigator.clipboard.writeText(jsonString);
+      const { content } = contentMap[activeFormat];
+      await navigator.clipboard.writeText(content);
     } catch (e) {
       console.error("Copy failed:", e);
     }
@@ -146,140 +120,79 @@ export function ResultViewerModal({
             copy the content.
           </DialogDescription>
 
-          <form
-            className="mt-3 flex items-center gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleDownloadSelected();
-            }}
-          >
-            <label className="text-xs text-zinc-400">Download:</label>
+          <div className="mt-3 flex items-center gap-2">
+            <label className="text-xs text-zinc-400">Format:</label>
             <select
-              value={selectedFormat}
-              onChange={(e) => setSelectedFormat(e.target.value as any)}
-              className="bg-zinc-900 border border-zinc-800 text-sm text-white px-2 py-1 rounded"
+              value={activeFormat}
+              onChange={(e) => setActiveFormat(e.target.value as "json" | "markdown" | "html")}
+              className="bg-zinc-900 border border-zinc-800 text-sm text-white px-2 py-1.5 rounded outline-none focus:border-indigo-500 transition-colors"
             >
               <option value="json">JSON</option>
               <option value="markdown">Markdown</option>
-              <option value="html">HTML</option>
+              {isHtml && <option value="html">HTML</option>}
             </select>
 
-            <button
-              type="submit"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded text-sm"
+            <Button
+              size="sm"
+              onClick={handleDownload}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 px-3 ml-1 rounded text-sm"
             >
-              Download
-            </button>
+              <Download className="h-4 w-4 mr-2" /> Download
+            </Button>
 
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleCopy}
-              className="ml-2 bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-1 rounded text-sm"
+              className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800 text-white h-8 px-3 rounded text-sm"
             >
-              Copy
-            </button>
-          </form>
+              <Copy className="h-4 w-4 mr-2" /> Copy
+            </Button>
+          </div>
         </DialogHeader>
 
-        <Tabs
-          value={activeTab}
-          onValueChange={(v) => {
-            setActiveTab(v as typeof activeTab);
-            setSelectedFormat(v as any);
-          }}
-          className="flex-1 flex flex-col min-h-0"
-        >
-          <TabsList className="bg-zinc-900 border border-zinc-800 self-start">
-            <TabsTrigger
-              value="json"
-              className="data-[state=active]:bg-indigo-600"
-            >
-              JSON
-            </TabsTrigger>
-            <TabsTrigger
-              value="markdown"
-              className="data-[state=active]:bg-indigo-600"
-            >
-              Markdown
-            </TabsTrigger>
-            {isHtml && (
-              <TabsTrigger
-                value="html"
-                className="data-[state=active]:bg-indigo-600"
-              >
-                HTML
-              </TabsTrigger>
-            )}
-          </TabsList>
+        {/* CONTENITORE PRINCIPALE (Renderizzazione Condizionale invece dei Tabs) */}
+        <div className="flex-1 overflow-auto mt-4 border border-zinc-800 rounded-lg bg-zinc-900 p-4 min-h-0 flex flex-col">
+          
+          {activeFormat === "json" && (
+            <textarea
+              readOnly
+              value={jsonString}
+              className="text-sm font-mono text-zinc-300 whitespace-pre-wrap w-full bg-transparent border-0 outline-none resize-none overflow-auto flex-1 p-2"
+            />
+          )}
 
-          <div className="flex-1 overflow-auto mt-4 border border-zinc-800 rounded-lg bg-zinc-900 p-4 min-h-0 flex flex-col">
-            <TabsContent value="json" className="m-0 h-full flex-1">
-              <textarea
-                readOnly
-                value={jsonString}
-                className="text-sm font-mono text-zinc-300 whitespace-pre-wrap w-full bg-transparent border-0 outline-none resize-none overflow-auto flex-1 p-2"
-              />
-            </TabsContent>
+          {activeFormat === "markdown" && (
+            <textarea
+              readOnly
+              value={markdownTable}
+              className="text-sm font-mono text-zinc-300 whitespace-pre-wrap w-full bg-transparent border-0 outline-none resize-none overflow-auto flex-1 p-2"
+            />
+          )}
 
-            <TabsContent value="markdown" className="m-0 h-full flex-1">
-              <textarea
-                readOnly
-                value={markdownTable}
-                className="text-sm font-mono text-zinc-300 whitespace-pre-wrap w-full bg-transparent border-0 outline-none resize-none overflow-auto flex-1 p-2"
-              />
-            </TabsContent>
+          {activeFormat === "html" && isHtml && (
+            <>
+              {typeof data === "string" && data.trim().startsWith("<") ? (
+                <iframe
+                  srcDoc={data}
+                  title="HTML Result"
+                  className="w-full h-[78vh] border-0 bg-white rounded"
+                  sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                />
+              ) : (
+                <div
+                  className="overflow-auto flex-1"
+                  dangerouslySetInnerHTML={{
+                    __html: `<pre>${jsonString}</pre>`,
+                  }}
+                />
+              )}
+            </>
+          )}
 
-            {isHtml && (
-              <TabsContent value="html" className="m-0 h-full">
-                {typeof data === "string" && data.trim().startsWith("<") ? (
-                  <iframe
-                    srcDoc={data}
-                    title="HTML Result"
-                    className="w-full h-[78vh] border-0 bg-white rounded"
-                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                  />
-                ) : (
-                  <div
-                    className="overflow-auto flex-1"
-                    dangerouslySetInnerHTML={{
-                      __html: `<pre>${jsonString}</pre>`,
-                    }}
-                  />
-                )}
-              </TabsContent>
-            )}
-          </div>
-        </Tabs>
+        </div>
 
-        <DialogFooter className="flex sm:justify-between gap-2 mt-4">
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleDownload("json")}
-              className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800"
-            >
-              <FileJson className="h-4 w-4 mr-2" /> JSON
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleDownload("markdown")}
-              className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800"
-            >
-              <FileText className="h-4 w-4 mr-2" /> Markdown
-            </Button>
-            {isHtml && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleDownload("html")}
-                className="bg-zinc-900 border-zinc-800 hover:bg-zinc-800"
-              >
-                <FileCode className="h-4 w-4 mr-2" /> HTML
-              </Button>
-            )}
-          </div>
+        <DialogFooter className="flex sm:justify-end mt-4">
           <Button onClick={onClose} variant="ghost">
             Close
           </Button>
